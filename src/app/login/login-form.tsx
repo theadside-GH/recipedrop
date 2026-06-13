@@ -1,0 +1,85 @@
+"use client";
+
+import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { ChefHat, Mail, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { safeRedirectPath } from "@/lib/auth-redirect";
+import { getBrowserSupabase } from "@/lib/supabase/client";
+
+export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
+  const params = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const denied = params.get("denied");
+  const next = safeRedirectPath(params.get("next"));
+
+  async function sendLink() {
+    if (!email.trim()) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const supabase = getBrowserSupabase();
+      const confirmUrl = new URL("/auth/confirm", window.location.origin);
+      if (next !== "/") confirmUrl.searchParams.set("next", next);
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: { emailRedirectTo: confirmUrl.toString() },
+      });
+      if (error) throw error;
+      setSent(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't send the magic link.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center text-center">
+      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground">
+        <ChefHat className="h-7 w-7" />
+      </span>
+      <h1 className="mt-4 text-2xl font-bold">Welcome to RecipeDrop</h1>
+      <p className="mt-1 text-muted">Sign in with a magic link — no password needed.</p>
+
+      {!authEnabled ? (
+        <p className="mt-6 rounded-xl border border-border bg-surface p-4 text-sm text-muted">
+          Auth isn&apos;t configured. The app is running in local single-user mode — just
+          go to the home page.
+        </p>
+      ) : sent ? (
+        <p className="mt-6 rounded-xl border border-fresh/30 bg-fresh-soft p-4 text-sm text-fresh">
+          Check your email — we sent a sign-in link to <strong>{email}</strong>.
+        </p>
+      ) : (
+        <div className="mt-6 w-full space-y-3">
+          {denied && (
+            <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+              That account isn&apos;t allowed. Use the owner email.
+            </p>
+          )}
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+            <Input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && sendLink()}
+              placeholder="you@example.com"
+              className="pl-11"
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <Button onClick={sendLink} disabled={busy} className="w-full" size="lg">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Send magic link
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
