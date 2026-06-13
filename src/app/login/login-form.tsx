@@ -59,7 +59,7 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
         <div className="mt-6 w-full space-y-3">
           {denied && (
             <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-              That account isn&apos;t allowed. Use the owner email.
+              Sign-in failed. Use the owner email and request a fresh magic link.
             </p>
           )}
           <div className="relative">

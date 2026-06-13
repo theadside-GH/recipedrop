@@ -6,12 +6,18 @@ import { getServerSupabase } from "@/lib/supabase/server";
 /** Magic-link confirmation endpoint. Verifies the token and redirects home. */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
+  const code = searchParams.get("code");
   const token_hash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const next = safeRedirectPath(searchParams.get("next"));
+  const supabase = await getServerSupabase();
+
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) return NextResponse.redirect(`${origin}${next}`);
+  }
 
   if (token_hash && type) {
-    const supabase = await getServerSupabase();
     const { error } = await supabase.auth.verifyOtp({ type, token_hash });
     if (!error) return NextResponse.redirect(`${origin}${next}`);
   }
