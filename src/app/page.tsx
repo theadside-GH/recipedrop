@@ -15,12 +15,17 @@ export default async function LibraryPage({
 }) {
   const sp = await searchParams;
   const owner = await getOwnerEmail();
-  const recipes = await listRecipes(owner, {
-    mealType: sp.meal,
-    maxMinutes: sp.max ? Number(sp.max) : undefined,
-    search: sp.q,
-    tag: sp.tag,
-  });
+  let recipes;
+  try {
+    recipes = await listRecipes(owner, {
+      mealType: sp.meal,
+      maxMinutes: sp.max ? Number(sp.max) : undefined,
+      search: sp.q,
+      tag: sp.tag,
+    });
+  } catch {
+    return <DeploymentIssue />;
+  }
 
   return (
     <div className="space-y-6">
@@ -49,6 +54,21 @@ export default async function LibraryPage({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function DeploymentIssue() {
+  return (
+    <div className="mx-auto max-w-xl rounded-lg border border-border bg-surface p-6">
+      <h1 className="text-xl font-semibold">RecipeDrop needs one deployment setting fixed</h1>
+      <p className="mt-2 text-sm text-muted">
+        The app is online, but it cannot reach its recipe database from this Vercel project.
+      </p>
+      <div className="mt-4 rounded-md bg-background p-4 text-sm">
+        Check that <strong>DATABASE_URL</strong> is set on this exact Vercel project, then
+        redeploy.
+      </div>
     </div>
   );
 }
