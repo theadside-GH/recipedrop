@@ -11,7 +11,14 @@ export const dynamic = "force-dynamic";
 export default async function LibraryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ meal?: string; max?: string; q?: string; tag?: string }>;
+  searchParams: Promise<{
+    meal?: string;
+    max?: string;
+    q?: string;
+    tag?: string;
+    favorite?: string;
+    sort?: "newest" | "oldest" | "favorites" | "quickest" | "title";
+  }>;
 }) {
   const sp = await searchParams;
   const owner = await getOwnerEmail();
@@ -22,6 +29,8 @@ export default async function LibraryPage({
       maxMinutes: sp.max ? Number(sp.max) : undefined,
       search: sp.q,
       tag: sp.tag,
+      favorite: sp.favorite === "1",
+      sort: sp.sort,
     });
   } catch {
     return <DeploymentIssue />;
@@ -32,8 +41,8 @@ export default async function LibraryPage({
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Your recipes</h1>
-          <p className="mt-1 text-muted">
-            {recipes.length} recipe{recipes.length === 1 ? "" : "s"} - search & filter below
+      <p className="mt-1 text-muted">
+            {recipes.length} recipe{recipes.length === 1 ? "" : "s"} - search, sort & filter below
           </p>
         </div>
         <Link href="/import" className="hidden sm:block">

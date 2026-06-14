@@ -1,6 +1,4 @@
 import "server-only";
-import { JSDOM } from "jsdom";
-import { Readability } from "@mozilla/readability";
 import type { SourceContent } from "./types";
 
 const UA =
@@ -34,12 +32,142 @@ function isSocialHost(url: string): boolean {
   }
 }
 
-function meta(dom: JSDOM, prop: string): string | null {
-  const doc = dom.window.document;
-  const el =
-    doc.querySelector(`meta[property="${prop}"]`) ??
-    doc.querySelector(`meta[name="${prop}"]`);
-  return el?.getAttribute("content")?.trim() || null;
+function isTikTokHost(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, "");
+    return host === "tiktok.com" || host.endsWith(".tiktok.com");
+  } catch {
+    return false;
+  }
+}
+
+async function fetchTikTokOembed(url: string): Promise<SourceContent | null> {
+  const res = await fetch(
+    `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
+    { headers: { "user-agent": UA, accept: "application/json" } },
+  );
+  if (!res.ok) return null;
+  const data = (await res.json()) as {
+    title?: string;
+    author_name?: string;
+    thumbnail_url?: string;
+  };
+  const caption = data.title?.trim();
+  if (!caption || caption.length < 40) return null;
+  return {
+    text: `Recipe from a TikTok post${data.author_name ? ` by ${data.author_name}` : ""}:\n\n${caption}`,
+    imageUrl: data.thumbnail_url ?? null,
+    description: captionToDescription(caption),
+    author: data.author_name ?? null,
+    context: url,
+  };
+}
+
+function fetchTikTokEmbeddedData(html: string, url: string): SourceContent | null {
+  const raw = html.match(
+    /<script\b[^>]*id=["']__UNIVERSAL_DATA_FOR_REHYDRATION__["'][^>]*>([\s\S]*?)<\/script>/i,
+  )?.[1];
+  if (!raw) return null;
+
+  try {
+    const data = JSON.parse(raw) as {
+      __DEFAULT_SCOPE__?: {
+        "webapp.video-detail"?: {
+          itemInfo?: {
+            itemStruct?: {
+              desc?: string;
+              author?: { nickname?: string; uniqueId?: string };
+              video?: { cover?: string; originCover?: string; dynamicCover?: string };
+            };
+          };
+        };
+      };
+    };
+    const item = data.__DEFAULT_SCOPE__?.["webapp.video-detail"]?.itemInfo?.itemStruct;
+    const caption = item?.desc?.trim();
+    if (!item || !caption || caption.length < 40) return null;
+    const author = item.author?.nickname ?? item.author?.uniqueId ?? null;
+    return {
+      text: `Recipe from a TikTok post${author ? ` by ${author}` : ""}:\n\n${caption}`,
+      imageUrl: item.video?.cover ?? item.video?.originCover ?? item.video?.dynamicCover ?? null,
+      description: captionToDescription(caption),
+      author,
+      context: url,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function decodeHtml(value: string): string {
+  return value
+    .replace(/&quot;/g, "\"")
+    .replace(/&#34;/g, "\"")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#39;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .trim();
+}
+
+function captionToDescription(caption: string): string | null {
+  const cleaned = caption
+    .replace(/#[\p{L}\p{N}_]+/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length < 12) return null;
+  return cleaned.slice(0, 220);
+}
+
+function meta(html: string, prop: string): string | null {
+  const tags = html.match(/<meta\b[^>]*>/gi) ?? [];
+  for (const tag of tags) {
+    const key = tag.match(/\b(?:property|name)=["']([^"']+)["']/i)?.[1];
+    if (key !== prop) continue;
+    const content = tag.match(/\bcontent=["']([^"']*)["']/i)?.[1];
+    if (content) return decodeHtml(content);
+  }
+  return null;
+}
+
+function absoluteUrl(value: string, pageUrl: string): string | null {
+  try {
+    return new URL(decodeHtml(value), pageUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+function bestImageFromHtml(html: string, pageUrl: string): string | null {
+  const candidates = new Set<string>();
+  for (const key of ["og:image", "twitter:image", "twitter:image:src"]) {
+    const value = meta(html, key);
+    if (value) candidates.add(value);
+  }
+
+  const matches = html.match(
+    /https?:[^"'<>\s)]+?\.(?:jpg|jpeg|png|webp)(?:\?[^"'<>\s)]*)?/gi,
+  ) ?? [];
+  for (const value of matches) candidates.add(value);
+
+  const scored = [...candidates]
+    .map((value) => absoluteUrl(value, pageUrl))
+    .filter((value): value is string => !!value)
+    .filter((value) => !/(?:logo|icon|favicon|avatar|sprite|placeholder|blank|cropped-tab)/i.test(value))
+    .map((value) => ({ value, score: imageScore(value) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score);
+
+  return scored[0]?.value ?? null;
+}
+
+function imageScore(url: string): number {
+  const dimension = url.toLowerCase().match(/-(\d{2,4})x(\d{2,4})\.(?:jpe?g|png|webp)/);
+  const area = dimension ? Number(dimension[1]) * Number(dimension[2]) : 0;
+  const unscaled = /\/[^/?]+(?<!-\d{2,4}x\d{2,4})\.(?:jpe?g|webp)(?:[?#].*)?$/i.test(url);
+  const foodFormat = /\.(?:jpe?g|webp)(?:[?#].*)?$/i.test(url);
+  return (foodFormat ? 1000 : 0) + (unscaled ? 900000 : area);
 }
 
 /**
@@ -61,11 +189,11 @@ function cleanSocialCaption(raw: string): string {
 }
 
 /** Best-effort recipe pull from a social post via its Open Graph metadata. */
-function fetchSocialCaption(dom: JSDOM, url: string): SourceContent {
+function fetchSocialCaption(html: string, url: string): SourceContent {
   const host = new URL(url).hostname.replace(/^www\./, "").replace(/\.com$/, "");
   const platform = host.charAt(0).toUpperCase() + host.slice(1);
-  const title = meta(dom, "og:title");
-  const desc = meta(dom, "og:description");
+  const title = meta(html, "og:title");
+  const desc = meta(html, "og:description");
   // og:title carries the FULL caption on Instagram; og:description is truncated
   // and prefixed with like/comment counts. Take whichever yields more recipe.
   const fromTitle = cleanSocialCaption(title ?? "");
@@ -83,20 +211,24 @@ function fetchSocialCaption(dom: JSDOM, url: string): SourceContent {
   }
   return {
     text: `Recipe from a ${platform} post${author ? ` by ${author}` : ""}:\n\n${caption}`,
-    imageUrl: meta(dom, "og:image"),
+    imageUrl: meta(html, "og:image"),
+    description: captionToDescription(caption),
     author,
     context: url,
   };
 }
 
 /** Collect every JSON-LD block, flattening @graph arrays. */
-function collectJsonLd(dom: JSDOM): unknown[] {
-  const nodes = [
-    ...dom.window.document.querySelectorAll('script[type="application/ld+json"]'),
-  ];
+function collectJsonLd(html: string): unknown[] {
+  const nodes = html.match(
+    /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi,
+  ) ?? [];
   const out: unknown[] = [];
   for (const node of nodes) {
-    const raw = node.textContent?.trim();
+    const raw = node
+      .replace(/^<script\b[^>]*>/i, "")
+      .replace(/<\/script>$/i, "")
+      .trim();
     if (!raw) continue;
     try {
       const parsed = JSON.parse(raw);
@@ -177,6 +309,7 @@ function recipeNodeToText(node: Record<string, unknown>): SourceContent {
   return {
     text: lines.join("\n"),
     imageUrl: firstImage(node.image),
+    description: asText(node.description) || null,
     author: author || null,
   };
 }
@@ -188,33 +321,48 @@ function recipeNodeToText(node: Record<string, unknown>): SourceContent {
  */
 export async function fetchWebsite(url: string): Promise<SourceContent> {
   const social = isSocialHost(url);
+  if (isTikTokHost(url)) {
+    const oembed = await fetchTikTokOembed(url).catch(() => null);
+    if (oembed) return oembed;
+    const html = await fetchHtml(url, UA);
+    const embedded = fetchTikTokEmbeddedData(html, url);
+    if (embedded) return embedded;
+    return fetchSocialCaption(html, url);
+  }
   const html = await fetchHtml(url, social ? CRAWLER_UA : UA);
-  const dom = new JSDOM(html, { url });
 
-  if (social) return fetchSocialCaption(dom, url);
+  if (social) return fetchSocialCaption(html, url);
 
-  const recipeNode = collectJsonLd(dom).find(isRecipeNode);
+  const recipeNode = collectJsonLd(html).find(isRecipeNode);
   if (recipeNode) {
     const content = recipeNodeToText(recipeNode);
-    return { ...content, context: url };
+    return {
+      ...content,
+      imageUrl: content.imageUrl ?? bestImageFromHtml(html, url),
+      context: url,
+    };
   }
 
-  // Fallback: Readability strips nav/ads/comments down to the article body.
-  const ogImage = dom.window.document
-    .querySelector('meta[property="og:image"]')
-    ?.getAttribute("content");
-  const reader = new Readability(dom.window.document);
-  const article = reader.parse();
-  const text = article?.textContent?.trim();
+  const ogImage = bestImageFromHtml(html, url);
+  const ogDescription = meta(html, "og:description") ?? meta(html, "description");
+  const title = meta(html, "og:title") ?? html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
+  const text = html
+    .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 16000);
   if (!text) {
     throw new Error(
       "Couldn't read a recipe from that page. Try pasting the recipe text instead.",
     );
   }
   return {
-    text: `${article?.title ? `Title: ${article.title}\n\n` : ""}${text}`.slice(0, 16000),
+    text: `${title ? `Title: ${decodeHtml(title)}\n\n` : ""}${decodeHtml(text)}`.slice(0, 16000),
     imageUrl: ogImage ?? null,
-    author: article?.byline ?? null,
+    description: ogDescription ? captionToDescription(ogDescription) : null,
+    author: null,
     context: url,
   };
 }

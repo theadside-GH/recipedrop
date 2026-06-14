@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SiteNav } from "@/components/site-nav";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 
 export const metadata: Metadata = {
   title: "RecipeDrop - your recipes, sorted",
@@ -8,7 +9,10 @@ export const metadata: Metadata = {
     "Import recipes from anywhere, plan your week, and get one smart shopping list.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "RecipeDrop", statusBarStyle: "default" },
-  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export const viewport: Viewport = {
@@ -23,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body className="min-h-full bg-background">
+        <ServiceWorkerRegister />
         <SiteNav />
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 sm:pb-10">
           {children}

@@ -6,11 +6,12 @@ import { features } from "@/lib/env";
 import {
   createSingleJob,
   createBulkJobs,
+  updateJob,
   type ImportJobRow,
 } from "@/lib/repo/imports";
-import { processJob, processPhotoImport } from "@/lib/import/process";
 import { detectSourceType } from "@/lib/sources/detect";
-import { deleteRecipe } from "@/lib/repo/recipes";
+import { deleteRecipe, setRecipeFavorite } from "@/lib/repo/recipes";
+import { randomUUID } from "node:crypto";
 import {
   createPlan,
   addRecipeToPlan,
@@ -44,31 +45,64 @@ function toView(j: ImportJobRow): JobView {
   };
 }
 
+function failedJob(label: string, error: string, sourceType: ImportJobRow["sourceType"] = "text"): JobView {
+  return {
+    id: randomUUID(),
+    label,
+    sourceType,
+    status: "failed",
+    error,
+    recipeId: null,
+  };
+}
+
 /** Create import job(s) from a single link/text or a bulk paste, return them pending. */
 export async function startImport(input: {
   mode: "single" | "bulk";
   value: string;
 }): Promise<{ jobs: JobView[]; aiEnabled: boolean }> {
-  const owner = await getOwnerEmail();
-  if (input.mode === "bulk") {
-    const { jobs } = await createBulkJobs(owner, input.value);
-    return { jobs: jobs.map(toView), aiEnabled: features.aiEnabled };
+  try {
+    const owner = await getOwnerEmail();
+    if (input.mode === "bulk") {
+      const { jobs } = await createBulkJobs(owner, input.value);
+      return { jobs: jobs.map(toView), aiEnabled: features.aiEnabled };
+    }
+    const type = detectSourceType(input.value);
+    const job = await createSingleJob(owner, type, input.value);
+    return { jobs: [toView(job)], aiEnabled: features.aiEnabled };
+  } catch (error) {
+    console.error("Import start failed", error);
+    return {
+      jobs: [
+        failedJob(
+          input.value.trim().slice(0, 80) || "Import",
+          "Import could not start. Check that the database is reachable, then try again.",
+        ),
+      ],
+      aiEnabled: features.aiEnabled,
+    };
   }
-  const type = detectSourceType(input.value);
-  const job = await createSingleJob(owner, type, input.value);
-  return { jobs: [toView(job)], aiEnabled: features.aiEnabled };
 }
 
 /** Run a single pending import job to completion and return its final state. */
 export async function runImportJob(jobId: string): Promise<JobView | null> {
-  const job = await processJob(jobId);
-  if (job?.status === "done") revalidatePath("/");
-  return job ? toView(job) : null;
+  try {
+    const { processJob } = await import("@/lib/import/process");
+    const job = await processJob(jobId);
+    if (job?.status === "done") revalidatePath("/");
+    return job ? toView(job) : null;
+  } catch (error) {
+    console.error("Import job failed", error);
+    const message = error instanceof Error ? error.message : "Import failed while processing.";
+    const failed = await updateJob(jobId, { status: "failed", error: message });
+    return failed ? toView(failed) : failedJob("Import failed", "Import failed while processing. Try again.");
+  }
 }
 
 /** Import one or more recipe photos directly (vision). Returns the new recipe id. */
 export async function importPhotos(images: ImageInput[]): Promise<{ recipeId: string }> {
   const owner = await getOwnerEmail();
+  const { processPhotoImport } = await import("@/lib/import/process");
   const recipeId = await processPhotoImport(owner, images);
   revalidatePath("/");
   return { recipeId };
@@ -79,6 +113,12 @@ export async function importPhotos(images: ImageInput[]): Promise<{ recipeId: st
 export async function deleteRecipeAction(id: string): Promise<void> {
   await deleteRecipe(id);
   revalidatePath("/");
+}
+
+export async function setFavoriteAction(id: string, isFavorite: boolean): Promise<void> {
+  await setRecipeFavorite(id, isFavorite);
+  revalidatePath("/");
+  revalidatePath(`/recipes/${id}`);
 }
 
 // ---- Meal plans -----------------------------------------------------------

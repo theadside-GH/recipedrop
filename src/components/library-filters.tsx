@@ -1,14 +1,21 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { Heart, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const MEALS = ["breakfast", "lunch", "dinner", "snack", "dessert"];
+const MEALS = ["breakfast", "lunch", "dinner", "snack", "dessert", "side", "drink"];
 const TIMES = [
-  { label: "≤ 15 min", value: "15" },
-  { label: "≤ 30 min", value: "30" },
-  { label: "≤ 60 min", value: "60" },
+  { label: "<= 15 min", value: "15" },
+  { label: "<= 30 min", value: "30" },
+  { label: "<= 60 min", value: "60" },
+];
+const SORTS = [
+  { label: "Newest", value: "newest" },
+  { label: "Oldest", value: "oldest" },
+  { label: "Favorites", value: "favorites" },
+  { label: "Quickest", value: "quickest" },
+  { label: "Title", value: "title" },
 ];
 
 export function LibraryFilters() {
@@ -17,15 +24,18 @@ export function LibraryFilters() {
   const meal = params.get("meal") ?? "";
   const max = params.get("max") ?? "";
   const search = params.get("q") ?? "";
+  const favorite = params.get("favorite") === "1";
+  const sort = params.get("sort") ?? "newest";
 
   function setParam(key: string, value: string) {
     const next = new URLSearchParams(params.toString());
     if (value && next.get(key) !== value) next.set(key, value);
     else next.delete(key);
+    if (key === "sort" && value === "newest") next.delete("sort");
     router.push(`/?${next.toString()}`);
   }
 
-  const hasFilters = meal || max || search;
+  const hasFilters = meal || max || search || favorite || sort !== "newest";
 
   return (
     <div className="space-y-3">
@@ -33,7 +43,7 @@ export function LibraryFilters() {
         <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
         <input
           defaultValue={search}
-          placeholder="Search recipes…"
+          placeholder="Search recipes..."
           onKeyDown={(e) => {
             if (e.key === "Enter") setParam("q", (e.target as HTMLInputElement).value);
           }}
@@ -46,6 +56,10 @@ export function LibraryFilters() {
         <Chip active={!meal} onClick={() => setParam("meal", "")}>
           All meals
         </Chip>
+        <Chip active={favorite} onClick={() => setParam("favorite", favorite ? "" : "1")}>
+          <Heart className={cn("h-3.5 w-3.5", favorite && "fill-current")} />
+          Favorites
+        </Chip>
         {MEALS.map((m) => (
           <Chip key={m} active={meal === m} onClick={() => setParam("meal", m)} className="capitalize">
             {m}
@@ -55,6 +69,12 @@ export function LibraryFilters() {
         {TIMES.map((t) => (
           <Chip key={t.value} active={max === t.value} onClick={() => setParam("max", t.value)}>
             {t.label}
+          </Chip>
+        ))}
+        <span className="mx-1 w-px shrink-0 bg-border" />
+        {SORTS.map((s) => (
+          <Chip key={s.value} active={sort === s.value} onClick={() => setParam("sort", s.value)}>
+            {s.label}
           </Chip>
         ))}
         {hasFilters && (

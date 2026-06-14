@@ -9,7 +9,7 @@ Rules:
 - Write steps that are clear and idiot-proof: short, numbered actions a beginner can follow. Split run-on instructions into separate steps. If a step implies waiting or cooking time, set durationMinutes.
 - Times: fill prepMinutes, cookMinutes and totalMinutes when stated or reasonably inferable. totalMinutes should be the realistic time from start to plate.
 - servings: the number of servings the quantities are written for.
-- mealType: pick the single best fit.
+- mealType: must be exactly one of breakfast, lunch, dinner, snack, dessert, side, drink. For appetizers, starters, hors d'oeuvres, party bites, and small plates, use snack.
 - tags: short, lowercase, useful facets (dietary, technique, cuisine, "quick", "one-pot", etc.).
 
 INGREDIENT NORMALIZATION (most important):

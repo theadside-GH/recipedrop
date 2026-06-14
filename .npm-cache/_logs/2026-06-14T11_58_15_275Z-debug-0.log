@@ -1,0 +1,994 @@
+0 verbose cli C:\Users\ralph\node-portable\node-v22.12.0-win-x64\node.exe C:\Users\ralph\node-portable\node-v22.12.0-win-x64\node_modules\npm\bin\npm-cli.js
+1 info using npm@10.9.0
+2 info using node@v22.12.0
+3 silly config load:file:C:\Users\ralph\node-portable\node-v22.12.0-win-x64\node_modules\npm\npmrc
+4 silly config load:file:C:\Users\ralph\Desktop\RALPHRES\.npmrc
+5 silly config load:file:C:\Users\ralph\.npmrc
+6 silly config load:file:C:\Users\ralph\node-portable\node-v22.12.0-win-x64\etc\npmrc
+7 verbose title npm exec vercel@latest link --yes --project recipedrop-8nyc --scope ralphs-projects-e94e1575
+8 verbose argv "exec" "--" "vercel@latest" "link" "--yes" "--project" "recipedrop-8nyc" "--scope" "ralphs-projects-e94e1575"
+9 verbose logfile logs-max:10 dir:C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_logs\2026-06-14T11_58_15_275Z-
+10 verbose logfile C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_logs\2026-06-14T11_58_15_275Z-debug-0.log
+11 silly logfile start cleaning logs, removing 1 files
+12 silly logfile done cleaning log files
+13 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+14 http fetch GET 200 https://registry.npmjs.org/vercel 219ms (cache updated)
+15 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+16 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+17 warn exec The following package was not found and will be installed: vercel@54.14.0
+18 silly idealTree buildDeps
+19 silly fetch manifest vercel@54.14.0
+20 silly packumentCache full:https://registry.npmjs.org/vercel cache-miss
+21 http fetch GET 200 https://registry.npmjs.org/vercel 121ms (cache updated)
+22 silly packumentCache full:https://registry.npmjs.org/vercel set size:undefined disposed:false
+23 silly placeDep ROOT vercel@54.14.0 REPLACE for:  want: 54.14.0
+24 silly fetch manifest @vercel/python@6.45.0
+25 silly packumentCache full:https://registry.npmjs.org/@vercel%2fpython cache-miss
+26 http fetch GET 200 https://registry.npmjs.org/@vercel%2fpython 75ms (cache updated)
+27 silly packumentCache full:https://registry.npmjs.org/@vercel%2fpython set size:undefined disposed:false
+28 silly placeDep ROOT @vercel/python@6.45.0 OK for: vercel@54.14.0 want: 6.45.0
+29 silly reify mark retired [
+29 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@vercel\\python'
+29 silly reify ]
+30 silly reify mark retired [
+30 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\vercel',
+30 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vc',
+30 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vc.cmd',
+30 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vc.ps1',
+30 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vercel',
+30 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vercel.cmd',
+30 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vercel.ps1'
+30 silly reify ]
+31 silly reify moves {
+31 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@vercel\\python': 'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@vercel\\.python-Ec8YJsW2',
+31 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\vercel': 'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.vercel-UASjpw4g',
+31 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vc': 'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\.vc-0LE8luIq',
+31 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vc.cmd': 'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\.vc.cmd-mv9MmgPd',
+31 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vc.ps1': 'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\.vc.ps1-icBgPzzr',
+31 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vercel': 'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\.vercel-LySOdMAx',
+31 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vercel.cmd': 'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\.vercel.cmd-lK8FB6tz',
+31 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\vercel.ps1': 'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\.bin\\.vercel.ps1-zja77tJy'
+31 silly reify }
+32 silly audit bulk request {
+32 silly audit   '@bytecodealliance/preview2-shim': [ '0.17.6' ],
+32 silly audit   '@edge-runtime/format': [ '2.2.1' ],
+32 silly audit   '@edge-runtime/node-utils': [ '2.3.0' ],
+32 silly audit   '@edge-runtime/ponyfill': [ '2.4.2' ],
+32 silly audit   '@edge-runtime/primitives': [ '4.1.0' ],
+32 silly audit   '@edge-runtime/vm': [ '3.2.0' ],
+32 silly audit   '@emnapi/core': [ '1.11.1' ],
+32 silly audit   '@emnapi/runtime': [ '1.11.1' ],
+32 silly audit   '@emnapi/wasi-threads': [ '1.2.2' ],
+32 silly audit   '@esbuild/aix-ppc64': [ '0.27.0' ],
+32 silly audit   '@esbuild/android-arm': [ '0.27.0' ],
+32 silly audit   '@esbuild/android-arm64': [ '0.27.0' ],
+32 silly audit   '@esbuild/android-x64': [ '0.27.0' ],
+32 silly audit   '@esbuild/darwin-arm64': [ '0.27.0' ],
+32 silly audit   '@esbuild/darwin-x64': [ '0.27.0' ],
+32 silly audit   '@esbuild/freebsd-arm64': [ '0.27.0' ],
+32 silly audit   '@esbuild/freebsd-x64': [ '0.27.0' ],
+32 silly audit   '@esbuild/linux-arm': [ '0.27.0' ],
+32 silly audit   '@esbuild/linux-arm64': [ '0.27.0' ],
+32 silly audit   '@esbuild/linux-ia32': [ '0.27.0' ],
+32 silly audit   '@esbuild/linux-loong64': [ '0.27.0' ],
+32 silly audit   '@esbuild/linux-mips64el': [ '0.27.0' ],
+32 silly audit   '@esbuild/linux-ppc64': [ '0.27.0' ],
+32 silly audit   '@esbuild/linux-riscv64': [ '0.27.0' ],
+32 silly audit   '@esbuild/linux-s390x': [ '0.27.0' ],
+32 silly audit   '@esbuild/linux-x64': [ '0.27.0' ],
+32 silly audit   '@esbuild/netbsd-arm64': [ '0.27.0' ],
+32 silly audit   '@esbuild/netbsd-x64': [ '0.27.0' ],
+32 silly audit   '@esbuild/openbsd-arm64': [ '0.27.0' ],
+32 silly audit   '@esbuild/openbsd-x64': [ '0.27.0' ],
+32 silly audit   '@esbuild/openharmony-arm64': [ '0.27.0' ],
+32 silly audit   '@esbuild/sunos-x64': [ '0.27.0' ],
+32 silly audit   '@esbuild/win32-arm64': [ '0.27.0' ],
+32 silly audit   '@esbuild/win32-ia32': [ '0.27.0' ],
+32 silly audit   '@esbuild/win32-x64': [ '0.27.0' ],
+32 silly audit   '@fastify/busboy': [ '2.1.1' ],
+32 silly audit   '@isaacs/balanced-match': [ '4.0.1' ],
+32 silly audit   '@isaacs/brace-expansion': [ '5.0.1' ],
+32 silly audit   '@isaacs/fs-minipass': [ '4.0.1' ],
+32 silly audit   '@mapbox/node-pre-gyp': [ '2.0.3' ],
+32 silly audit   '@napi-rs/keyring': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-darwin-arm64': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-darwin-x64': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-freebsd-x64': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-linux-arm-gnueabihf': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-linux-arm64-gnu': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-linux-arm64-musl': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-linux-riscv64-gnu': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-linux-x64-gnu': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-linux-x64-musl': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-win32-arm64-msvc': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-win32-ia32-msvc': [ '1.2.0' ],
+32 silly audit   '@napi-rs/keyring-win32-x64-msvc': [ '1.2.0' ],
+32 silly audit   '@napi-rs/wasm-runtime': [ '1.1.5' ],
+32 silly audit   '@nodelib/fs.scandir': [ '2.1.5' ],
+32 silly audit   '@nodelib/fs.stat': [ '2.0.5' ],
+32 silly audit   '@nodelib/fs.walk': [ '1.2.8' ],
+32 silly audit   '@oxc-project/types': [ '0.110.0' ],
+32 silly audit   '@oxc-transform/binding-android-arm-eabi': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-android-arm64': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-darwin-arm64': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-darwin-x64': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-freebsd-x64': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-arm-gnueabihf': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-arm-musleabihf': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-arm64-gnu': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-arm64-musl': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-ppc64-gnu': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-riscv64-gnu': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-riscv64-musl': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-s390x-gnu': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-x64-gnu': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-linux-x64-musl': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-openharmony-arm64': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-wasm32-wasi': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-win32-arm64-msvc': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-win32-ia32-msvc': [ '0.111.0' ],
+32 silly audit   '@oxc-transform/binding-win32-x64-msvc': [ '0.111.0' ],
+32 silly audit   '@renovatebot/pep440': [ '4.2.1' ],
+32 silly audit   '@rolldown/binding-android-arm64': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-darwin-arm64': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-darwin-x64': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-freebsd-x64': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-linux-arm-gnueabihf': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-linux-arm64-gnu': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-linux-arm64-musl': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-linux-x64-gnu': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-linux-x64-musl': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-openharmony-arm64': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-wasm32-wasi': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-win32-arm64-msvc': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/binding-win32-x64-msvc': [ '1.0.0-rc.1' ],
+32 silly audit   '@rolldown/pluginutils': [ '1.0.0-rc.1' ],
+32 silly audit   '@rollup/pluginutils': [ '5.4.0' ],
+32 silly audit   '@sinclair/typebox': [ '0.25.24' ],
+32 silly audit   '@tootallnate/once': [ '2.0.0' ],
+32 silly audit   '@tootallnate/quickjs-emscripten': [ '0.23.0' ],
+32 silly audit   '@ts-morph/common': [ '0.11.1' ],
+32 silly audit   minimatch: [ '3.1.5', '10.2.5', '10.1.1' ],
+32 silly audit   '@tybys/wasm-util': [ '0.10.2' ],
+32 silly audit   '@types/estree': [ '1.0.9' ],
+32 silly audit   '@types/json-schema': [ '7.0.15' ],
+32 silly audit   '@types/node': [ '20.11.0' ],
+32 silly audit   '@vercel/backends': [ '0.8.14' ],
+32 silly audit   zod: [ '3.22.4', '3.24.4', '4.1.11' ],
+32 silly audit   '@vercel/blob': [ '2.4.0' ],
+32 silly audit   '@vercel/build-utils': [ '13.30.0' ],
+32 silly audit   '@vercel/cervel': [ '0.1.22' ],
+32 silly audit   '@vercel/cli-auth': [ '0.3.0' ],
+32 silly audit   '@vercel/cli-config': [ '0.2.0' ],
+32 silly audit   '@vercel/detect-agent': [ '1.2.3' ],
+32 silly audit   '@vercel/elysia': [ '0.1.93' ],
+32 silly audit   '@vercel/error-utils': [ '2.2.0' ],
+32 silly audit   '@vercel/express': [ '0.1.105' ],
+32 silly audit   '@vercel/fastify': [ '0.1.96' ],
+32 silly audit   '@vercel/fun': [ '1.3.0' ],
+32 silly audit   'async-listen': [ '1.2.0', '3.0.0', '3.0.1' ],
+32 silly audit   'path-to-regexp': [ '8.2.0', '6.1.0', '8.3.0', '6.3.0' ],
+32 silly audit   'xdg-app-paths': [ '5.1.0', '5.5.1' ],
+32 silly audit   '@vercel/gatsby-plugin-vercel-analytics': [ '1.0.11' ],
+32 silly audit   '@vercel/gatsby-plugin-vercel-builder': [ '2.2.19' ],
+32 silly audit   '@vercel/go': [ '3.9.0' ],
+32 silly audit   '@vercel/h3': [ '0.1.102' ],
+32 silly audit   '@vercel/hono': [ '0.2.96' ],
+32 silly audit   '@vercel/hydrogen': [ '1.4.0' ],
+32 silly audit   '@vercel/koa': [ '0.1.76' ],
+32 silly audit   '@vercel/nestjs': [ '0.2.97' ],
+32 silly audit   '@vercel/next': [ '4.19.0' ],
+32 silly audit   '@vercel/nft': [ '1.10.0' ],
+32 silly audit   '@vercel/node': [ '5.8.17' ],
+32 silly audit   'es-module-lexer': [ '1.4.1', '1.5.0' ],
+32 silly audit   'node-fetch': [ '2.6.9', '2.6.7' ],
+32 silly audit   undici: [ '5.28.4', '7.27.2', '6.26.0' ],
+32 silly audit   '@vercel/oidc': [ '3.2.0' ],
+32 silly audit   '@vercel/prepare-flags-definitions': [ '0.3.0' ],
+32 silly audit   '@vercel/python-analysis': [ '0.11.1' ],
+32 silly audit   'fs-extra': [ '11.1.1', '11.1.0' ],
+32 silly audit   '@vercel/redwood': [ '2.5.0' ],
+32 silly audit   semver: [ '6.3.1', '7.5.4' ],
+32 silly audit   '@vercel/remix-builder': [ '5.9.1' ],
+32 silly audit   '@vercel/ruby': [ '2.4.0' ],
+32 silly audit   '@vercel/rust': [ '1.3.0' ],
+32 silly audit   execa: [ '5.1.1', '3.2.0' ],
+32 silly audit   'get-stream': [ '6.0.1', '5.2.0' ],
+32 silly audit   'human-signals': [ '2.1.0', '1.1.1' ],
+32 silly audit   'signal-exit': [ '3.0.7', '4.0.2' ],
+32 silly audit   '@vercel/sandbox': [ '2.1.1' ],
+32 silly audit   jose: [ '6.2.3', '5.9.6' ],
+32 silly audit   ms: [ '2.1.3', '2.1.2', '2.1.1' ],
+32 silly audit   picocolors: [ '1.1.1', '1.0.0' ],
+32 silly audit   '@vercel/static-build': [ '2.10.3' ],
+32 silly audit   '@vercel/static-config': [ '3.4.0' ],
+32 silly audit   '@workflow/serde': [ '4.1.0-beta.2' ],
+32 silly audit   abbrev: [ '3.0.1' ],
+32 silly audit   acorn: [ '8.17.0' ],
+32 silly audit   'acorn-import-attributes': [ '1.9.5' ],
+32 silly audit   'agent-base': [ '7.1.4' ],
+32 silly audit   ajv: [ '8.6.3' ],
+32 silly audit   'any-promise': [ '1.3.0' ],
+32 silly audit   arg: [ '4.1.0' ],
+32 silly audit   argparse: [ '2.0.1' ],
+32 silly audit   'ast-types': [ '0.13.4' ],
+32 silly audit   'async-retry': [ '1.3.3' ],
+32 silly audit   'async-sema': [ '3.1.1' ],
+32 silly audit   asynckit: [ '0.4.0' ],
+32 silly audit   b4a: [ '1.8.1' ],
+32 silly audit   'balanced-match': [ '1.0.2', '4.0.4' ],
+32 silly audit   'bare-events': [ '2.9.1' ],
+32 silly audit   'basic-ftp': [ '5.3.1' ],
+32 silly audit   bindings: [ '1.5.0' ],
+32 silly audit   'brace-expansion': [ '1.1.15', '5.0.6' ],
+32 silly audit   braces: [ '3.0.3' ],
+32 silly audit   'buffer-crc32': [ '0.2.13' ],
+32 silly audit   bytes: [ '3.1.0' ],
+32 silly audit   'call-bind-apply-helpers': [ '1.0.2' ],
+32 silly audit   chokidar: [ '4.0.0' ],
+32 silly audit   chownr: [ '3.0.0' ],
+32 silly audit   'cjs-module-lexer': [ '1.2.3' ],
+32 silly audit   'code-block-writer': [ '10.1.1' ],
+32 silly audit   'combined-stream': [ '1.0.8' ],
+32 silly audit   'concat-map': [ '0.0.1' ],
+32 silly audit   consola: [ '3.4.2' ],
+32 silly audit   'content-type': [ '1.0.4' ],
+32 silly audit   'convert-hrtime': [ '3.0.0' ],
+32 silly audit   'cookie-es': [ '2.0.1' ],
+32 silly audit   'cross-spawn': [ '7.0.6' ],
+32 silly audit   'data-uri-to-buffer': [ '6.0.2' ],
+32 silly audit   debug: [ '4.3.4', '4.4.3' ],
+32 silly audit   'define-lazy-prop': [ '2.0.0' ],
+32 silly audit   degenerator: [ '5.0.1' ],
+32 silly audit   'delayed-stream': [ '1.0.0' ],
+32 silly audit   depd: [ '1.1.2' ],
+32 silly audit   'detect-libc': [ '2.1.2' ],
+32 silly audit   'dunder-proto': [ '1.0.1' ],
+32 silly audit   'edge-runtime': [ '2.5.9' ],
+32 silly audit   'end-of-stream': [ '1.4.5', '1.1.0' ],
+32 silly audit   'es-define-property': [ '1.0.1' ],
+32 silly audit   'es-errors': [ '1.3.0' ],
+32 silly audit   'es-object-atoms': [ '1.1.2' ],
+32 silly audit   'es-set-tostringtag': [ '2.1.0' ],
+32 silly audit   esbuild: [ '0.27.0' ],
+32 silly audit   escodegen: [ '2.1.0' ],
+32 silly audit   esprima: [ '4.0.1' ],
+32 silly audit   estraverse: [ '5.3.0' ],
+32 silly audit   'estree-walker': [ '2.0.2' ],
+32 silly audit   esutils: [ '2.0.3' ],
+32 silly audit   etag: [ '1.8.1' ],
+32 silly audit   'events-intercept': [ '2.0.0' ],
+32 silly audit   'events-universal': [ '1.0.1' ],
+32 silly audit   'fast-deep-equal': [ '3.1.3' ],
+32 silly audit   'fast-fifo': [ '1.3.2' ],
+32 silly audit   'fast-glob': [ '3.3.3' ],
+32 silly audit   fastq: [ '1.20.1' ],
+32 silly audit   'fd-slicer': [ '1.1.0' ],
+32 silly audit   'file-uri-to-path': [ '1.0.0' ],
+32 silly audit   'fill-range': [ '7.1.1' ],
+32 silly audit   'form-data': [ '4.0.6' ],
+32 silly audit   fsevents: [ '2.3.3' ],
+32 silly audit   'function-bind': [ '1.1.2' ],
+32 silly audit   'generic-pool': [ '3.4.2' ],
+32 silly audit   'get-intrinsic': [ '1.3.0' ],
+32 silly audit   'get-port': [ '5.1.1' ],
+32 silly audit   'get-proto': [ '1.0.1' ],
+32 silly audit   'get-tsconfig': [ '4.14.0' ],
+32 silly audit   'get-uri': [ '6.0.5' ],
+32 silly audit   glob: [ '13.0.6' ],
+32 silly audit   'glob-parent': [ '5.1.2' ],
+32 silly audit   gopd: [ '1.2.0' ],
+32 silly audit   'graceful-fs': [ '4.2.11' ],
+32 silly audit   'has-symbols': [ '1.1.0' ],
+32 silly audit   'has-tostringtag': [ '1.0.2' ],
+32 silly audit   hasown: [ '2.0.4' ],
+32 silly audit   'http-errors': [ '1.7.3' ],
+32 silly audit   'http-proxy-agent': [ '7.0.2' ],
+32 silly audit   'https-proxy-agent': [ '7.0.6' ],
+32 silly audit   'iconv-lite': [ '0.4.24' ],
+32 silly audit   inherits: [ '2.0.4' ],
+32 silly audit   'ip-address': [ '10.2.0' ],
+32 silly audit   'is-buffer': [ '2.0.5' ],
+32 silly audit   'is-docker': [ '2.2.1' ],
+32 silly audit   'is-extglob': [ '2.1.1' ],
+32 silly audit   'is-glob': [ '4.0.3' ],
+32 silly audit   'is-node-process': [ '1.2.0' ],
+32 silly audit   'is-number': [ '7.0.0' ],
+32 silly audit   'is-stream': [ '2.0.1' ],
+32 silly audit   'is-wsl': [ '2.2.0' ],
+32 silly audit   isexe: [ '2.0.0' ],
+32 silly audit   'js-yaml': [ '4.1.1' ],
+32 silly audit   'json-schema-to-ts': [ '1.6.4' ],
+32 silly audit   'json-schema-traverse': [ '1.0.0' ],
+32 silly audit   jsonfile: [ '6.2.1' ],
+32 silly audit   jsonlines: [ '0.1.1' ],
+32 silly audit   'lru-cache': [ '11.5.1', '7.18.3', '6.0.0' ],
+32 silly audit   luxon: [ '3.7.2' ],
+32 silly audit   'math-intrinsics': [ '1.1.0' ],
+32 silly audit   'merge-stream': [ '2.0.0' ],
+32 silly audit   merge2: [ '1.4.1' ],
+32 silly audit   micro: [ '9.3.5-canary.3' ],
+32 silly audit   micromatch: [ '4.0.8' ],
+32 silly audit   picomatch: [ '2.3.2', '4.0.4' ],
+32 silly audit   'mime-db': [ '1.52.0' ],
+32 silly audit   'mime-types': [ '2.1.35' ],
+32 silly audit   'mimic-fn': [ '2.1.0' ],
+32 silly audit   minipass: [ '7.1.3' ],
+32 silly audit   minizlib: [ '3.1.0' ],
+32 silly audit   mkdirp: [ '1.0.4' ],
+32 silly audit   mri: [ '1.2.0' ],
+32 silly audit   netmask: [ '2.1.1' ],
+32 silly audit   'node-gyp-build': [ '4.8.4' ],
+32 silly audit   nopt: [ '8.1.0' ],
+32 silly audit   'npm-run-path': [ '4.0.1' ],
+32 silly audit   once: [ '1.4.0', '1.3.3' ],
+32 silly audit   onetime: [ '5.1.2' ],
+32 silly audit   open: [ '8.4.0' ],
+32 silly audit   'os-paths': [ '4.4.0' ],
+32 silly audit   'oxc-transform': [ '0.111.0' ],
+32 silly audit   'p-finally': [ '2.0.1' ],
+32 silly audit   'pac-proxy-agent': [ '7.2.0' ],
+32 silly audit   'pac-resolver': [ '7.0.1' ],
+32 silly audit   'parse-ms': [ '2.1.0' ],
+32 silly audit   'path-browserify': [ '1.0.1' ],
+32 silly audit   'path-key': [ '3.1.1' ],
+32 silly audit   'path-scurry': [ '2.0.2' ],
+32 silly audit   pend: [ '1.2.0' ],
+32 silly audit   'pretty-ms': [ '7.0.1' ],
+32 silly audit   promisepipe: [ '3.0.0' ],
+32 silly audit   'proxy-agent': [ '6.4.0' ],
+32 silly audit   'proxy-from-env': [ '1.1.0' ],
+32 silly audit   pump: [ '3.0.4' ],
+32 silly audit   punycode: [ '2.3.1' ],
+32 silly audit   'queue-microtask': [ '1.2.3' ],
+32 silly audit   'raw-body': [ '2.4.1' ],
+32 silly audit   readdirp: [ '4.1.2' ],
+32 silly audit   'require-from-string': [ '2.0.2' ],
+32 silly audit   'resolve-from': [ '5.0.0' ],
+32 silly audit   'resolve-pkg-maps': [ '1.0.0' ],
+32 silly audit   'resolve.exports': [ '2.0.3' ],
+32 silly audit   retry: [ '0.13.1' ],
+32 silly audit   reusify: [ '1.1.0' ],
+32 silly audit   rolldown: [ '1.0.0-rc.1' ],
+32 silly audit   'run-parallel': [ '1.2.0' ],
+32 silly audit   'safer-buffer': [ '2.1.2' ],
+32 silly audit   sandbox: [ '3.1.2' ],
+32 silly audit   yallist: [ '4.0.0', '5.0.0' ],
+32 silly audit   setprototypeof: [ '1.1.1' ],
+32 silly audit   'shebang-command': [ '2.0.0' ],
+32 silly audit   'shebang-regex': [ '3.0.0' ],
+32 silly audit   'smart-buffer': [ '4.2.0' ],
+32 silly audit   'smol-toml': [ '1.5.2' ],
+32 silly audit   socks: [ '2.8.9' ],
+32 silly audit   'socks-proxy-agent': [ '8.0.5' ],
+32 silly audit   'source-map': [ '0.6.1' ],
+32 silly audit   srvx: [ '0.8.9' ],
+32 silly audit   'stat-mode': [ '0.3.0' ],
+32 silly audit   statuses: [ '1.5.0' ],
+32 silly audit   'stream-to-array': [ '2.3.0' ],
+32 silly audit   'stream-to-promise': [ '2.2.0' ],
+32 silly audit   streamx: [ '2.28.0' ],
+32 silly audit   'strip-final-newline': [ '2.0.0' ],
+32 silly audit   tar: [ '7.5.7' ],
+32 silly audit   'tar-stream': [ '3.1.7' ],
+32 silly audit   'text-decoder': [ '1.2.7' ],
+32 silly audit   throttleit: [ '2.1.0' ],
+32 silly audit   'time-span': [ '4.0.0' ],
+32 silly audit   tinyexec: [ '0.3.2' ],
+32 silly audit   'to-regex-range': [ '5.0.1' ],
+32 silly audit   toidentifier: [ '1.0.0' ],
+32 silly audit   tr46: [ '0.0.3' ],
+32 silly audit   'tree-kill': [ '1.2.2' ],
+32 silly audit   'ts-morph': [ '12.0.0' ],
+32 silly audit   'ts-toolbelt': [ '6.15.5' ],
+32 silly audit   tslib: [ '2.8.1' ],
+32 silly audit   tsx: [ '4.21.0' ],
+32 silly audit   typescript: [ '5.9.3' ],
+32 silly audit   'uid-promise': [ '1.0.0' ],
+32 silly audit   'undici-types': [ '5.26.5' ],
+32 silly audit   universalify: [ '2.0.1' ],
+32 silly audit   unpipe: [ '1.0.0' ],
+32 silly audit   'uri-js': [ '4.4.1' ],
+32 silly audit   'web-vitals': [ '0.2.4' ],
+32 silly audit   'webidl-conversions': [ '3.0.1' ],
+32 silly audit   'whatwg-url': [ '5.0.0' ],
+32 silly audit   which: [ '2.0.2' ],
+32 silly audit   wrappy: [ '1.0.2' ],
+32 silly audit   'xdg-portable': [ '7.3.0' ],
+32 silly audit   yauzl: [ '2.10.0' ],
+32 silly audit   'yauzl-clone': [ '1.0.4' ],
+32 silly audit   'yauzl-promise': [ '2.1.3' ],
+32 silly audit   vercel: [ '54.14.0' ],
+32 silly audit   '@vercel/python': [ '6.45.0' ]
+32 silly audit }
+33 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\fsevents
+34 silly reify mark deleted [
+34 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\fsevents'
+34 silly reify ]
+35 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-win32-arm64-msvc
+36 silly reify mark deleted [
+36 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-win32-arm64-msvc'
+36 silly reify ]
+37 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-wasm32-wasi
+38 silly reify mark deleted [
+38 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-wasm32-wasi'
+38 silly reify ]
+39 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-openharmony-arm64
+40 silly reify mark deleted [
+40 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-openharmony-arm64'
+40 silly reify ]
+41 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-linux-x64-musl
+42 silly reify mark deleted [
+42 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-linux-x64-musl'
+42 silly reify ]
+43 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-linux-x64-gnu
+44 silly reify mark deleted [
+44 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-linux-x64-gnu'
+44 silly reify ]
+45 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-linux-arm64-musl
+46 silly reify mark deleted [
+46 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-linux-arm64-musl'
+46 silly reify ]
+47 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-linux-arm64-gnu
+48 silly reify mark deleted [
+48 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-linux-arm64-gnu'
+48 silly reify ]
+49 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-linux-arm-gnueabihf
+50 silly reify mark deleted [
+50 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-linux-arm-gnueabihf'
+50 silly reify ]
+51 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-freebsd-x64
+52 silly reify mark deleted [
+52 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-freebsd-x64'
+52 silly reify ]
+53 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-darwin-x64
+54 silly reify mark deleted [
+54 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-darwin-x64'
+54 silly reify ]
+55 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-darwin-arm64
+56 silly reify mark deleted [
+56 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-darwin-arm64'
+56 silly reify ]
+57 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@rolldown\binding-android-arm64
+58 silly reify mark deleted [
+58 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@rolldown\\binding-android-arm64'
+58 silly reify ]
+59 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-win32-ia32-msvc
+60 silly reify mark deleted [
+60 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-win32-ia32-msvc'
+60 silly reify ]
+61 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-win32-arm64-msvc
+62 silly reify mark deleted [
+62 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-win32-arm64-msvc'
+62 silly reify ]
+63 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-wasm32-wasi
+64 silly reify mark deleted [
+64 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-wasm32-wasi'
+64 silly reify ]
+65 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-openharmony-arm64
+66 silly reify mark deleted [
+66 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-openharmony-arm64'
+66 silly reify ]
+67 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-x64-musl
+68 silly reify mark deleted [
+68 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-x64-musl'
+68 silly reify ]
+69 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-x64-gnu
+70 silly reify mark deleted [
+70 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-x64-gnu'
+70 silly reify ]
+71 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-s390x-gnu
+72 silly reify mark deleted [
+72 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-s390x-gnu'
+72 silly reify ]
+73 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-riscv64-musl
+74 silly reify mark deleted [
+74 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-riscv64-musl'
+74 silly reify ]
+75 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-riscv64-gnu
+76 silly reify mark deleted [
+76 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-riscv64-gnu'
+76 silly reify ]
+77 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-ppc64-gnu
+78 silly reify mark deleted [
+78 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-ppc64-gnu'
+78 silly reify ]
+79 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-arm64-musl
+80 silly reify mark deleted [
+80 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-arm64-musl'
+80 silly reify ]
+81 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-arm64-gnu
+82 silly reify mark deleted [
+82 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-arm64-gnu'
+82 silly reify ]
+83 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-arm-musleabihf
+84 silly reify mark deleted [
+84 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-arm-musleabihf'
+84 silly reify ]
+85 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-linux-arm-gnueabihf
+86 silly reify mark deleted [
+86 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-linux-arm-gnueabihf'
+86 silly reify ]
+87 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-freebsd-x64
+88 silly reify mark deleted [
+88 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-freebsd-x64'
+88 silly reify ]
+89 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-darwin-x64
+90 silly reify mark deleted [
+90 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-darwin-x64'
+90 silly reify ]
+91 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-darwin-arm64
+92 silly reify mark deleted [
+92 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-darwin-arm64'
+92 silly reify ]
+93 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-android-arm64
+94 silly reify mark deleted [
+94 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-android-arm64'
+94 silly reify ]
+95 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@oxc-transform\binding-android-arm-eabi
+96 silly reify mark deleted [
+96 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@oxc-transform\\binding-android-arm-eabi'
+96 silly reify ]
+97 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-win32-ia32-msvc
+98 silly reify mark deleted [
+98 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-win32-ia32-msvc'
+98 silly reify ]
+99 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-win32-arm64-msvc
+100 silly reify mark deleted [
+100 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-win32-arm64-msvc'
+100 silly reify ]
+101 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-linux-x64-musl
+102 silly reify mark deleted [
+102 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-linux-x64-musl'
+102 silly reify ]
+103 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-linux-x64-gnu
+104 silly reify mark deleted [
+104 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-linux-x64-gnu'
+104 silly reify ]
+105 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-linux-riscv64-gnu
+106 silly reify mark deleted [
+106 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-linux-riscv64-gnu'
+106 silly reify ]
+107 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-linux-arm64-musl
+108 silly reify mark deleted [
+108 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-linux-arm64-musl'
+108 silly reify ]
+109 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-linux-arm64-gnu
+110 silly reify mark deleted [
+110 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-linux-arm64-gnu'
+110 silly reify ]
+111 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-linux-arm-gnueabihf
+112 silly reify mark deleted [
+112 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-linux-arm-gnueabihf'
+112 silly reify ]
+113 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-freebsd-x64
+114 silly reify mark deleted [
+114 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-freebsd-x64'
+114 silly reify ]
+115 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-darwin-x64
+116 silly reify mark deleted [
+116 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-darwin-x64'
+116 silly reify ]
+117 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@napi-rs\keyring-darwin-arm64
+118 silly reify mark deleted [
+118 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@napi-rs\\keyring-darwin-arm64'
+118 silly reify ]
+119 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\win32-ia32
+120 silly reify mark deleted [
+120 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\win32-ia32'
+120 silly reify ]
+121 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\win32-arm64
+122 silly reify mark deleted [
+122 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\win32-arm64'
+122 silly reify ]
+123 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\sunos-x64
+124 silly reify mark deleted [
+124 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\sunos-x64'
+124 silly reify ]
+125 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\openharmony-arm64
+126 silly reify mark deleted [
+126 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\openharmony-arm64'
+126 silly reify ]
+127 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\openbsd-x64
+128 silly reify mark deleted [
+128 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\openbsd-x64'
+128 silly reify ]
+129 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\openbsd-arm64
+130 silly reify mark deleted [
+130 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\openbsd-arm64'
+130 silly reify ]
+131 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\netbsd-x64
+132 silly reify mark deleted [
+132 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\netbsd-x64'
+132 silly reify ]
+133 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\netbsd-arm64
+134 silly reify mark deleted [
+134 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\netbsd-arm64'
+134 silly reify ]
+135 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\linux-x64
+136 silly reify mark deleted [
+136 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\linux-x64'
+136 silly reify ]
+137 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\linux-s390x
+138 silly reify mark deleted [
+138 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\linux-s390x'
+138 silly reify ]
+139 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\linux-riscv64
+140 silly reify mark deleted [
+140 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\linux-riscv64'
+140 silly reify ]
+141 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\linux-ppc64
+142 silly reify mark deleted [
+142 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\linux-ppc64'
+142 silly reify ]
+143 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\linux-mips64el
+144 silly reify mark deleted [
+144 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\linux-mips64el'
+144 silly reify ]
+145 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\linux-loong64
+146 silly reify mark deleted [
+146 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\linux-loong64'
+146 silly reify ]
+147 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\linux-ia32
+148 silly reify mark deleted [
+148 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\linux-ia32'
+148 silly reify ]
+149 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\linux-arm64
+150 silly reify mark deleted [
+150 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\linux-arm64'
+150 silly reify ]
+151 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\linux-arm
+152 silly reify mark deleted [
+152 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\linux-arm'
+152 silly reify ]
+153 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\freebsd-x64
+154 silly reify mark deleted [
+154 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\freebsd-x64'
+154 silly reify ]
+155 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\freebsd-arm64
+156 silly reify mark deleted [
+156 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\freebsd-arm64'
+156 silly reify ]
+157 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\darwin-x64
+158 silly reify mark deleted [
+158 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\darwin-x64'
+158 silly reify ]
+159 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\darwin-arm64
+160 silly reify mark deleted [
+160 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\darwin-arm64'
+160 silly reify ]
+161 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\android-x64
+162 silly reify mark deleted [
+162 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\android-x64'
+162 silly reify ]
+163 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\android-arm64
+164 silly reify mark deleted [
+164 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\android-arm64'
+164 silly reify ]
+165 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\android-arm
+166 silly reify mark deleted [
+166 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\android-arm'
+166 silly reify ]
+167 verbose reify failed optional dependency C:\Users\ralph\Desktop\RALPHRES\.npm-cache\_npx\67eb4586ca667318\node_modules\@esbuild\aix-ppc64
+168 silly reify mark deleted [
+168 silly reify   'C:\\Users\\ralph\\Desktop\\RALPHRES\\.npm-cache\\_npx\\67eb4586ca667318\\node_modules\\@esbuild\\aix-ppc64'
+168 silly reify ]
+169 silly tarball no local data for vercel@https://registry.npmjs.org/vercel/-/vercel-54.14.0.tgz. Extracting by manifest.
+170 silly tarball no local data for @vercel/python@https://registry.npmjs.org/@vercel/python/-/python-6.45.0.tgz. Extracting by manifest.
+171 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 116ms
+172 silly audit report {
+172 silly audit report   '@tootallnate/once': [
+172 silly audit report     {
+172 silly audit report       id: 1119438,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-vpq2-c234-7xj6',
+172 silly audit report       title: '@tootallnate/once vulnerable to Incorrect Control Flow Scoping',
+172 silly audit report       severity: 'low',
+172 silly audit report       vulnerable_versions: '<2.0.1',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     }
+172 silly audit report   ],
+172 silly audit report   minimatch: [
+172 silly audit report     {
+172 silly audit report       id: 1113466,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-3ppc-4f35-3m26',
+172 silly audit report       title: 'minimatch has a ReDoS via repeated wildcards with non-matching literal in pattern',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '>=10.0.0 <10.2.1',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1113545,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-7r86-cg39-jmmj',
+172 silly audit report       title: 'minimatch has ReDoS: matchOne() combinatorial backtracking via multiple non-adjacent GLOBSTAR segments',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '>=10.0.0 <10.2.3',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1113553,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-23c5-xmqv-rm74',
+172 silly audit report       title: 'minimatch ReDoS: nested *() extglobs generate catastrophically backtracking regular expressions',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '>=10.0.0 <10.2.3',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     }
+172 silly audit report   ],
+172 silly audit report   'path-to-regexp': [
+172 silly audit report     {
+172 silly audit report       id: 1101846,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-9wv6-86v2-598j',
+172 silly audit report       title: 'path-to-regexp outputs backtracking regular expressions',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '>=4.0.0 <6.3.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1115573,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-j3q9-mxjg-w52f',
+172 silly audit report       title: 'path-to-regexp vulnerable to Denial of Service via sequential optional groups',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '>=8.0.0 <8.4.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1115582,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-27v5-c462-wpq7',
+172 silly audit report       title: 'path-to-regexp vulnerable to Regular Expression Denial of Service via multiple wildcards',
+172 silly audit report       severity: 'moderate',
+172 silly audit report       vulnerable_versions: '>=8.0.0 <8.4.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     }
+172 silly audit report   ],
+172 silly audit report   undici: [
+172 silly audit report     {
+172 silly audit report       id: 1101610,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-c76h-2ccp-4975',
+172 silly audit report       title: 'Use of Insufficiently Random Values in undici',
+172 silly audit report       severity: 'moderate',
+172 silly audit report       vulnerable_versions: '>=4.5.0 <5.28.5',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1112496,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-g9mf-h72j-4rw9',
+172 silly audit report       title: 'Undici has an unbounded decompression chain in HTTP responses on Node.js Fetch API via Content-Encoding leads to resource exhaustion',
+172 silly audit report       severity: 'moderate',
+172 silly audit report       vulnerable_versions: '<6.23.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1113069,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-cxrh-j4jr-qwg3',
+172 silly audit report       title: 'undici Denial of Service attack via bad certificate data',
+172 silly audit report       severity: 'low',
+172 silly audit report       vulnerable_versions: '<5.29.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1114594,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-2mjp-6q6p-2qxm',
+172 silly audit report       title: 'Undici has an HTTP Request/Response Smuggling issue',
+172 silly audit report       severity: 'moderate',
+172 silly audit report       vulnerable_versions: '<6.24.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1114638,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-vrm6-8vpv-qv8q',
+172 silly audit report       title: 'Undici has Unbounded Memory Consumption in WebSocket permessage-deflate Decompression',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '<6.24.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1114640,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-v9p9-hfj2-hcw8',
+172 silly audit report       title: 'Undici has Unhandled Exception in WebSocket Client Due to Invalid server_max_window_bits Validation',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '<6.24.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1114642,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-4992-7rv2-5pvq',
+172 silly audit report       title: 'Undici has CRLF Injection in undici via `upgrade` option',
+172 silly audit report       severity: 'moderate',
+172 silly audit report       vulnerable_versions: '<6.24.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     }
+172 silly audit report   ],
+172 silly audit report   ajv: [
+172 silly audit report     {
+172 silly audit report       id: 1113715,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-2g4f-4pwh-qvx6',
+172 silly audit report       title: 'ajv has ReDoS when using `$data` option',
+172 silly audit report       severity: 'moderate',
+172 silly audit report       vulnerable_versions: '>=7.0.0-alpha.0 <8.18.0',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     }
+172 silly audit report   ],
+172 silly audit report   esbuild: [
+172 silly audit report     {
+172 silly audit report       id: 1120679,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-gv7w-rqvm-qjhr',
+172 silly audit report       title: 'esbuild: Missing binary integrity verification in Deno module enables remote code execution via NPM_CONFIG_REGISTRY',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '>=0.17.0 <0.28.1',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     }
+172 silly audit report   ],
+172 silly audit report   'smol-toml': [
+172 silly audit report     {
+172 silly audit report       id: 1115393,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-v3rj-xjv7-4jmq',
+172 silly audit report       title: 'smol-toml: Denial of Service via TOML documents containing thousands of consecutive commented lines',
+172 silly audit report       severity: 'moderate',
+172 silly audit report       vulnerable_versions: '<1.6.1',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     }
+172 silly audit report   ],
+172 silly audit report   srvx: [
+172 silly audit report     {
+172 silly audit report       id: 1115537,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-p36q-q72m-gchr',
+172 silly audit report       title: 'srvx is vulnerable to middleware bypass via absolute URI in request line ',
+172 silly audit report       severity: 'moderate',
+172 silly audit report       vulnerable_versions: '<0.11.13',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     }
+172 silly audit report   ],
+172 silly audit report   tar: [
+172 silly audit report     {
+172 silly audit report       id: 1113375,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-83g3-92jg-28cx',
+172 silly audit report       title: 'Arbitrary File Read/Write via Hardlink Target Escape Through Symlink Chain in node-tar Extraction',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '<7.5.8',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1114200,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-qffp-2rhf-9h96',
+172 silly audit report       title: 'tar has Hardlink Path Traversal via Drive-Relative Linkpath',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '<=7.5.9',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     },
+172 silly audit report     {
+172 silly audit report       id: 1114302,
+172 silly audit report       url: 'https://github.com/advisories/GHSA-9ppj-qmqm-q256',
+172 silly audit report       title: 'node-tar Symlink Path Traversal via Drive-Relative Linkpath',
+172 silly audit report       severity: 'high',
+172 silly audit report       vulnerable_versions: '<=7.5.10',
+172 silly audit report       cwe: [Array],
+172 silly audit report       cvss: [Object]
+172 silly audit report     }
+172 silly audit report   ]
+172 silly audit report }
+173 silly packumentCache corgi:https://registry.npmjs.org/@tootallnate%2fonce cache-miss
+174 silly packumentCache corgi:https://registry.npmjs.org/minimatch cache-miss
+175 silly packumentCache corgi:https://registry.npmjs.org/path-to-regexp cache-miss
+176 silly packumentCache corgi:https://registry.npmjs.org/undici cache-miss
+177 silly packumentCache corgi:https://registry.npmjs.org/ajv cache-miss
+178 silly packumentCache corgi:https://registry.npmjs.org/esbuild cache-miss
+179 silly packumentCache corgi:https://registry.npmjs.org/smol-toml cache-miss
+180 silly packumentCache corgi:https://registry.npmjs.org/srvx cache-miss
+181 silly packumentCache corgi:https://registry.npmjs.org/tar cache-miss
+182 http fetch GET 200 https://registry.npmjs.org/@vercel/python/-/python-6.45.0.tgz 174ms (cache miss)
+183 http fetch GET 200 https://registry.npmjs.org/path-to-regexp 88ms (cache revalidated)
+184 silly packumentCache corgi:https://registry.npmjs.org/path-to-regexp set size:66575 disposed:false
+185 http fetch GET 200 https://registry.npmjs.org/ajv 94ms (cache revalidated)
+186 silly packumentCache corgi:https://registry.npmjs.org/ajv set size:467559 disposed:false
+187 http fetch GET 200 https://registry.npmjs.org/minimatch 100ms (cache revalidated)
+188 silly packumentCache corgi:https://registry.npmjs.org/minimatch set size:168441 disposed:false
+189 http fetch GET 200 https://registry.npmjs.org/esbuild 132ms (cache revalidated)
+190 silly packumentCache corgi:https://registry.npmjs.org/esbuild set size:887361 disposed:false
+191 http fetch GET 200 https://registry.npmjs.org/@tootallnate%2fonce 139ms (cache revalidated)
+192 silly packumentCache corgi:https://registry.npmjs.org/@tootallnate%2fonce set size:11748 disposed:false
+193 http fetch GET 200 https://registry.npmjs.org/tar 143ms (cache revalidated)
+194 silly packumentCache corgi:https://registry.npmjs.org/tar set size:202125 disposed:false
+195 http fetch GET 200 https://registry.npmjs.org/undici 147ms (cache revalidated)
+196 silly packumentCache corgi:https://registry.npmjs.org/undici set size:442766 disposed:false
+197 http fetch GET 200 https://registry.npmjs.org/srvx 192ms (cache revalidated)
+198 silly packumentCache corgi:https://registry.npmjs.org/srvx set size:87911 disposed:false
+199 http fetch GET 200 https://registry.npmjs.org/smol-toml 220ms (cache revalidated)
+200 silly packumentCache corgi:https://registry.npmjs.org/smol-toml set size:21871 disposed:false
+201 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2ffun cache-miss
+202 http fetch GET 200 https://registry.npmjs.org/vercel/-/vercel-54.14.0.tgz 340ms (cache miss)
+203 http fetch GET 200 https://registry.npmjs.org/@vercel%2ffun 176ms (cache revalidated)
+204 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2ffun set size:23528 disposed:false
+205 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fpython-analysis cache-miss
+206 http fetch GET 200 https://registry.npmjs.org/@vercel%2fpython-analysis 59ms (cache revalidated)
+207 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fpython-analysis set size:22008 disposed:false
+208 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fnode cache-miss
+209 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fremix-builder cache-miss
+210 http fetch GET 200 https://registry.npmjs.org/@vercel%2fnode 161ms (cache revalidated)
+211 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fnode set size:864557 disposed:false
+212 http fetch GET 200 https://registry.npmjs.org/@vercel%2fremix-builder 194ms (cache revalidated)
+213 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fremix-builder set size:145122 disposed:false
+214 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fbackends cache-miss
+215 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fexpress cache-miss
+216 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fhono cache-miss
+217 http fetch GET 200 https://registry.npmjs.org/@vercel%2fhono 129ms (cache revalidated)
+218 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fhono set size:125654 disposed:false
+219 http fetch GET 200 https://registry.npmjs.org/@vercel%2fbackends 137ms (cache revalidated)
+220 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fbackends set size:101313 disposed:false
+221 http fetch GET 200 https://registry.npmjs.org/@vercel%2fexpress 195ms (cache revalidated)
+222 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fexpress set size:132015 disposed:false
+223 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fstatic-config cache-miss
+224 http fetch GET 200 https://registry.npmjs.org/@vercel%2fstatic-config 116ms (cache revalidated)
+225 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fstatic-config set size:47403 disposed:false
+226 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fgatsby-plugin-vercel-builder cache-miss
+227 silly packumentCache corgi:https://registry.npmjs.org/tsx cache-miss
+228 silly packumentCache corgi:https://registry.npmjs.org/vercel cache-miss
+229 http fetch GET 200 https://registry.npmjs.org/vercel 18ms (cache hit)
+230 silly packumentCache corgi:https://registry.npmjs.org/vercel set size:4322914 disposed:false
+231 http fetch GET 200 https://registry.npmjs.org/tsx 50ms (cache revalidated)
+232 silly packumentCache corgi:https://registry.npmjs.org/tsx set size:126984 disposed:false
+233 http fetch GET 200 https://registry.npmjs.org/@vercel%2fgatsby-plugin-vercel-builder 202ms (cache revalidated)
+234 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fgatsby-plugin-vercel-builder set size:285422 disposed:false
+235 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2frust cache-miss
+236 http fetch GET 200 https://registry.npmjs.org/@vercel%2frust 201ms (cache revalidated)
+237 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2frust set size:12977 disposed:false
+238 silly packumentCache corgi:https://registry.npmjs.org/@mapbox%2fnode-pre-gyp cache-miss
+239 http fetch GET 200 https://registry.npmjs.org/@mapbox%2fnode-pre-gyp 63ms (cache revalidated)
+240 silly packumentCache corgi:https://registry.npmjs.org/@mapbox%2fnode-pre-gyp set size:47144 disposed:false
+241 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fbuild-utils cache-miss
+242 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fpython cache-miss
+243 http fetch GET 200 https://registry.npmjs.org/@vercel%2fbuild-utils 138ms (cache revalidated)
+244 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fbuild-utils set size:852856 disposed:false
+245 http fetch GET 200 https://registry.npmjs.org/@vercel%2fpython 146ms (cache updated)
+246 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fpython set size:undefined disposed:false
+247 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2felysia cache-miss
+248 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2ffastify cache-miss
+249 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fh3 cache-miss
+250 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fkoa cache-miss
+251 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fnestjs cache-miss
+252 http fetch GET 200 https://registry.npmjs.org/@vercel%2felysia 237ms (cache revalidated)
+253 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2felysia set size:83268 disposed:false
+254 http fetch GET 200 https://registry.npmjs.org/@vercel%2fnestjs 259ms (cache revalidated)
+255 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fnestjs set size:91729 disposed:false
+256 http fetch GET 200 https://registry.npmjs.org/@vercel%2ffastify 261ms (cache revalidated)
+257 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2ffastify set size:87405 disposed:false
+258 http fetch GET 200 https://registry.npmjs.org/@vercel%2fh3 306ms (cache revalidated)
+259 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fh3 set size:91114 disposed:false
+260 http fetch GET 200 https://registry.npmjs.org/@vercel%2fkoa 336ms (cache revalidated)
+261 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fkoa set size:66373 disposed:false
+262 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fcervel cache-miss
+263 http fetch GET 200 https://registry.npmjs.org/@vercel%2fcervel 171ms (cache revalidated)
+264 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fcervel set size:66575 disposed:false
+265 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fhydrogen cache-miss
+266 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fredwood cache-miss
+267 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fstatic-build cache-miss
+268 http fetch GET 200 https://registry.npmjs.org/@vercel%2fstatic-build 118ms (cache revalidated)
+269 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fstatic-build set size:651515 disposed:false
+270 http fetch GET 200 https://registry.npmjs.org/@vercel%2fredwood 140ms (cache revalidated)
+271 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fredwood set size:267513 disposed:false
+272 http fetch GET 200 https://registry.npmjs.org/@vercel%2fhydrogen 211ms (cache revalidated)
+273 silly packumentCache corgi:https://registry.npmjs.org/@vercel%2fhydrogen set size:125496 disposed:false
+274 verbose cwd C:\Users\ralph\Desktop\RALPHRES
+275 verbose os Windows_NT 10.0.26200
+276 verbose node v22.12.0
+277 verbose npm  v10.9.0
+278 verbose exit 0
+279 info ok

@@ -4,7 +4,12 @@ import { fetchWebsite } from "@/lib/sources/website";
 import { fetchYoutube } from "@/lib/sources/youtube";
 import type { SourceContent } from "@/lib/sources/types";
 import { extractRecipe, type ImageInput } from "@/lib/ai/extract";
-import { createRecipeFromExtraction, getKnownCanonicalNames } from "@/lib/repo/recipes";
+import {
+  createRecipeFromExtraction,
+  findDuplicateRecipeBySource,
+  findDuplicateRecipe,
+  getKnownCanonicalNames,
+} from "@/lib/repo/recipes";
 
 async function loadSource(job: ImportJobRow): Promise<SourceContent> {
   switch (job.sourceType) {
@@ -31,6 +36,20 @@ export async function processJob(jobId: string): Promise<ImportJobRow | null> {
 
   await updateJob(jobId, { status: "processing", error: null });
   try {
+    if (job.sourceType !== "text") {
+      const duplicate = await findDuplicateRecipeBySource({
+        ownerEmail: job.ownerEmail,
+        sourceUrl: job.rawInput,
+      });
+      if (duplicate) {
+        return updateJob(jobId, {
+          status: "needs_review",
+          recipeId: duplicate.id,
+          error: "Skipped duplicate: this source was already imported.",
+        });
+      }
+    }
+
     const content = await loadSource(job);
     const known = await getKnownCanonicalNames();
     const extraction = await extractRecipe({
@@ -41,8 +60,26 @@ export async function processJob(jobId: string): Promise<ImportJobRow | null> {
     if (content.imageUrl && !extraction.imageUrl) {
       extraction.imageUrl = content.imageUrl;
     }
+    if (content.description && !extraction.description) {
+      extraction.description = content.description;
+    }
     if (content.author && !extraction.sourceAuthor) {
       extraction.sourceAuthor = content.author;
+    }
+    const duplicate = await findDuplicateRecipe({
+      ownerEmail: job.ownerEmail,
+      sourceUrl: job.sourceType === "text" ? null : job.rawInput,
+      title: extraction.title,
+    });
+    if (duplicate) {
+      return updateJob(jobId, {
+        status: "needs_review",
+        recipeId: duplicate.id,
+        error:
+          duplicate.reason === "source"
+            ? "Skipped duplicate: this source was already imported."
+            : `Skipped duplicate: looks like "${duplicate.title}" is already saved.`,
+      });
     }
     const recipeId = await createRecipeFromExtraction(job.ownerEmail, extraction, {
       sourceType: job.sourceType,

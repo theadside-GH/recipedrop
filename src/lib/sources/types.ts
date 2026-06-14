@@ -6,6 +6,8 @@ export interface SourceContent {
   text: string;
   /** A candidate hero image URL discovered in the source, if any. */
   imageUrl?: string | null;
+  /** A short source-provided summary/caption to use if extraction leaves description blank. */
+  description?: string | null;
   /** Author/channel/site, if discoverable. */
   author?: string | null;
   /** Short context line passed to the model (e.g. the source URL). */

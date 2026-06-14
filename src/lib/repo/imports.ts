@@ -8,6 +8,8 @@ import { randomUUID } from "node:crypto";
 
 export type ImportJobRow = typeof importJob.$inferSelect;
 
+const MAX_BULK_ITEMS = 20;
+
 function labelFor(type: SourceType, value: string): string {
   if (type === "text") {
     const firstLine = value.split("\n").find((l) => l.trim().length > 0) ?? value;
@@ -43,7 +45,7 @@ export async function createBulkJobs(
 ): Promise<{ batchId: string; jobs: ImportJobRow[] }> {
   const db = await getDb();
   const batchId = randomUUID();
-  const items = splitBulkInput(blob);
+  const items = await prepareBulkItems(blob);
   if (items.length === 0) {
     // Treat the whole blob as a single text recipe.
     items.push({ type: detectSourceType(blob), value: blob });
@@ -62,6 +64,40 @@ export async function createBulkJobs(
     )
     .returning();
   return { batchId, jobs };
+}
+
+async function prepareBulkItems(blob: string): Promise<{ type: SourceType; value: string }[]> {
+  let items = splitBulkInput(blob);
+  const hasLinks = items.some((item) => item.type === "url" || item.type === "youtube");
+
+  if (!hasLinks && blob.trim().length > 120) {
+    try {
+      const { segmentBulk } = await import("@/lib/ai/extract");
+      const segments = await segmentBulk(blob);
+      const segmented = segments
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0)
+        .map((value) => ({ type: detectSourceType(value), value }));
+
+      if (segmented.length > items.length) {
+        items = segmented;
+      }
+    } catch (error) {
+      console.warn("AI bulk segmentation failed; using simple splitter.", error);
+    }
+  }
+
+  return dedupeItems(items).slice(0, MAX_BULK_ITEMS);
+}
+
+function dedupeItems(items: { type: SourceType; value: string }[]) {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item.type}:${item.value.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export async function getJob(id: string): Promise<ImportJobRow | null> {

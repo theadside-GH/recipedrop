@@ -7,7 +7,17 @@ const SUPABASE_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 const OWNER = process.env.OWNER_EMAIL ?? "";
 const AUTH_ENABLED = SUPABASE_URL.length > 0 && SUPABASE_ANON.length > 0;
 
-const PUBLIC_PATHS = ["/login", "/auth", "/api/health"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/auth",
+  "/api/health",
+  "/manifest.webmanifest",
+  "/sw.js",
+  "/icon.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/icon-maskable-512.png",
+];
 
 export async function proxy(request: NextRequest) {
   // Local mode (no Supabase configured) — no auth, pass everything through.
@@ -56,6 +66,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Run on everything except static assets and the icon/manifest.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest).*)"],
+  // Run on app routes, but leave static assets and PWA install files public.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|icon-192.png|icon-512.png|icon-maskable-512.png|manifest.webmanifest|sw.js).*)",
+  ],
 };

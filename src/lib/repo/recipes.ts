@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, ilike, lte, desc, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, ilike, lte, desc, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import {
   recipe,
@@ -143,6 +143,8 @@ export interface RecipeFilters {
   maxMinutes?: number;
   search?: string;
   tag?: string;
+  favorite?: boolean;
+  sort?: "newest" | "oldest" | "favorites" | "quickest" | "title";
 }
 
 /** List recipes for the library grid with optional filters. */
@@ -152,6 +154,7 @@ export async function listRecipes(ownerEmail: string, filters: RecipeFilters = {
   if (filters.mealType) conds.push(eq(recipe.mealType, filters.mealType as never));
   if (filters.maxMinutes) conds.push(lte(recipe.totalMinutes, filters.maxMinutes));
   if (filters.search) conds.push(ilike(recipe.title, `%${filters.search}%`));
+  if (filters.favorite) conds.push(eq(recipe.isFavorite, true));
 
   let ids: string[] | null = null;
   if (filters.tag) {
@@ -169,7 +172,90 @@ export async function listRecipes(ownerEmail: string, filters: RecipeFilters = {
     .select()
     .from(recipe)
     .where(and(...conds))
-    .orderBy(desc(recipe.createdAt));
+    .orderBy(...recipeOrder(filters.sort));
+}
+
+function recipeOrder(sort: RecipeFilters["sort"] = "newest") {
+  if (sort === "oldest") return [asc(recipe.createdAt)];
+  if (sort === "favorites") return [desc(recipe.isFavorite), desc(recipe.createdAt)];
+  if (sort === "quickest") return [asc(sql`coalesce(${recipe.totalMinutes}, 99999)`), desc(recipe.createdAt)];
+  if (sort === "title") return [asc(recipe.title)];
+  return [desc(recipe.createdAt)];
+}
+
+export async function setRecipeFavorite(id: string, isFavorite: boolean): Promise<void> {
+  const db = await getDb();
+  await db.update(recipe).set({ isFavorite }).where(eq(recipe.id, id));
+}
+
+export interface DuplicateRecipe {
+  id: string;
+  title: string;
+  reason: "source" | "title";
+}
+
+export async function findDuplicateRecipeBySource(input: {
+  ownerEmail: string;
+  sourceUrl: string;
+}): Promise<DuplicateRecipe | null> {
+  const db = await getDb();
+  const [bySource] = await db
+    .select({ id: recipe.id, title: recipe.title })
+    .from(recipe)
+    .where(and(eq(recipe.ownerEmail, input.ownerEmail), eq(recipe.sourceUrl, input.sourceUrl.trim())))
+    .limit(1);
+  return bySource ? { ...bySource, reason: "source" } : null;
+}
+
+export async function findDuplicateRecipe(input: {
+  ownerEmail: string;
+  sourceUrl?: string | null;
+  title: string;
+}): Promise<DuplicateRecipe | null> {
+  const db = await getDb();
+  const sourceUrl = input.sourceUrl?.trim();
+  if (sourceUrl) {
+    const bySource = await findDuplicateRecipeBySource({
+      ownerEmail: input.ownerEmail,
+      sourceUrl,
+    });
+    if (bySource) return bySource;
+  }
+
+  const normalizedTitle = normalizeTitle(input.title);
+  if (isGenericTitle(normalizedTitle)) return null;
+  const rows = await db
+    .select({ id: recipe.id, title: recipe.title })
+    .from(recipe)
+    .where(and(eq(recipe.ownerEmail, input.ownerEmail), ilike(recipe.title, `%${input.title.slice(0, 40)}%`)))
+    .limit(20);
+
+  const byTitle = rows.find((row) => normalizeTitle(row.title) === normalizedTitle);
+  return byTitle ? { ...byTitle, reason: "title" } : null;
+}
+
+function normalizeTitle(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\b(the|a|an|recipe)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isGenericTitle(normalizedTitle: string) {
+  return [
+    "",
+    "recipe",
+    "tiktok",
+    "instagram",
+    "reel",
+    "unknown",
+    "untitled",
+    "video",
+    "social post",
+  ].includes(normalizedTitle);
 }
 
 /** Full recipe detail: recipe + ingredients + steps + tag names. */

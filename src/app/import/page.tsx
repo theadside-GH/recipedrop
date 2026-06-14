@@ -1,9 +1,14 @@
 import { features } from "@/lib/env";
 import { ImportClient } from "./import-client";
+import { getOwnerEmail } from "@/lib/auth";
+import { listRecentJobs } from "@/lib/repo/imports";
+import type { JobView } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
-export default function ImportPage() {
+export default async function ImportPage() {
+  const recentJobs = await getRecentImportViews();
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
@@ -21,7 +26,24 @@ export default function ImportPage() {
           See the README for setup.
         </div>
       )}
-      <ImportClient aiEnabled={features.aiEnabled} />
+      <ImportClient aiEnabled={features.aiEnabled} initialJobs={recentJobs} />
     </div>
   );
+}
+
+async function getRecentImportViews(): Promise<JobView[]> {
+  try {
+    const owner = await getOwnerEmail();
+    const jobs = await listRecentJobs(owner, 30);
+    return jobs.map((job) => ({
+      id: job.id,
+      label: job.label,
+      sourceType: job.sourceType,
+      status: job.status,
+      error: job.error,
+      recipeId: job.recipeId,
+    }));
+  } catch {
+    return [];
+  }
 }

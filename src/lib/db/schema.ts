@@ -96,6 +96,7 @@ export const recipe = pgTable(
     servingsDefault: integer("servings_default").notNull().default(2),
     mealType: mealTypeEnum("meal_type").notNull().default("dinner"),
     difficulty: text("difficulty"), // "easy" | "medium" | "hard"
+    isFavorite: boolean("is_favorite").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -104,6 +105,7 @@ export const recipe = pgTable(
     index("recipe_owner_idx").on(t.ownerEmail),
     index("recipe_meal_type_idx").on(t.mealType),
     index("recipe_total_minutes_idx").on(t.totalMinutes),
+    index("recipe_favorite_idx").on(t.isFavorite),
   ],
 );
 

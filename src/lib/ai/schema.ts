@@ -17,6 +17,38 @@ export const MEAL_TYPES = [
   "drink",
 ] as const;
 
+type MealType = (typeof MEAL_TYPES)[number];
+
+const MEAL_TYPE_ALIASES: Record<string, MealType> = {
+  app: "snack",
+  appetizer: "snack",
+  appetizers: "snack",
+  starter: "snack",
+  starters: "snack",
+  "hors d'oeuvre": "snack",
+  "hors d'oeuvres": "snack",
+  horsdoeuvre: "snack",
+  horsdoeuvres: "snack",
+  "small plate": "snack",
+  "small plates": "snack",
+  party: "snack",
+  "party food": "snack",
+  brunch: "breakfast",
+  beverage: "drink",
+  beverages: "drink",
+  cocktail: "drink",
+  cocktails: "drink",
+  entree: "dinner",
+  "main course": "dinner",
+  main: "dinner",
+};
+
+const mealTypeSchema = z.preprocess((value) => {
+  if (typeof value !== "string") return value;
+  const normalized = value.toLowerCase().trim().replace(/[’‘]/g, "'");
+  return MEAL_TYPE_ALIASES[normalized] ?? normalized;
+}, z.enum(MEAL_TYPES));
+
 export const UNIT_CATEGORIES = [
   "mass",
   "volume",
@@ -59,7 +91,7 @@ export const extractedStepSchema = z.object({
 export const recipeExtractionSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
-  mealType: z.enum(MEAL_TYPES),
+  mealType: mealTypeSchema,
   difficulty: z.enum(["easy", "medium", "hard"]).nullable(),
   prepMinutes: z.number().nullable(),
   cookMinutes: z.number().nullable(),

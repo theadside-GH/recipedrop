@@ -39,41 +39,90 @@ async function pool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>
   await Promise.all(workers);
 }
 
-export function ImportClient({ aiEnabled }: { aiEnabled: boolean }) {
+export function ImportClient({
+  aiEnabled,
+  initialJobs = [],
+}: {
+  aiEnabled: boolean;
+  initialJobs?: JobView[];
+}) {
   const [tab, setTab] = useState<Tab>("link");
   const [single, setSingle] = useState("");
   const [bulk, setBulk] = useState("");
-  const [jobs, setJobs] = useState<JobView[]>([]);
+  const [jobs, setJobs] = useState<JobView[]>(initialJobs);
   const [busy, setBusy] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const summary = summarizeJobs(jobs);
 
   function updateJob(updated: JobView) {
     setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
   }
 
-  async function runJobs(toRun: JobView[]) {
+  async function runJobs(toRun: JobView[]): Promise<JobView[]> {
+    const results: JobView[] = [];
     await pool(toRun, 3, async (job) => {
       setJobs((prev) =>
         prev.map((j) => (j.id === job.id ? { ...j, status: "processing" } : j)),
       );
-      const result = await runImportJob(job.id);
-      if (result) updateJob(result);
+      try {
+        const result = await runImportJob(job.id);
+        if (result) {
+          const next = result.id === job.id ? result : { ...job, ...result, id: job.id };
+          updateJob(next);
+          results.push(next);
+          return;
+        }
+        const failed: JobView = {
+          ...job,
+          status: "failed",
+          error: "Import failed while processing. Try again.",
+          recipeId: null,
+        };
+        updateJob(failed);
+        results.push(failed);
+      } catch (err) {
+        const failed: JobView = {
+          ...job,
+          status: "failed",
+          error: err instanceof Error ? err.message : "Import failed while processing.",
+          recipeId: null,
+        };
+        updateJob(failed);
+        results.push(failed);
+      }
     });
+    return results;
   }
 
   async function handleStart(mode: "single" | "bulk", value: string) {
     if (!value.trim() || busy) return;
     setBusy(true);
+    setImportError(null);
     try {
       const { jobs: created } = await startImport({ mode, value });
       setJobs((prev) => [...created, ...prev]);
-      await runJobs(created);
+      const results = await runJobs(created);
       if (mode === "single") setSingle("");
-      else setBulk("");
+      else if (!results.some((job) => job.status === "failed")) setBulk("");
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Import did not start.");
     } finally {
       setBusy(false);
     }
+  }
+
+  async function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    if (busy || !aiEnabled) return;
+    const uri = event.dataTransfer.getData("text/uri-list");
+    const text = event.dataTransfer.getData("text/plain");
+    const value = (uri || text).trim();
+    if (!value) return;
+    setTab("link");
+    setSingle(value);
+    await handleStart("single", value);
   }
 
   async function retry(job: JobView) {
@@ -125,7 +174,11 @@ export function ImportClient({ aiEnabled }: { aiEnabled: boolean }) {
       </div>
 
       {tab === "link" && (
-        <div className="space-y-3">
+        <div
+          className="space-y-3"
+          onDragOver={(event) => event.preventDefault()}
+          onDrop={handleDrop}
+        >
           <Input
             value={single}
             onChange={(e) => setSingle(e.target.value)}
@@ -149,6 +202,7 @@ export function ImportClient({ aiEnabled }: { aiEnabled: boolean }) {
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Import recipe
           </Button>
+          {importError && <p className="text-sm text-red-600">{importError}</p>}
         </div>
       )}
 
@@ -170,6 +224,7 @@ export function ImportClient({ aiEnabled }: { aiEnabled: boolean }) {
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             Import all
           </Button>
+          {importError && <p className="text-sm text-red-600">{importError}</p>}
         </div>
       )}
 
@@ -207,9 +262,10 @@ export function ImportClient({ aiEnabled }: { aiEnabled: boolean }) {
       {/* Job list */}
       {jobs.length > 0 && (
         <div className="space-y-2 pt-2">
-          <h2 className="text-sm font-semibold text-muted">
-            {jobs.filter((j) => j.status === "done").length} of {jobs.length} imported
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold">Recent import history</h2>
+            <p className="text-xs text-muted">{summary}</p>
+          </div>
           {jobs.map((job) => (
             <JobRow key={job.id} job={job} onRetry={() => retry(job)} />
           ))}
@@ -220,17 +276,20 @@ export function ImportClient({ aiEnabled }: { aiEnabled: boolean }) {
 }
 
 function JobRow({ job, onRetry }: { job: JobView; onRetry: () => void }) {
+  const canOpen = (job.status === "done" || job.status === "needs_review") && job.recipeId;
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
       <StatusIcon status={job.status} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{job.label || "Recipe"}</p>
         <p className="text-xs text-muted">
-          {SOURCE_LABEL[job.sourceType] ?? job.sourceType}
-          {job.status === "failed" && job.error ? ` · ${job.error}` : ""}
+          {statusLabel(job.status)} · {SOURCE_LABEL[job.sourceType] ?? job.sourceType}
+          {(job.status === "failed" || job.status === "needs_review") && job.error
+            ? ` · ${job.error}`
+            : ""}
         </p>
       </div>
-      {job.status === "done" && job.recipeId && (
+      {canOpen && (
         <Link href={`/recipes/${job.recipeId}`}>
           <Button size="sm" variant="secondary">
             View <ArrowRight className="h-4 w-4" />
@@ -248,10 +307,32 @@ function JobRow({ job, onRetry }: { job: JobView; onRetry: () => void }) {
 
 function StatusIcon({ status }: { status: JobView["status"] }) {
   if (status === "done") return <CheckCircle2 className="h-5 w-5 shrink-0 text-fresh" />;
+  if (status === "needs_review") return <CheckCircle2 className="h-5 w-5 shrink-0 text-muted" />;
   if (status === "failed") return <XCircle className="h-5 w-5 shrink-0 text-red-500" />;
   if (status === "processing")
     return <Loader2 className="h-5 w-5 shrink-0 animate-spin text-brand" />;
   return <div className="h-5 w-5 shrink-0 rounded-full border-2 border-border" />;
+}
+
+function summarizeJobs(jobs: JobView[]) {
+  const done = jobs.filter((job) => job.status === "done").length;
+  const skipped = jobs.filter((job) => job.status === "needs_review").length;
+  const failed = jobs.filter((job) => job.status === "failed").length;
+  const active = jobs.filter((job) => job.status === "pending" || job.status === "processing").length;
+  const parts = [`${done} imported`];
+  if (skipped) parts.push(`${skipped} skipped`);
+  if (failed) parts.push(`${failed} failed`);
+  if (active) parts.push(`${active} working`);
+  parts.push(`${jobs.length} total`);
+  return parts.join(" · ");
+}
+
+function statusLabel(status: JobView["status"]) {
+  if (status === "done") return "Imported";
+  if (status === "failed") return "Failed";
+  if (status === "processing") return "Importing";
+  if (status === "needs_review") return "Skipped";
+  return "Waiting";
 }
 
 function TabButton({

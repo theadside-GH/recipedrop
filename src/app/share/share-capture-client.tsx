@@ -70,7 +70,9 @@ export function ShareCaptureClient({
               {initialValue ? "Shared recipe captured" : "Paste a recipe link or caption"}
             </p>
             <p className="text-sm text-muted">
-              {initialSourceType ? SOURCE_LABEL[initialSourceType] : "TikTok, YouTube, Instagram, websites, or recipe text"}
+              {initialSourceType
+                ? SOURCE_LABEL[initialSourceType]
+                : "TikTok, Instagram, Facebook, YouTube, websites, or recipe text"}
             </p>
           </div>
         </div>
@@ -100,10 +102,12 @@ export function ShareCaptureClient({
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">{job.label || "Recipe"}</p>
             <p className="text-xs text-muted">
-              {job.status === "failed" && job.error ? job.error : SOURCE_LABEL[job.sourceType]}
+              {(job.status === "failed" || job.status === "needs_review") && job.error
+                ? job.error
+                : SOURCE_LABEL[job.sourceType]}
             </p>
           </div>
-          {job.status === "done" && job.recipeId && (
+          {(job.status === "done" || job.status === "needs_review") && job.recipeId && (
             <Link href={`/recipes/${job.recipeId}`}>
               <Button size="sm" variant="secondary">
                 View <ArrowRight className="h-4 w-4" />
@@ -123,6 +127,7 @@ export function ShareCaptureClient({
 
 function StatusIcon({ status }: { status: JobView["status"] }) {
   if (status === "done") return <CheckCircle2 className="h-5 w-5 shrink-0 text-fresh" />;
+  if (status === "needs_review") return <CheckCircle2 className="h-5 w-5 shrink-0 text-muted" />;
   if (status === "failed") return <XCircle className="h-5 w-5 shrink-0 text-red-500" />;
   if (status === "processing")
     return <Loader2 className="h-5 w-5 shrink-0 animate-spin text-brand" />;

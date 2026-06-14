@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RecipeImage } from "@/components/recipe-image";
+import { PrintButton } from "@/components/print-button";
 import { formatMinutes, tidyNumber } from "@/lib/utils";
 import { pluralize } from "@/lib/shopping/units";
 import { deleteRecipeAction } from "@/app/actions";
@@ -45,7 +46,7 @@ export function RecipeDetail({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="recipe-print space-y-8">
       {/* Hero */}
       <div className="overflow-hidden rounded-3xl border border-border bg-card">
         <div className="h-64 w-full sm:h-80">
@@ -83,7 +84,7 @@ export function RecipeDetail({
       </div>
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 print:hidden">
         <Link href={`/recipes/${recipe.id}/cook`}>
           <Button size="lg">
             <ChefHat className="h-5 w-5" /> Start cooking
@@ -96,6 +97,7 @@ export function RecipeDetail({
             </Button>
           </a>
         )}
+        <PrintButton />
         <Button variant="danger" size="lg" onClick={handleDelete} disabled={isPending}>
           <Trash2 className="h-4 w-4" /> Delete
         </Button>
