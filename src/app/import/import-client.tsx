@@ -11,11 +11,18 @@ import {
   XCircle,
   RotateCw,
   ArrowRight,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea, Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { startImport, runImportJob, importPhotos, type JobView } from "@/app/actions";
+import {
+  startImport,
+  runImportJob,
+  importPhotos,
+  clearImportHistoryAction,
+  type JobView,
+} from "@/app/actions";
 import type { ImageInput } from "@/lib/ai/extract";
 
 type Tab = "link" | "bulk" | "photo";
@@ -130,6 +137,12 @@ export function ImportClient({
 
   async function retry(job: JobView) {
     await runJobs([job]);
+  }
+
+  async function clearHistory() {
+    if (!confirm("Clear import history? This will not delete saved recipes.")) return;
+    setJobs([]);
+    await clearImportHistoryAction();
   }
 
   async function handlePhotos(files: FileList | null) {
@@ -267,7 +280,13 @@ export function ImportClient({
         <div className="space-y-2 pt-2">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">Recent import history</h2>
-            <p className="text-xs text-muted">{summary}</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs text-muted">{summary}</p>
+              <Button size="sm" variant="ghost" onClick={clearHistory}>
+                <Trash2 className="h-4 w-4" />
+                Clear history
+              </Button>
+            </div>
           </div>
           {jobs.map((job) => (
             <JobRow key={job.id} job={job} onRetry={() => retry(job)} />

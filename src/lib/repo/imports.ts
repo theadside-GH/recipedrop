@@ -138,3 +138,8 @@ export async function listRecentJobs(ownerEmail: string, limit = 20): Promise<Im
     .orderBy(desc(importJob.createdAt))
     .limit(limit);
 }
+
+export async function clearImportHistory(ownerEmail: string): Promise<void> {
+  const db = await getDb();
+  await db.delete(importJob).where(eq(importJob.ownerEmail, ownerEmail));
+}

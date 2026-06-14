@@ -7,6 +7,7 @@ import {
   createSingleJob,
   createBulkJobs,
   updateJob,
+  clearImportHistory,
   type ImportJobRow,
 } from "@/lib/repo/imports";
 import { detectSourceType } from "@/lib/sources/detect";
@@ -102,6 +103,12 @@ export async function runImportJob(jobId: string): Promise<JobView | null> {
     const failed = await updateJob(jobId, { status: "failed", error: message });
     return failed ? toView(failed) : failedJob("Import failed", "Import failed while processing. Try again.");
   }
+}
+
+export async function clearImportHistoryAction(): Promise<void> {
+  const owner = await getOwnerEmail();
+  await clearImportHistory(owner);
+  revalidatePath("/import");
 }
 
 /** Import one or more recipe photos directly (vision). Returns the new recipe id. */
