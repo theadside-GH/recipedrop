@@ -32,7 +32,9 @@ export const features = {
     return env.anthropicApiKey.length > 0;
   },
   get authEnabled() {
-    return env.supabaseUrl.length > 0 && env.supabaseAnonKey.length > 0;
+    // Temporarily disabled while RecipeDrop is still being tested privately.
+    // This avoids magic-link rate limits and keeps mobile install/share testing simple.
+    return false;
   },
 } as const;
 
