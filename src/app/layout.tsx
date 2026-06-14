@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { SiteNav } from "@/components/site-nav";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
+import { InstallAppPrompt } from "@/components/install-app-prompt";
 
 export const metadata: Metadata = {
   title: "RecipeDrop - your recipes, sorted",
@@ -29,6 +30,7 @@ export default function RootLayout({
       <body className="min-h-full bg-background">
         <ServiceWorkerRegister />
         <SiteNav />
+        <InstallAppPrompt />
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 sm:pb-10">
           {children}
         </main>

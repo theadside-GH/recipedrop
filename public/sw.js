@@ -1,4 +1,4 @@
-const CACHE_NAME = "recipedrop-shell-v1";
+const CACHE_NAME = "recipedrop-shell-v2";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
   "/icon.svg",
@@ -36,5 +36,8 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       caches.match(request).then((cached) => cached ?? fetch(request)),
     );
+    return;
   }
+
+  event.respondWith(fetch(request));
 });
