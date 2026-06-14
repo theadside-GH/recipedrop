@@ -1,7 +1,7 @@
 import { normalizeUnit, pluralize, type UnitCategory } from "./units";
 import { tidyNumber } from "@/lib/utils";
 
-/** One ingredient line as it enters aggregation (already scaled by servings). */
+/** One ingredient line as it enters aggregation, already scaled by servings. */
 export interface PlannedIngredient {
   canonicalName: string;
   quantity: number | null;
@@ -9,7 +9,6 @@ export interface PlannedIngredient {
   /** Optional hint from import time; the unit string takes precedence. */
   unitCategory?: UnitCategory | null;
   aisle?: string | null;
-  /** Where this line came from, for "(×N recipes)" annotations. */
   recipeTitle?: string;
 }
 
@@ -17,7 +16,7 @@ export interface PlannedIngredient {
 export interface AggregatedItem {
   canonicalName: string;
   aisle: string | null;
-  /** Human-readable amount, e.g. "1.2 kg" or "200 g + 2 whole". */
+  /** Human-readable amount, e.g. "1.2 kg" or "4 cloves". */
   displayText: string;
   /** Set only when the whole item collapses to a single summable quantity. */
   totalQuantity: number | null;
@@ -28,10 +27,9 @@ export interface AggregatedItem {
 
 interface SubGroup {
   category: UnitCategory;
-  countLabel: string; // for count/pinch/unknown
-  /** Accumulated amount in the category base unit (g / ml / count). */
+  countLabel: string;
+  /** Accumulated amount in the category base unit: g, ml, or count. */
   base: number;
-  /** Number of contributing lines (for non-summable "(×N)" display). */
   occurrences: number;
   /** True if every contributing line had a usable numeric quantity. */
   numeric: boolean;
@@ -47,24 +45,22 @@ function classify(line: PlannedIngredient): {
   countLabel: string;
   base: number | null;
 } {
-  // The unit string is authoritative; fall back to the import-time hint.
   if (line.unit && line.unit.trim() !== "") {
     const n = normalizeUnit(line.unit);
     const base = line.quantity == null ? null : line.quantity * n.factor;
     return { category: n.category, countLabel: n.countLabel, base };
   }
   if (line.quantity != null) {
-    // "2 apples" — no unit but a number → plain count.
     return { category: "count", countLabel: "", base: line.quantity };
   }
-  // No quantity and no unit ("salt, to taste") → not summable.
-  const cat = (line.unitCategory as UnitCategory) ?? "pinch";
-  return { category: cat === "count" ? "pinch" : cat, countLabel: "", base: null };
+  const cat = (line.unitCategory as UnitCategory) ?? "unknown";
+  return { category: cat === "count" ? "unknown" : cat, countLabel: "", base: null };
 }
 
 function formatMass(grams: number): string {
   return grams >= 1000 ? `${tidyNumber(grams / 1000)} kg` : `${tidyNumber(grams)} g`;
 }
+
 function formatVolume(ml: number): string {
   return ml >= 1000 ? `${tidyNumber(ml / 1000)} L` : `${tidyNumber(ml)} ml`;
 }
@@ -82,25 +78,33 @@ function formatSubGroup(g: SubGroup): string {
     case "pinch":
     case "unknown":
     default: {
-      const label = g.countLabel || "to taste";
-      return g.occurrences > 1 ? `${label} (×${g.occurrences})` : label;
+      const label = g.countLabel || "amount not specified";
+      return g.occurrences > 1 ? `${label} (${g.occurrences} recipes)` : label;
     }
   }
 }
 
+function mergeFriendlyCountGroups(name: string, groups: SubGroup[]): SubGroup[] {
+  if (name !== "garlic") return groups;
+  const plain = groups.find((g) => g.category === "count" && g.countLabel === "" && g.numeric);
+  const cloves = groups.find((g) => g.category === "count" && g.countLabel === "clove" && g.numeric);
+  if (!plain || !cloves) return groups;
+
+  return groups.filter((g) => g !== plain && g !== cloves).concat({
+    category: "count",
+    countLabel: "clove",
+    base: plain.base + cloves.base,
+    occurrences: plain.occurrences + cloves.occurrences,
+    numeric: true,
+  });
+}
+
 /**
- * Consolidate planned (already-scaled) ingredient lines into one shopping-list
- * line per canonical ingredient. Same category sums; different/incompatible
- * units are grouped under the item but listed separately rather than force-summed.
+ * Consolidate planned ingredient lines into one shopping-list line per item.
+ * Same category sums; incompatible units stay visible rather than being guessed.
  */
-export function aggregateIngredients(
-  lines: PlannedIngredient[],
-): AggregatedItem[] {
-  // canonicalName -> subGroupKey -> SubGroup
-  const byItem = new Map<
-    string,
-    { aisle: string | null; groups: Map<string, SubGroup> }
-  >();
+export function aggregateIngredients(lines: PlannedIngredient[]): AggregatedItem[] {
+  const byItem = new Map<string, { aisle: string | null; groups: Map<string, SubGroup> }>();
 
   for (const line of lines) {
     const name = line.canonicalName.trim().toLowerCase();
@@ -115,24 +119,22 @@ export function aggregateIngredients(
     if (!item.aisle && line.aisle) item.aisle = line.aisle;
 
     const key = subGroupKey(category, countLabel);
-    let g = item.groups.get(key);
-    if (!g) {
-      g = { category, countLabel, base: 0, occurrences: 0, numeric: true };
-      item.groups.set(key, g);
+    let group = item.groups.get(key);
+    if (!group) {
+      group = { category, countLabel, base: 0, occurrences: 0, numeric: true };
+      item.groups.set(key, group);
     }
-    g.occurrences += 1;
-    if (base == null) g.numeric = false;
-    else g.base += base;
+    group.occurrences += 1;
+    if (base == null) group.numeric = false;
+    else group.base += base;
   }
 
   const result: AggregatedItem[] = [];
   for (const [name, item] of byItem) {
-    const groups = [...item.groups.values()];
-    // Stable, readable order: real amounts first, vague amounts last.
+    const groups = mergeFriendlyCountGroups(name, [...item.groups.values()]);
     const order: UnitCategory[] = ["mass", "volume", "count", "unknown", "pinch"];
     groups.sort((a, b) => order.indexOf(a.category) - order.indexOf(b.category));
 
-    const parts = groups.map(formatSubGroup);
     const summableGroups = groups.filter(
       (g) => g.category === "mass" || g.category === "volume" || (g.category === "count" && g.numeric),
     );
@@ -141,15 +143,15 @@ export function aggregateIngredients(
     let totalQuantity: number | null = null;
     let baseUnit: string | null = null;
     if (isSummable) {
-      const g = groups[0];
-      totalQuantity = tidyNumber(g.base);
-      baseUnit = g.category === "mass" ? "g" : g.category === "volume" ? "ml" : g.countLabel || "count";
+      const group = groups[0];
+      totalQuantity = tidyNumber(group.base);
+      baseUnit = group.category === "mass" ? "g" : group.category === "volume" ? "ml" : group.countLabel || "count";
     }
 
     result.push({
       canonicalName: name,
       aisle: item.aisle,
-      displayText: parts.join(" + "),
+      displayText: groups.map(formatSubGroup).join(" + "),
       totalQuantity,
       baseUnit,
       unitCategory: groups[0]?.category ?? "unknown",
@@ -157,9 +159,8 @@ export function aggregateIngredients(
     });
   }
 
-  // Group by aisle, then alphabetical within.
   result.sort((a, b) => {
-    const aa = a.aisle ?? "~"; // unknown aisle sorts last
+    const aa = a.aisle ?? "~";
     const bb = b.aisle ?? "~";
     if (aa !== bb) return aa.localeCompare(bb);
     return a.canonicalName.localeCompare(b.canonicalName);

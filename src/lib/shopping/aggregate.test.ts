@@ -63,6 +63,24 @@ describe("aggregateIngredients", () => {
     expect(salt?.displayText).toContain("pinch");
   });
 
+  it("does not call missing amounts 'to taste'", () => {
+    const lines: PlannedIngredient[] = [
+      { canonicalName: "rice", quantity: null, unit: null, unitCategory: "unknown" },
+    ];
+    const rice = find(aggregateIngredients(lines), "rice");
+    expect(rice?.displayText).toBe("amount not specified");
+  });
+
+  it("merges plain garlic counts with cloves into one clear total", () => {
+    const lines: PlannedIngredient[] = [
+      { canonicalName: "garlic", quantity: 4, unit: "cloves" },
+      { canonicalName: "garlic", quantity: 2, unit: null },
+    ];
+    const garlic = find(aggregateIngredients(lines), "garlic");
+    expect(garlic?.displayText).toBe("6 cloves");
+    expect(garlic?.isSummable).toBe(true);
+  });
+
   it("sums matching count nouns (cloves) but keeps different nouns separate", () => {
     const lines: PlannedIngredient[] = [
       { canonicalName: "garlic", quantity: 2, unit: "cloves" },

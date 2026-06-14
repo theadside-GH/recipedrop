@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, Copy, EyeOff, Info, Printer } from "lucide-react";
+import { Check, Copy, EyeOff, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatPurchaseAmount } from "@/lib/shopping/purchase";
@@ -106,6 +106,7 @@ export function ShoppingListView({
                   const isChecked = checked[item.id];
                   const purchaseText = formatPurchaseAmount(item);
                   const showRecipeAmount = purchaseText !== item.displayText;
+                  const reviewNote = reviewText(item);
                   return (
                     <li key={item.id}>
                       <button
@@ -139,18 +140,15 @@ export function ShoppingListView({
                           <span className="ml-2 text-sm text-muted">{purchaseText}</span>
                           {showRecipeAmount && (
                             <span className="mt-0.5 block text-xs text-muted">
-                              recipe amount: {item.displayText}
+                              recipe total: {item.displayText}
+                            </span>
+                          )}
+                          {reviewNote && (
+                            <span className="mt-0.5 block text-xs text-muted">
+                              {reviewNote}
                             </span>
                           )}
                         </span>
-                        {!item.isSummable && (
-                          <span
-                            title="Different units across recipes - listed separately rather than guessing a total."
-                            className="text-muted"
-                          >
-                            <Info className="h-4 w-4" />
-                          </span>
-                        )}
                       </button>
                     </li>
                   );
@@ -185,4 +183,15 @@ function shoppingListText(items: ShoppingItem[], checked: Record<string, boolean
     }
   }
   return lines.join("\n").trim();
+}
+
+function reviewText(item: ShoppingItem): string | null {
+  if (item.isSummable) return null;
+  if (item.displayText.includes("amount not specified")) {
+    return "One recipe did not give an exact amount.";
+  }
+  if (item.displayText.includes(" + ")) {
+    return "Amounts are listed separately because the units do not safely combine.";
+  }
+  return null;
 }
