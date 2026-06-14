@@ -1,4 +1,13 @@
-import { Bot, CircleHelp, Link2, LockKeyhole, MessageSquareText, Sparkles } from "lucide-react";
+import {
+  Bot,
+  CircleHelp,
+  Link2,
+  LockKeyhole,
+  MessageSquareText,
+  Share2,
+  Smartphone,
+  Sparkles,
+} from "lucide-react";
 
 const FAQS = [
   {
@@ -26,9 +35,21 @@ const FAQS = [
     icon: CircleHelp,
   },
   {
+    question: "How do I install it on Android?",
+    answer:
+      "Open RecipeDrop in Chrome, tap the three-dot menu, then choose Install app or Add to Home screen. In-app browsers inside TikTok or Instagram usually cannot install it.",
+    icon: Smartphone,
+  },
+  {
+    question: "How does sharing from my phone work?",
+    answer:
+      "After installing, use the normal Android share sheet from TikTok, Instagram, YouTube, Chrome, or another app and choose RecipeDrop.",
+    icon: Share2,
+  },
+  {
     question: "Who can use this app?",
     answer:
-      "This deployment is owner-only. The recipe database and imports are protected behind your sign-in.",
+      "For testing, login is currently turned off so the phone install and share flow is easier to use. Auth can be turned back on later.",
     icon: LockKeyhole,
   },
   {

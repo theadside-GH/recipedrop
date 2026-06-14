@@ -68,18 +68,26 @@ export function InstallAppPrompt() {
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold">Install RecipeDrop on this phone</p>
-          <p className="mt-0.5 text-xs leading-5 text-muted">
-            {manual
-              ? "Open this page in Chrome, tap the three-dot menu, then choose Install app or Add to Home screen."
-              : "Use it from your home screen and share recipes straight into the app."}
-          </p>
+          {manual ? (
+            <ol className="mt-1 list-decimal space-y-1 pl-4 text-xs leading-5 text-muted">
+              <li>Open RecipeDrop in Chrome, not inside TikTok or Instagram.</li>
+              <li>Tap Chrome&apos;s three-dot menu.</li>
+              <li>Choose Install app or Add to Home screen.</li>
+            </ol>
+          ) : (
+            <p className="mt-0.5 text-xs leading-5 text-muted">
+              Use it from your home screen and share recipes straight into the app.
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap gap-2">
             <Button size="sm" onClick={install}>
-              Install app
+              {installEvent ? "Install app" : "How to install"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setManual(true)}>
-              Show steps
-            </Button>
+            {installEvent && (
+              <Button size="sm" variant="ghost" onClick={() => setManual(true)}>
+                Show steps
+              </Button>
+            )}
           </div>
         </div>
         <button
