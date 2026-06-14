@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { ChefHat } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,7 +27,10 @@ export function RecipeImage({
   imgClassName?: string;
   loading?: "eager" | "lazy";
 }) {
-  if (src) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const canUseImage = src && src !== failedSrc;
+
+  if (canUseImage) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -32,6 +38,7 @@ export function RecipeImage({
         alt={title}
         className={cn("h-full w-full object-cover", imgClassName)}
         loading={loading}
+        onError={() => setFailedSrc(src)}
       />
     );
   }
