@@ -10,7 +10,12 @@ import {
   type ImportJobRow,
 } from "@/lib/repo/imports";
 import { detectSourceType } from "@/lib/sources/detect";
-import { deleteRecipe, setRecipeFavorite } from "@/lib/repo/recipes";
+import {
+  deleteRecipe,
+  setRecipeFavorite,
+  updateRecipe,
+  type RecipeEditInput,
+} from "@/lib/repo/recipes";
 import { randomUUID } from "node:crypto";
 import {
   createPlan,
@@ -119,6 +124,18 @@ export async function setFavoriteAction(id: string, isFavorite: boolean): Promis
   await setRecipeFavorite(id, isFavorite);
   revalidatePath("/");
   revalidatePath(`/recipes/${id}`);
+}
+
+export async function updateRecipeAction(
+  id: string,
+  input: Omit<RecipeEditInput, "id" | "ownerEmail">,
+): Promise<void> {
+  const owner = await getOwnerEmail();
+  await updateRecipe({ ...input, id, ownerEmail: owner });
+  revalidatePath("/");
+  revalidatePath(`/recipes/${id}`);
+  revalidatePath(`/recipes/${id}/edit`);
+  revalidatePath("/plans");
 }
 
 // ---- Meal plans -----------------------------------------------------------

@@ -11,6 +11,7 @@ import {
   Trash2,
   ExternalLink,
   Users,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +89,11 @@ export function RecipeDetail({
         <Link href={`/recipes/${recipe.id}/cook`}>
           <Button size="lg">
             <ChefHat className="h-5 w-5" /> Start cooking
+          </Button>
+        </Link>
+        <Link href={`/recipes/${recipe.id}/edit`}>
+          <Button variant="secondary" size="lg">
+            <Pencil className="h-4 w-4" /> Edit
           </Button>
         </Link>
         {recipe.sourceUrl && (

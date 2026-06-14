@@ -10,8 +10,10 @@ import {
   canonicalIngredient,
 } from "@/lib/db/schema";
 import type { RecipeExtraction } from "@/lib/ai/schema";
+import { MEAL_TYPES } from "@/lib/ai/schema";
 import type { SourceType } from "@/lib/sources/types";
 import { guessAisle } from "@/lib/shopping/aisle";
+import { normalizeUnit, type UnitCategory } from "@/lib/shopping/units";
 
 /** All known canonical ingredient names, to keep imports merged over time. */
 export async function getKnownCanonicalNames(): Promise<string[]> {
@@ -256,6 +258,210 @@ function isGenericTitle(normalizedTitle: string) {
     "video",
     "social post",
   ].includes(normalizedTitle);
+}
+
+export interface RecipeEditInput {
+  ownerEmail: string;
+  id: string;
+  title: string;
+  description: string | null;
+  sourceUrl: string | null;
+  sourceAuthor: string | null;
+  imagePath: string | null;
+  prepMinutes: number | null;
+  cookMinutes: number | null;
+  totalMinutes: number | null;
+  servingsDefault: number;
+  mealType: string;
+  difficulty: string | null;
+  tags: string[];
+  ingredients: string[];
+  steps: string[];
+}
+
+export async function updateRecipe(input: RecipeEditInput): Promise<void> {
+  const db = await getDb();
+  const title = input.title.trim() || "Untitled Recipe";
+  const prepMinutes = positiveIntOrNull(input.prepMinutes);
+  const cookMinutes = positiveIntOrNull(input.cookMinutes);
+  const totalMinutes =
+    positiveIntOrNull(input.totalMinutes) ?? ((prepMinutes ?? 0) + (cookMinutes ?? 0) || null);
+  const mealType = MEAL_TYPES.includes(input.mealType as (typeof MEAL_TYPES)[number])
+    ? input.mealType
+    : "dinner";
+  const difficulty = ["easy", "medium", "hard"].includes(input.difficulty ?? "")
+    ? input.difficulty
+    : null;
+
+  const [updated] = await db
+    .update(recipe)
+    .set({
+      title,
+      description: cleanOptional(input.description),
+      sourceUrl: cleanOptional(input.sourceUrl),
+      sourceAuthor: cleanOptional(input.sourceAuthor),
+      imagePath: cleanOptional(input.imagePath),
+      prepMinutes,
+      cookMinutes,
+      totalMinutes,
+      servingsDefault: Math.max(1, Math.round(input.servingsDefault || 1)),
+      mealType: mealType as never,
+      difficulty,
+    })
+    .where(and(eq(recipe.id, input.id), eq(recipe.ownerEmail, input.ownerEmail)))
+    .returning({ id: recipe.id });
+
+  if (!updated) throw new Error("Recipe not found.");
+
+  await db.delete(recipeIngredient).where(eq(recipeIngredient.recipeId, input.id));
+  await db.delete(step).where(eq(step.recipeId, input.id));
+  await db.delete(recipeTag).where(eq(recipeTag.recipeId, input.id));
+
+  const ingredientLines = input.ingredients.map((line) => line.trim()).filter(Boolean);
+  let order = 0;
+  for (const line of ingredientLines) {
+    const parsed = parseEditedIngredient(line);
+    const canonical = await resolveCanonical(db, parsed.canonicalName);
+    await db.insert(recipeIngredient).values({
+      recipeId: input.id,
+      rawText: line,
+      canonicalIngredientId: canonical?.id ?? null,
+      canonicalName: canonical?.name ?? parsed.canonicalName,
+      quantity: parsed.quantity,
+      unit: parsed.unit,
+      unitCategory: parsed.unitCategory,
+      note: parsed.note,
+      optional: parsed.optional,
+      sortOrder: order++,
+    });
+  }
+
+  const stepLines = input.steps.map((line) => line.trim()).filter(Boolean);
+  if (stepLines.length > 0) {
+    await db.insert(step).values(
+      stepLines.map((instruction, i) => ({
+        recipeId: input.id,
+        stepNumber: i + 1,
+        instruction,
+        durationMinutes: null,
+      })),
+    );
+  }
+
+  for (const t of input.tags.map((tagName) => tagName.trim()).filter(Boolean)) {
+    const tagId = await upsertTag(db, t);
+    if (tagId) {
+      await db.insert(recipeTag).values({ recipeId: input.id, tagId }).onConflictDoNothing();
+    }
+  }
+}
+
+function cleanOptional(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : null;
+}
+
+function positiveIntOrNull(value: number | null | undefined): number | null {
+  if (value == null || Number.isNaN(value) || value <= 0) return null;
+  return Math.round(value);
+}
+
+function parseEditedIngredient(raw: string): {
+  canonicalName: string;
+  quantity: number | null;
+  unit: string | null;
+  unitCategory: UnitCategory;
+  note: string | null;
+  optional: boolean;
+} {
+  const optional = /\boptional\b/i.test(raw);
+  const withoutOptional = raw.replace(/\(?\boptional\b\)?/gi, "").trim();
+  const [main, ...noteParts] = withoutOptional.split(",");
+  const tokens = main.trim().split(/\s+/).filter(Boolean);
+  const quantityInfo = parseLeadingQuantity(tokens);
+  let unit: string | null = null;
+  let nameStart = quantityInfo.used;
+
+  if (quantityInfo.quantity != null && tokens[nameStart]) {
+    const candidate = tokens[nameStart].toLowerCase().replace(/\.$/, "");
+    const normalized = normalizeUnit(candidate);
+    if (normalized.category !== "unknown" || likelyCountNoun(candidate)) {
+      unit = candidate;
+      nameStart += 1;
+    }
+  }
+
+  const name = tokens.slice(nameStart).join(" ") || main.trim() || raw.trim();
+  const normalizedUnit = normalizeUnit(unit);
+  const unitCategory =
+    unit == null && quantityInfo.quantity != null ? "count" : normalizedUnit.category;
+  const canonicalName = cleanIngredientName(name);
+
+  return {
+    canonicalName,
+    quantity: quantityInfo.quantity,
+    unit,
+    unitCategory,
+    note: cleanOptional(noteParts.join(", ")),
+    optional,
+  };
+}
+
+function parseLeadingQuantity(tokens: string[]): { quantity: number | null; used: number } {
+  const first = tokens[0];
+  if (!first) return { quantity: null, used: 0 };
+  const firstValue = parseNumberToken(first);
+  if (firstValue == null) return { quantity: null, used: 0 };
+
+  const secondValue = parseFraction(tokens[1]);
+  if (/^\d+$/.test(first) && secondValue != null) {
+    return { quantity: firstValue + secondValue, used: 2 };
+  }
+  return { quantity: firstValue, used: 1 };
+}
+
+function parseNumberToken(token: string): number | null {
+  const cleaned = token.trim().replace(/[~+]/g, "");
+  const fraction = parseFraction(cleaned);
+  if (fraction != null) return fraction;
+  if (/^\d+(\.\d+)?$/.test(cleaned)) return Number(cleaned);
+  return null;
+}
+
+function parseFraction(token: string | undefined): number | null {
+  if (!token || !/^\d+\/\d+$/.test(token)) return null;
+  const [top, bottom] = token.split("/").map(Number);
+  if (!bottom) return null;
+  return top / bottom;
+}
+
+function likelyCountNoun(unit: string) {
+  return [
+    "clove",
+    "cloves",
+    "can",
+    "cans",
+    "slice",
+    "slices",
+    "bunch",
+    "bunches",
+    "package",
+    "packages",
+    "jar",
+    "jars",
+    "bag",
+    "bags",
+  ].includes(unit);
+}
+
+function cleanIngredientName(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/\([^)]*\)/g, "")
+    .replace(/\b(chopped|diced|minced|sliced|crushed|fresh|freshly|large|small|medium)\b/g, " ")
+    .replace(/[^a-z0-9\s'-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim() || "ingredient";
 }
 
 /** Full recipe detail: recipe + ingredients + steps + tag names. */
