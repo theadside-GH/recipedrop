@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { X, ChevronLeft, ChevronRight, Timer, Pause, Play, ListChecks } from "lucide-react";
+import { ChevronLeft, ChevronRight, ListChecks, Pause, Play, Timer, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -25,11 +25,10 @@ export function CookMode({
 }) {
   const router = useRouter();
   const [i, setI] = useState(0);
-  const [showIngredients, setShowIngredients] = useState(false);
+  const [showIngredients, setShowIngredients] = useState(true);
   const total = steps.length;
   const step = steps[i];
 
-  // Keep the screen awake while cooking.
   useWakeLock();
 
   const next = useCallback(() => setI((v) => Math.min(total - 1, v + 1)), [total]);
@@ -37,13 +36,19 @@ export function CookMode({
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "ArrowRight") next();
-      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") {
+        if (showIngredients) setShowIngredients(false);
+        else next();
+      }
+      if (e.key === "ArrowLeft") {
+        if (!showIngredients && i === 0) setShowIngredients(true);
+        else prev();
+      }
       if (e.key === "Escape") router.push(`/recipes/${recipeId}`);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [next, prev, router, recipeId]);
+  }, [i, next, prev, router, recipeId, showIngredients]);
 
   if (!step) {
     return (
@@ -55,7 +60,6 @@ export function CookMode({
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
-      {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-4">
         <button
           onClick={() => router.push(`/recipes/${recipeId}`)}
@@ -77,20 +81,18 @@ export function CookMode({
         </button>
       </div>
 
-      {/* Progress */}
       <div className="px-5">
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface">
           <div
             className="h-full rounded-full bg-brand transition-all"
-            style={{ width: `${((i + 1) / total) * 100}%` }}
+            style={{ width: showIngredients ? "8%" : `${((i + 1) / total) * 100}%` }}
           />
         </div>
         <p className="mt-2 text-center text-sm font-medium text-muted">
-          Step {i + 1} of {total}
+          {showIngredients ? "Ingredients" : `Step ${i + 1} of ${total}`}
         </p>
       </div>
 
-      {/* Body */}
       <div className="relative flex flex-1 items-center justify-center overflow-y-auto px-6">
         {showIngredients ? (
           <div className="w-full max-w-md py-6">
@@ -99,7 +101,7 @@ export function CookMode({
               {ingredients.map((ing, idx) => (
                 <li key={idx} className="rounded-xl border border-border bg-card p-3 text-sm">
                   {ing.text}
-                  {ing.note && <span className="text-muted"> · {ing.note}</span>}
+                  {ing.note && <span className="text-muted"> - {ing.note}</span>}
                 </li>
               ))}
             </ul>
@@ -118,19 +120,35 @@ export function CookMode({
         )}
       </div>
 
-      {/* Nav buttons */}
       <div className="flex items-center justify-between gap-4 border-t border-border p-5">
-        <Button variant="secondary" size="lg" onClick={prev} disabled={i === 0}>
-          <ChevronLeft className="h-5 w-5" /> Back
-        </Button>
-        {i === total - 1 ? (
-          <Button size="lg" onClick={() => router.push(`/recipes/${recipeId}`)}>
-            Done 🎉
-          </Button>
+        {showIngredients ? (
+          <>
+            <Button variant="secondary" size="lg" onClick={() => router.push(`/recipes/${recipeId}`)}>
+              <ChevronLeft className="h-5 w-5" /> Recipe
+            </Button>
+            <Button size="lg" onClick={() => setShowIngredients(false)} className="flex-1 sm:flex-none">
+              Start steps <ChevronRight className="h-5 w-5" />
+            </Button>
+          </>
         ) : (
-          <Button size="lg" onClick={next} className="flex-1 sm:flex-none">
-            Next <ChevronRight className="h-5 w-5" />
-          </Button>
+          <>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={i === 0 ? () => setShowIngredients(true) : prev}
+            >
+              <ChevronLeft className="h-5 w-5" /> Back
+            </Button>
+            {i === total - 1 ? (
+              <Button size="lg" onClick={() => router.push(`/recipes/${recipeId}`)}>
+                Done
+              </Button>
+            ) : (
+              <Button size="lg" onClick={next} className="flex-1 sm:flex-none">
+                Next <ChevronRight className="h-5 w-5" />
+              </Button>
+            )}
+          </>
         )}
       </div>
     </div>
@@ -194,7 +212,7 @@ function notifyDone() {
     osc.start();
     osc.stop(ctx.currentTime + 0.4);
   } catch {
-    // audio not available — vibration/visual is enough
+    // Audio is optional; vibration/visual feedback is enough.
   }
 }
 
@@ -206,7 +224,7 @@ function useWakeLock() {
       try {
         lock = (await navigator.wakeLock?.request("screen")) ?? null;
       } catch {
-        // not supported / denied — fine
+        // Not supported or denied.
       }
     }
     acquire();

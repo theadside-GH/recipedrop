@@ -4,6 +4,7 @@ import { fetchWebsite } from "@/lib/sources/website";
 import { fetchYoutube } from "@/lib/sources/youtube";
 import type { SourceContent } from "@/lib/sources/types";
 import { extractRecipe, type ImageInput } from "@/lib/ai/extract";
+import type { RecipeExtraction } from "@/lib/ai/schema";
 import {
   createRecipeFromExtraction,
   findDuplicateRecipeBySource,
@@ -57,6 +58,11 @@ export async function processJob(jobId: string): Promise<ImportJobRow | null> {
       knownCanonical: known,
       context: content.context ?? job.rawInput,
     });
+    if (!hasUsefulRecipeDetails(extraction)) {
+      throw new Error(
+        "RecipeDrop could not find enough ingredient and direction detail in that source. Try the original recipe page or paste the recipe text.",
+      );
+    }
     if (content.imageUrl && !extraction.imageUrl) {
       extraction.imageUrl = content.imageUrl;
     }
@@ -92,6 +98,14 @@ export async function processJob(jobId: string): Promise<ImportJobRow | null> {
   }
 }
 
+function hasUsefulRecipeDetails(extraction: RecipeExtraction): boolean {
+  const ingredientCount = extraction.ingredients.filter((ingredient) =>
+    ingredient.raw.trim() || ingredient.canonicalName.trim(),
+  ).length;
+  const stepCount = extraction.steps.filter((step) => step.instruction.trim()).length;
+  return ingredientCount >= 2 && stepCount >= 1;
+}
+
 /**
  * Process a photo import directly (images aren't stored as job rawInput). Used
  * by the photo import action; returns the created recipe id.
@@ -102,5 +116,10 @@ export async function processPhotoImport(
 ): Promise<string> {
   const known = await getKnownCanonicalNames();
   const extraction = await extractRecipe({ images, knownCanonical: known });
+  if (!hasUsefulRecipeDetails(extraction)) {
+    throw new Error(
+      "RecipeDrop could not find enough ingredient and direction detail in those images.",
+    );
+  }
   return createRecipeFromExtraction(ownerEmail, extraction, { sourceType: "photo" });
 }
