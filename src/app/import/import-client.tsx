@@ -103,9 +103,12 @@ export function ImportClient({
     try {
       const { jobs: created } = await startImport({ mode, value });
       setJobs((prev) => [...created, ...prev]);
-      const results = await runJobs(created);
       if (mode === "single") setSingle("");
-      else if (!results.some((job) => job.status === "failed")) setBulk("");
+      else setBulk("");
+      const results = await runJobs(created);
+      if (mode === "bulk" && results.some((job) => job.status === "failed")) {
+        setImportError("Some imports failed. The report below shows which ones to retry.");
+      }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : "Import did not start.");
     } finally {
