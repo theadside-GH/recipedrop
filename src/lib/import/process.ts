@@ -98,7 +98,7 @@ export async function processJob(jobId: string): Promise<ImportJobRow | null> {
   }
 }
 
-function hasUsefulRecipeDetails(extraction: RecipeExtraction): boolean {
+export function hasUsefulRecipeDetails(extraction: RecipeExtraction): boolean {
   const ingredientCount = extraction.ingredients.filter((ingredient) =>
     ingredient.raw.trim() || ingredient.canonicalName.trim(),
   ).length;

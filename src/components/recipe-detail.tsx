@@ -12,6 +12,8 @@ import {
   ExternalLink,
   Users,
   Pencil,
+  ImageIcon,
+  Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +21,7 @@ import { RecipeImage } from "@/components/recipe-image";
 import { PrintButton } from "@/components/print-button";
 import { formatMinutes, tidyNumber } from "@/lib/utils";
 import { pluralize } from "@/lib/shopping/units";
-import { deleteRecipeAction } from "@/app/actions";
+import { deleteRecipeAction, repairRecipeAction, repairRecipeImageAction } from "@/app/actions";
 import type { Recipe, RecipeIngredient, Step } from "@/lib/db/schema";
 
 export function RecipeDetail({
@@ -36,6 +38,8 @@ export function RecipeDetail({
   const router = useRouter();
   const [servings, setServings] = useState(recipe.servingsDefault);
   const [isPending, startTransition] = useTransition();
+  const [repairPending, startRepairTransition] = useTransition();
+  const [repairMessage, setRepairMessage] = useState<string | null>(null);
   const factor = recipe.servingsDefault > 0 ? servings / recipe.servingsDefault : 1;
 
   function handleDelete() {
@@ -43,6 +47,34 @@ export function RecipeDetail({
     startTransition(async () => {
       await deleteRecipeAction(recipe.id);
       router.push("/");
+    });
+  }
+
+  function handleRepair() {
+    if (!recipe.sourceUrl) return;
+    setRepairMessage(null);
+    startRepairTransition(async () => {
+      try {
+        const result = await repairRecipeAction(recipe.id);
+        setRepairMessage(result.message);
+        if (result.ok) router.refresh();
+      } catch (error) {
+        setRepairMessage(error instanceof Error ? error.message : "Repair failed.");
+      }
+    });
+  }
+
+  function handleImageRepair() {
+    if (!recipe.sourceUrl) return;
+    setRepairMessage(null);
+    startRepairTransition(async () => {
+      try {
+        const result = await repairRecipeImageAction(recipe.id);
+        setRepairMessage(result.message);
+        if (result.ok) router.refresh();
+      } catch (error) {
+        setRepairMessage(error instanceof Error ? error.message : "Image repair failed.");
+      }
     });
   }
 
@@ -97,6 +129,16 @@ export function RecipeDetail({
           </Button>
         </Link>
         {recipe.sourceUrl && (
+          <>
+            <Button variant="secondary" size="lg" onClick={handleRepair} disabled={repairPending}>
+              <Wrench className="h-4 w-4" /> {repairPending ? "Improving..." : "Improve"}
+            </Button>
+            <Button variant="secondary" size="lg" onClick={handleImageRepair} disabled={repairPending}>
+              <ImageIcon className="h-4 w-4" /> Fix image
+            </Button>
+          </>
+        )}
+        {recipe.sourceUrl && (
           <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
             <Button variant="secondary" size="lg">
               <ExternalLink className="h-4 w-4" /> Source
@@ -108,6 +150,11 @@ export function RecipeDetail({
           <Trash2 className="h-4 w-4" /> Delete
         </Button>
       </div>
+      {repairMessage && (
+        <div className="rounded-xl border border-border bg-surface p-3 text-sm text-muted print:hidden">
+          {repairMessage}
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-[340px_1fr]">
         {/* Ingredients */}

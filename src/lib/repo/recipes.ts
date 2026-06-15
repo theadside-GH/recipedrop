@@ -140,6 +140,102 @@ export async function createRecipeFromExtraction(
   return created.id;
 }
 
+async function replaceRecipeParts(
+  db: Awaited<ReturnType<typeof getDb>>,
+  recipeId: string,
+  ex: RecipeExtraction,
+): Promise<void> {
+  await db.delete(recipeIngredient).where(eq(recipeIngredient.recipeId, recipeId));
+  await db.delete(step).where(eq(step.recipeId, recipeId));
+  await db.delete(recipeTag).where(eq(recipeTag.recipeId, recipeId));
+
+  let order = 0;
+  for (const ing of ex.ingredients) {
+    const canonical = await resolveCanonical(db, ing.canonicalName);
+    await db.insert(recipeIngredient).values({
+      recipeId,
+      rawText: ing.raw,
+      canonicalIngredientId: canonical?.id ?? null,
+      canonicalName: canonical?.name ?? (ing.canonicalName.trim().toLowerCase() || null),
+      quantity: ing.quantity,
+      unit: ing.unit,
+      unitCategory: ing.unitCategory,
+      note: ing.note,
+      optional: ing.optional ?? false,
+      sortOrder: order++,
+    });
+  }
+
+  if (ex.steps.length > 0) {
+    await db.insert(step).values(
+      ex.steps.map((s, i) => ({
+        recipeId,
+        stepNumber: i + 1,
+        instruction: s.instruction,
+        durationMinutes: s.durationMinutes,
+      })),
+    );
+  }
+
+  for (const t of ex.tags) {
+    const tagId = await upsertTag(db, t);
+    if (tagId) {
+      await db.insert(recipeTag).values({ recipeId, tagId }).onConflictDoNothing();
+    }
+  }
+}
+
+export async function replaceRecipeFromExtraction(input: {
+  ownerEmail: string;
+  id: string;
+  extraction: RecipeExtraction;
+  imagePath?: string | null;
+}): Promise<void> {
+  const db = await getDb();
+  const [existing] = await db
+    .select()
+    .from(recipe)
+    .where(and(eq(recipe.id, input.id), eq(recipe.ownerEmail, input.ownerEmail)))
+    .limit(1);
+  if (!existing) throw new Error("Recipe not found.");
+
+  const ex = input.extraction;
+  const totalMinutes =
+    ex.totalMinutes ?? ((ex.prepMinutes ?? 0) + (ex.cookMinutes ?? 0) || null);
+
+  await db
+    .update(recipe)
+    .set({
+      title: ex.title.trim() || existing.title,
+      description: ex.description ?? existing.description,
+      sourceAuthor: ex.sourceAuthor ?? existing.sourceAuthor,
+      imagePath: input.imagePath ?? ex.imageUrl ?? existing.imagePath,
+      prepMinutes: ex.prepMinutes,
+      cookMinutes: ex.cookMinutes,
+      totalMinutes,
+      servingsDefault: ex.servings && ex.servings > 0 ? Math.round(ex.servings) : existing.servingsDefault,
+      mealType: ex.mealType,
+      difficulty: ex.difficulty,
+    })
+    .where(eq(recipe.id, input.id));
+
+  await replaceRecipeParts(db, input.id, ex);
+}
+
+export async function setRecipeImage(input: {
+  ownerEmail: string;
+  id: string;
+  imagePath: string;
+}): Promise<void> {
+  const db = await getDb();
+  const [updated] = await db
+    .update(recipe)
+    .set({ imagePath: input.imagePath })
+    .where(and(eq(recipe.id, input.id), eq(recipe.ownerEmail, input.ownerEmail)))
+    .returning({ id: recipe.id });
+  if (!updated) throw new Error("Recipe not found.");
+}
+
 export interface RecipeFilters {
   mealType?: string;
   maxMinutes?: number;

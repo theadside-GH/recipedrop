@@ -148,6 +148,41 @@ export async function updateRecipeAction(
   revalidatePath("/plans");
 }
 
+export async function repairRecipeAction(id: string): Promise<{ ok: boolean; message: string }> {
+  try {
+    const owner = await getOwnerEmail();
+    const { repairRecipeFromSource } = await import("@/lib/import/repair");
+    const result = await repairRecipeFromSource(owner, id);
+    revalidatePath("/");
+    revalidatePath(`/recipes/${id}`);
+    revalidatePath(`/recipes/${id}/edit`);
+    revalidatePath("/plans");
+    return { ok: true, message: result.message };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Recipe repair failed.",
+    };
+  }
+}
+
+export async function repairRecipeImageAction(id: string): Promise<{ ok: boolean; message: string }> {
+  try {
+    const owner = await getOwnerEmail();
+    const { repairRecipeImageFromSource } = await import("@/lib/import/repair");
+    const result = await repairRecipeImageFromSource(owner, id);
+    revalidatePath("/");
+    revalidatePath(`/recipes/${id}`);
+    revalidatePath(`/recipes/${id}/edit`);
+    return { ok: true, message: result.message };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Image repair failed.",
+    };
+  }
+}
+
 // ---- Meal plans -----------------------------------------------------------
 
 export async function createPlanAction(name: string): Promise<{ id: string }> {
