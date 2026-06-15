@@ -8,6 +8,8 @@ import {
   Image as ImageIcon,
   Loader2,
   CheckCircle2,
+  Copy,
+  EyeOff,
   XCircle,
   RotateCw,
   ArrowRight,
@@ -59,8 +61,13 @@ export function ImportClient({
   const [jobs, setJobs] = useState<JobView[]>(initialJobs);
   const [busy, setBusy] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
+  const [hideSkipped, setHideSkipped] = useState(false);
+  const [copiedFailed, setCopiedFailed] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const visibleJobs = hideSkipped ? jobs.filter((job) => job.status !== "needs_review") : jobs;
+  const failedJobs = jobs.filter((job) => job.status === "failed");
+  const skippedCount = jobs.filter((job) => job.status === "needs_review").length;
   const summary = summarizeJobs(jobs);
 
   function updateJob(updated: JobView) {
@@ -139,6 +146,29 @@ export function ImportClient({
     await runJobs([job]);
   }
 
+  async function retryFailed() {
+    if (!failedJobs.length || busy) return;
+    setBusy(true);
+    setImportError(null);
+    try {
+      await runJobs(failedJobs);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copyFailed() {
+    const text = failedJobs
+      .map((job) => job.rawInput || job.label || "")
+      .map((value) => value.trim())
+      .filter(Boolean)
+      .join("\n");
+    if (!text) return;
+    await navigator.clipboard.writeText(text);
+    setCopiedFailed(true);
+    window.setTimeout(() => setCopiedFailed(false), 1500);
+  }
+
   async function clearHistory() {
     if (!confirm("Clear import history? This will not delete saved recipes.")) return;
     setJobs([]);
@@ -160,6 +190,7 @@ export function ImportClient({
         {
           id: recipeId,
           label: "Photo import",
+          rawInput: null,
           sourceType: "photo",
           status: "done",
           error: null,
@@ -278,19 +309,48 @@ export function ImportClient({
       {/* Job list */}
       {jobs.length > 0 && (
         <div className="space-y-2 pt-2">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold">Recent import history</h2>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold">Recent import history</h2>
               <p className="text-xs text-muted">{summary}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {failedJobs.length > 0 && (
+                <>
+                  <Button size="sm" variant="secondary" onClick={retryFailed} disabled={busy}>
+                    <RotateCw className="h-4 w-4" />
+                    Retry failed
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={copyFailed}>
+                    <Copy className="h-4 w-4" />
+                    {copiedFailed ? "Copied" : "Copy failed"}
+                  </Button>
+                </>
+              )}
+              {skippedCount > 0 && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => setHideSkipped((value) => !value)}
+                >
+                  <EyeOff className="h-4 w-4" />
+                  {hideSkipped ? "Show skipped" : "Hide skipped"}
+                </Button>
+              )}
               <Button size="sm" variant="ghost" onClick={clearHistory}>
                 <Trash2 className="h-4 w-4" />
                 Clear history
               </Button>
             </div>
           </div>
-          {jobs.map((job) => (
+          {visibleJobs.map((job) => (
             <JobRow key={job.id} job={job} onRetry={() => retry(job)} />
           ))}
+          {visibleJobs.length === 0 && (
+            <div className="rounded-xl border border-border bg-surface p-4 text-sm text-muted">
+              Skipped items are hidden.
+            </div>
+          )}
         </div>
       )}
     </div>

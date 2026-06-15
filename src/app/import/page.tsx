@@ -38,6 +38,7 @@ async function getRecentImportViews(): Promise<JobView[]> {
     return jobs.map((job) => ({
       id: job.id,
       label: job.label,
+      rawInput: job.rawInput,
       sourceType: job.sourceType,
       status: job.status,
       error: job.error,

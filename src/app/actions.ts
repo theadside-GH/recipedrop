@@ -34,6 +34,7 @@ import type { ImageInput } from "@/lib/ai/extract";
 export interface JobView {
   id: string;
   label: string | null;
+  rawInput: string | null;
   sourceType: ImportJobRow["sourceType"];
   status: ImportJobRow["status"];
   error: string | null;
@@ -44,6 +45,7 @@ function toView(j: ImportJobRow): JobView {
   return {
     id: j.id,
     label: j.label,
+    rawInput: j.rawInput,
     sourceType: j.sourceType,
     status: j.status,
     error: j.error,
@@ -55,6 +57,7 @@ function failedJob(label: string, error: string, sourceType: ImportJobRow["sourc
   return {
     id: randomUUID(),
     label,
+    rawInput: label,
     sourceType,
     status: "failed",
     error,
