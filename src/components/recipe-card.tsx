@@ -10,10 +10,12 @@ export function RecipeCard({
   recipe,
   showFavorite = true,
   byline,
+  bylineAvatar,
 }: {
   recipe: Recipe;
   showFavorite?: boolean;
   byline?: string;
+  bylineAvatar?: string | null;
 }) {
   const quick = (recipe.totalMinutes ?? 999) <= 30;
   return (
@@ -34,7 +36,15 @@ export function RecipeCard({
         </div>
         <div className="p-4">
           <h3 className="line-clamp-2 font-semibold leading-snug">{recipe.title}</h3>
-          {byline && <p className="mt-1 truncate text-xs text-muted">Dropped by {byline}</p>}
+          {byline && (
+            <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted">
+              {bylineAvatar && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={bylineAvatar} alt="" className="h-4 w-4 rounded-full object-cover" />
+              )}
+              <span className="truncate">Dropped by {byline}</span>
+            </p>
+          )}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
             <span className="inline-flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />

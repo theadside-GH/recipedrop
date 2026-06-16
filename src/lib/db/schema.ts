@@ -85,6 +85,7 @@ export const userProfile = pgTable(
     email: text("email").primaryKey(),
     displayName: text("display_name").notNull(),
     handle: text("handle"),
+    avatarUrl: text("avatar_url"),
     bio: text("bio"),
     publicFeedOptIn: boolean("public_feed_opt_in").notNull().default(false),
     paidTier: text("paid_tier").notNull().default("free"),

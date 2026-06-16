@@ -1,12 +1,15 @@
-import { getOwnerEmail } from "@/lib/auth";
+import { getCurrentUserProfileSeed } from "@/lib/auth";
 import { getOrCreateProfile } from "@/lib/repo/profiles";
 import { ProfileForm } from "./profile-form";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProfilePage() {
-  const owner = await getOwnerEmail();
-  const profile = await getOrCreateProfile(owner);
+  const currentUser = await getCurrentUserProfileSeed();
+  const profile = await getOrCreateProfile(currentUser.email, {
+    displayName: currentUser.displayName,
+    avatarUrl: currentUser.avatarUrl,
+  });
 
   return (
     <div className="mx-auto max-w-2xl">

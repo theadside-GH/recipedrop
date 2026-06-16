@@ -122,6 +122,7 @@ function MiniPublicSection({
             recipe={row.recipe}
             showFavorite={false}
             byline={row.handle ? `@${row.handle}` : row.displayName}
+            bylineAvatar={row.avatarUrl}
           />
         ))}
       </div>

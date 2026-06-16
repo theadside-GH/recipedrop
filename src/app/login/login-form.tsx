@@ -38,6 +38,24 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
     }
   }
 
+  async function signInWithProvider(provider: "google" | "facebook") {
+    setBusy(true);
+    setError(null);
+    try {
+      const supabase = getBrowserSupabase();
+      const confirmUrl = new URL("/auth/confirm", window.location.origin);
+      if (next !== "/") confirmUrl.searchParams.set("next", next);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: confirmUrl.toString() },
+      });
+      if (error) throw error;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't start sign-in.");
+      setBusy(false);
+    }
+  }
+
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center text-center">
       <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground">
@@ -62,6 +80,39 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
               Sign-in failed. Use the owner email and request a fresh magic link.
             </p>
           )}
+          <div className="grid gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => signInWithProvider("google")}
+              disabled={busy}
+              className="w-full"
+              size="lg"
+            >
+              <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-white text-xs font-bold text-foreground">
+                G
+              </span>
+              Continue with Google
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => signInWithProvider("facebook")}
+              disabled={busy}
+              className="w-full"
+              size="lg"
+            >
+              <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-[#1877f2] text-xs font-bold text-white">
+                f
+              </span>
+              Continue with Facebook
+            </Button>
+          </div>
+          <div className="flex items-center gap-3 text-xs text-muted">
+            <span className="h-px flex-1 bg-border" />
+            or
+            <span className="h-px flex-1 bg-border" />
+          </div>
           <div className="relative">
             <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
             <Input

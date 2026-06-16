@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useState, useTransition } from "react";
-import { Save } from "lucide-react";
+import { Save, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { updateProfileAction } from "@/app/actions";
@@ -13,6 +13,7 @@ export function ProfileForm({ profile }: { profile: UserProfile }) {
   const [form, setForm] = useState({
     displayName: profile.displayName,
     handle: profile.handle ?? "",
+    avatarUrl: profile.avatarUrl ?? "",
     bio: profile.bio ?? "",
     publicFeedOptIn: profile.publicFeedOptIn,
   });
@@ -24,6 +25,7 @@ export function ProfileForm({ profile }: { profile: UserProfile }) {
       await updateProfileAction({
         displayName: form.displayName,
         handle: form.handle || null,
+        avatarUrl: form.avatarUrl || null,
         bio: form.bio || null,
         publicFeedOptIn: form.publicFeedOptIn,
       });
@@ -38,6 +40,25 @@ export function ProfileForm({ profile }: { profile: UserProfile }) {
         <p className="mt-1 text-sm text-muted">
           Control how your public recipe drops appear. Recipes stay private unless you mark them public.
         </p>
+      </div>
+
+      <div className="flex items-center gap-4 rounded-xl border border-border bg-surface p-4">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-card">
+          {form.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.avatarUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            <User className="h-7 w-7 text-muted" />
+          )}
+        </div>
+        <label className="block flex-1 space-y-2">
+          <span className="text-sm font-medium">Profile picture URL</span>
+          <Input
+            value={form.avatarUrl}
+            onChange={(event) => setForm((current) => ({ ...current, avatarUrl: event.target.value }))}
+            placeholder="https://..."
+          />
+        </label>
       </div>
 
       <label className="space-y-2 block">

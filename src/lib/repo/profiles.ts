@@ -6,8 +6,14 @@ import { userProfile } from "@/lib/db/schema";
 export interface ProfileInput {
   displayName: string;
   handle: string | null;
+  avatarUrl: string | null;
   bio: string | null;
   publicFeedOptIn: boolean;
+}
+
+export interface ProfileSeed {
+  displayName?: string | null;
+  avatarUrl?: string | null;
 }
 
 function defaultName(email: string) {
@@ -33,7 +39,7 @@ function cleanOptional(value: string | null | undefined): string | null {
   return cleaned ? cleaned : null;
 }
 
-export async function getOrCreateProfile(email: string) {
+export async function getOrCreateProfile(email: string, seed: ProfileSeed = {}) {
   const db = await getDb();
   const [existing] = await db
     .select()
@@ -44,7 +50,11 @@ export async function getOrCreateProfile(email: string) {
 
   const [created] = await db
     .insert(userProfile)
-    .values({ email, displayName: defaultName(email) })
+    .values({
+      email,
+      displayName: seed.displayName?.trim() || defaultName(email),
+      avatarUrl: cleanOptional(seed.avatarUrl),
+    })
     .returning();
   return created;
 }
@@ -57,6 +67,7 @@ export async function updateProfile(email: string, input: ProfileInput) {
     .set({
       displayName: input.displayName.trim() || defaultName(email),
       handle: cleanHandle(input.handle),
+      avatarUrl: cleanOptional(input.avatarUrl),
       bio: cleanOptional(input.bio),
       publicFeedOptIn: input.publicFeedOptIn,
       updatedAt: new Date(),

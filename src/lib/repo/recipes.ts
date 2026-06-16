@@ -305,6 +305,7 @@ export interface PublicRecipeRow {
   recipe: typeof recipe.$inferSelect;
   displayName: string;
   handle: string | null;
+  avatarUrl: string | null;
 }
 
 export async function listPublicRecipes(
@@ -317,6 +318,7 @@ export async function listPublicRecipes(
       recipe,
       displayName: userProfile.displayName,
       handle: userProfile.handle,
+      avatarUrl: userProfile.avatarUrl,
     })
     .from(recipe)
     .innerJoin(userProfile, eq(userProfile.email, recipe.ownerEmail))
