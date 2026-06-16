@@ -2,11 +2,12 @@
 
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Save, User } from "lucide-react";
+import { ImagePlus, Save, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { updateProfileAction } from "@/app/actions";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { imageFileToDataUrl } from "@/lib/client-image";
 import type { UserProfile } from "@/lib/db/schema";
 
 export function ProfileForm({ profile, email }: { profile: UserProfile; email: string }) {
@@ -14,6 +15,8 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
   const [isPending, startTransition] = useTransition();
   const [signingOut, startSignOutTransition] = useTransition();
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const handleLocked = !!profile.handle && !!profile.handleChangedAt;
   const [form, setForm] = useState({
     displayName: profile.displayName,
     handle: profile.handle ?? "",
@@ -25,16 +28,32 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaved(false);
+    setError(null);
     startTransition(async () => {
-      await updateProfileAction({
-        displayName: form.displayName,
-        handle: form.handle || null,
-        avatarUrl: form.avatarUrl || null,
-        bio: form.bio || null,
-        publicFeedOptIn: form.publicFeedOptIn,
-      });
-      setSaved(true);
+      try {
+        await updateProfileAction({
+          displayName: form.displayName,
+          handle: form.handle || null,
+          avatarUrl: form.avatarUrl || null,
+          bio: form.bio || null,
+          publicFeedOptIn: form.publicFeedOptIn,
+        });
+        setSaved(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Profile did not save.");
+      }
     });
+  }
+
+  async function chooseAvatar(file: File | undefined) {
+    if (!file) return;
+    setError(null);
+    try {
+      const dataUrl = await imageFileToDataUrl(file, { maxSize: 480, quality: 0.85 });
+      setForm((current) => ({ ...current, avatarUrl: dataUrl }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not read that image.");
+    }
   }
 
   function signOut() {
@@ -72,14 +91,22 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
             <User className="h-7 w-7 text-muted" />
           )}
         </div>
-        <label className="block flex-1 space-y-2">
-          <span className="text-sm font-medium">Profile picture URL</span>
-          <Input
-            value={form.avatarUrl}
-            onChange={(event) => setForm((current) => ({ ...current, avatarUrl: event.target.value }))}
-            placeholder="https://..."
-          />
-        </label>
+        <div className="flex-1 space-y-2">
+          <span className="text-sm font-medium">Profile picture</span>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-brand-soft">
+            <ImagePlus className="h-4 w-4" />
+            Choose photo
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => chooseAvatar(event.target.files?.[0])}
+            />
+          </label>
+          <p className="text-xs text-muted">
+            If you signed in with Google, your Google profile photo is used until you choose a different one.
+          </p>
+        </div>
       </div>
 
       <label className="space-y-2 block">
@@ -97,7 +124,15 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
           value={form.handle}
           onChange={(event) => setForm((current) => ({ ...current, handle: event.target.value }))}
           placeholder="ralphcooks"
+          disabled={handleLocked}
         />
+        <p className="text-xs text-muted">
+          {handleLocked
+            ? "Username is locked. You already used your one username change."
+            : profile.handle
+              ? "You can change your username one more time. After that it locks."
+              : "Choose carefully. After you change a saved username once, it locks."}
+        </p>
       </label>
 
       <label className="space-y-2 block">
@@ -132,6 +167,7 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
           {isPending ? "Saving..." : "Save profile"}
         </Button>
         {saved && <span className="text-sm text-muted">Saved.</span>}
+        {error && <span className="text-sm text-red-600">{error}</span>}
       </div>
     </form>
   );

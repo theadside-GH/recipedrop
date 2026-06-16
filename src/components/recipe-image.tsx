@@ -62,7 +62,11 @@ export function RecipeImage({
       <span className={cn("flex h-14 w-14 items-center justify-center rounded-full", tone.mark)}>
         <ChefHat className="h-7 w-7" />
       </span>
-      <div className="absolute bottom-3 left-3 right-3 h-2 rounded-full bg-white/70" />
+      <div className="absolute bottom-3 left-3 right-3 rounded-xl bg-white/75 px-3 py-2 text-center shadow-sm">
+        <p className="line-clamp-2 text-xs font-semibold leading-snug text-foreground">
+          {title}
+        </p>
+      </div>
     </div>
   );
 }

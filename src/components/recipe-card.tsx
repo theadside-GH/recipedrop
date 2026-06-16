@@ -38,9 +38,13 @@ export function RecipeCard({
           <h3 className="line-clamp-2 font-semibold leading-snug">{recipe.title}</h3>
           {byline && (
             <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted">
-              {bylineAvatar && (
+              {bylineAvatar ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={bylineAvatar} alt="" className="h-4 w-4 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[9px] font-semibold text-brand">
+                  {byline.replace(/^@/, "").slice(0, 1).toUpperCase()}
+                </span>
               )}
               <span className="truncate">Dropped by {byline}</span>
             </p>

@@ -6,6 +6,7 @@ import {
   Link2,
   FileText,
   Image as ImageIcon,
+  ImagePlus,
   Loader2,
   CheckCircle2,
   Copy,
@@ -23,9 +24,11 @@ import {
   runImportJob,
   importPhotos,
   clearImportHistoryAction,
+  setRecipeImageAction,
   type JobView,
 } from "@/app/actions";
 import type { ImageInput } from "@/lib/ai/extract";
+import { imageFileToDataUrl } from "@/lib/client-image";
 
 type Tab = "link" | "bulk" | "photo";
 
@@ -65,6 +68,8 @@ export function ImportClient({
   const [copiedFailed, setCopiedFailed] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [singleImagePath, setSingleImagePath] = useState("");
+  const [singleImageError, setSingleImageError] = useState<string | null>(null);
   const visibleJobs = hideSkipped ? jobs.filter((job) => job.status !== "needs_review") : jobs;
   const failedJobs = jobs.filter((job) => job.status === "failed");
   const skippedCount = jobs.filter((job) => job.status === "needs_review").length;
@@ -112,6 +117,7 @@ export function ImportClient({
 
   async function handleStart(mode: "single" | "bulk", value: string) {
     if (!value.trim() || busy) return;
+    const attachedImage = mode === "single" ? singleImagePath : "";
     setBusy(true);
     setImportError(null);
     try {
@@ -120,13 +126,29 @@ export function ImportClient({
       if (mode === "single") setSingle("");
       else setBulk("");
       const results = await runJobs(created);
+      const imported = results.find((job) => job.status === "done" && job.recipeId);
+      if (mode === "single" && attachedImage && imported?.recipeId) {
+        await setRecipeImageAction(imported.recipeId, attachedImage);
+        setSingleImagePath("");
+      }
       if (mode === "bulk" && results.some((job) => job.status === "failed")) {
-        setImportError("Some imports failed. The report below shows which ones to retry.");
+        setImportError("Some items need help. The report below shows which ones to retry or paste another way.");
       }
     } catch (err) {
       setImportError(err instanceof Error ? err.message : "Import did not start.");
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function chooseSingleImage(file: File | undefined) {
+    if (!file) return;
+    setSingleImageError(null);
+    try {
+      const dataUrl = await imageFileToDataUrl(file, { maxSize: 900, quality: 0.76 });
+      setSingleImagePath(dataUrl);
+    } catch (err) {
+      setSingleImageError(err instanceof Error ? err.message : "Could not read that image.");
     }
   }
 
@@ -240,6 +262,48 @@ export function ImportClient({
             placeholder="Paste recipe text, or a TikTok/Instagram caption…"
             disabled={!aiEnabled}
           />
+          <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-3">
+            {singleImagePath ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={singleImagePath}
+                alt=""
+                className="h-16 w-16 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-card text-muted">
+                <ImageIcon className="h-6 w-6" />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">Recipe photo</p>
+              <p className="text-xs text-muted">
+                Optional, but useful when the import does not find one.
+              </p>
+            </div>
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-brand-soft">
+              <ImagePlus className="h-4 w-4" />
+              Choose photo
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={!aiEnabled || busy}
+                onChange={(event) => chooseSingleImage(event.target.files?.[0])}
+              />
+            </label>
+            {singleImagePath && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setSingleImagePath("")}
+              >
+                Remove
+              </Button>
+            )}
+          </div>
+          {singleImageError && <p className="text-sm text-red-600">{singleImageError}</p>}
           <Button
             onClick={() => handleStart("single", single)}
             disabled={!aiEnabled || busy || !single.trim()}
@@ -319,11 +383,11 @@ export function ImportClient({
                 <>
                   <Button size="sm" variant="secondary" onClick={retryFailed} disabled={busy}>
                     <RotateCw className="h-4 w-4" />
-                    Retry failed
+                    Retry needs help
                   </Button>
                   <Button size="sm" variant="secondary" onClick={copyFailed}>
                     <Copy className="h-4 w-4" />
-                    {copiedFailed ? "Copied" : "Copy failed"}
+                    {copiedFailed ? "Copied" : "Copy needs help"}
                   </Button>
                 </>
               )}
@@ -411,7 +475,7 @@ function summarizeJobs(jobs: JobView[]) {
 
 function statusLabel(status: JobView["status"]) {
   if (status === "done") return "Imported";
-  if (status === "failed") return "Failed";
+  if (status === "failed") return "Needs help";
   if (status === "processing") return "Importing";
   if (status === "needs_review") return "Skipped";
   return "Waiting";

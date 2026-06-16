@@ -3,10 +3,11 @@
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Save } from "lucide-react";
+import { ImagePlus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { updateRecipeAction } from "@/app/actions";
+import { imageFileToDataUrl } from "@/lib/client-image";
 import type { Recipe } from "@/lib/db/schema";
 
 const mealTypes = ["breakfast", "lunch", "dinner", "snack", "dessert", "side", "drink"];
@@ -45,6 +46,17 @@ export function RecipeEditForm({
 
   function setField(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }));
+  }
+
+  async function chooseImage(file: File | undefined) {
+    if (!file) return;
+    setError(null);
+    try {
+      const dataUrl = await imageFileToDataUrl(file, { maxSize: 900, quality: 0.76 });
+      setField("imagePath", dataUrl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not read that image.");
+    }
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -191,14 +203,38 @@ export function RecipeEditForm({
           />
         </label>
 
-        <label className="space-y-2">
-          <span className="text-sm font-medium">Image URL</span>
+        <div className="space-y-2">
+          <span className="text-sm font-medium">Recipe photo</span>
+          <div className="flex items-center gap-3">
+            {form.imagePath ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={form.imagePath}
+                alt=""
+                className="h-16 w-16 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-surface text-muted">
+                <ImagePlus className="h-6 w-6" />
+              </div>
+            )}
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium hover:bg-brand-soft">
+              <ImagePlus className="h-4 w-4" />
+              Choose photo
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => chooseImage(event.target.files?.[0])}
+              />
+            </label>
+          </div>
           <Input
-            value={form.imagePath}
+            value={form.imagePath.startsWith("data:") ? "" : form.imagePath}
             onChange={(event) => setField("imagePath", event.target.value)}
-            placeholder="https://..."
+            placeholder="Or paste an image URL"
           />
-        </label>
+        </div>
 
         <label className="space-y-2">
           <span className="text-sm font-medium">Source URL</span>

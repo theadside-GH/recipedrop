@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { RecipeImage } from "@/components/recipe-image";
 import { PrintButton } from "@/components/print-button";
 import { RecipePublicToggle } from "@/components/recipe-public-toggle";
+import { ShareLinkButton } from "@/components/share-link-button";
 import { formatMinutes, tidyNumber } from "@/lib/utils";
 import { pluralize } from "@/lib/shopping/units";
 import { deleteRecipeAction, repairRecipeAction, repairRecipeImageAction } from "@/app/actions";
@@ -42,6 +43,12 @@ export function RecipeDetail({
   const [repairPending, startRepairTransition] = useTransition();
   const [repairMessage, setRepairMessage] = useState<string | null>(null);
   const factor = recipe.servingsDefault > 0 ? servings / recipe.servingsDefault : 1;
+  const couldUseHelp =
+    !recipe.imagePath ||
+    !recipe.description ||
+    ingredients.length < 3 ||
+    steps.length < 2 ||
+    /^unknown recipe|^tiktok recipe|^instagram recipe/i.test(recipe.title);
 
   function handleDelete() {
     if (!confirm("Delete this recipe?")) return;
@@ -130,6 +137,7 @@ export function RecipeDetail({
           </Button>
         </Link>
         <RecipePublicToggle recipeId={recipe.id} initialPublic={recipe.isPublic} />
+        <ShareLinkButton />
         {recipe.sourceUrl && (
           <>
             <Button variant="secondary" size="lg" onClick={handleRepair} disabled={repairPending}>
@@ -152,6 +160,12 @@ export function RecipeDetail({
           <Trash2 className="h-4 w-4" /> Delete
         </Button>
       </div>
+      {couldUseHelp && recipe.sourceUrl && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 print:hidden">
+          This one looks like it may be missing a photo or details. Use <strong>Improve</strong>{" "}
+          or <strong>Fix image</strong> to have RecipeDrop try the source again.
+        </div>
+      )}
       {repairMessage && (
         <div className="rounded-xl border border-border bg-surface p-3 text-sm text-muted print:hidden">
           {repairMessage}

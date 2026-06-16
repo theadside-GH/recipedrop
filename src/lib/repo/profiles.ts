@@ -46,7 +46,22 @@ export async function getOrCreateProfile(email: string, seed: ProfileSeed = {}) 
     .from(userProfile)
     .where(eq(userProfile.email, email))
     .limit(1);
-  if (existing) return existing;
+  if (existing) {
+    if (!existing.avatarUrl && seed.avatarUrl) {
+      const [updated] = await db
+        .update(userProfile)
+        .set({
+          avatarUrl: cleanOptional(seed.avatarUrl),
+          displayName:
+            existing.displayName || seed.displayName?.trim() || defaultName(email),
+          updatedAt: new Date(),
+        })
+        .where(eq(userProfile.email, email))
+        .returning();
+      return updated;
+    }
+    return existing;
+  }
 
   const [created] = await db
     .insert(userProfile)
@@ -61,12 +76,21 @@ export async function getOrCreateProfile(email: string, seed: ProfileSeed = {}) 
 
 export async function updateProfile(email: string, input: ProfileInput) {
   const db = await getDb();
-  await getOrCreateProfile(email);
+  const existing = await getOrCreateProfile(email);
+  const nextHandle = cleanHandle(input.handle);
+  const handleChanged = (existing.handle ?? null) !== nextHandle;
+  if (handleChanged && existing.handle && existing.handleChangedAt) {
+    throw new Error("Username can only be changed once.");
+  }
   const [updated] = await db
     .update(userProfile)
     .set({
       displayName: input.displayName.trim() || defaultName(email),
-      handle: cleanHandle(input.handle),
+      handle: nextHandle,
+      handleChangedAt:
+        handleChanged && existing.handle && !existing.handleChangedAt
+          ? new Date()
+          : existing.handleChangedAt,
       avatarUrl: cleanOptional(input.avatarUrl),
       bio: cleanOptional(input.bio),
       publicFeedOptIn: input.publicFeedOptIn,

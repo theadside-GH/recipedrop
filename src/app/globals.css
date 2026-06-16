@@ -88,8 +88,8 @@ body {
 
   .recipe-print {
     display: block;
-    font-size: 9.5pt;
-    line-height: 1.24;
+    font-size: 9pt;
+    line-height: 1.18;
   }
 
   .recipe-print > * + * {
@@ -102,7 +102,7 @@ body {
   }
 
   .recipe-print h1 {
-    font-size: 18pt;
+    font-size: 17pt;
     line-height: 1.05;
     margin: 0 0 0.06in !important;
   }
@@ -137,7 +137,7 @@ body {
   }
 
   .recipe-print [class*="space-y-"] > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 0.08in !important;
+    margin-top: 0.055in !important;
   }
 
   .recipe-print [class*="grid"] {
@@ -154,16 +154,30 @@ body {
 
   .recipe-print li {
     break-inside: avoid;
-    padding: 0.035in 0 !important;
+    padding: 0.025in 0 !important;
     margin: 0 !important;
     border: 0 !important;
   }
 
   .recipe-print p {
-    margin: 0.04in 0 !important;
+    margin: 0.025in 0 !important;
   }
 
   .recipe-print .text-muted {
     color: #444444 !important;
+  }
+
+  .recipe-print .rounded-3xl,
+  .recipe-print .rounded-2xl,
+  .recipe-print .rounded-xl {
+    border: 0 !important;
+  }
+
+  .recipe-print [class*="text-3xl"] {
+    font-size: 17pt !important;
+  }
+
+  .recipe-print [class*="text-xl"] {
+    font-size: 11pt !important;
   }
 }

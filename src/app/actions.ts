@@ -14,6 +14,7 @@ import { detectSourceType } from "@/lib/sources/detect";
 import {
   deleteRecipe,
   setRecipeFavorite,
+  setRecipeImage,
   setRecipePublic,
   updateRecipe,
   type RecipeEditInput,
@@ -144,6 +145,14 @@ export async function setRecipePublicAction(id: string, isPublic: boolean): Prom
   revalidatePath("/");
   revalidatePath("/discover");
   revalidatePath(`/recipes/${id}`);
+}
+
+export async function setRecipeImageAction(id: string, imagePath: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await setRecipeImage({ ownerEmail: owner, id, imagePath });
+  revalidatePath("/");
+  revalidatePath(`/recipes/${id}`);
+  revalidatePath(`/recipes/${id}/edit`);
 }
 
 export async function updateProfileAction(input: ProfileInput): Promise<void> {

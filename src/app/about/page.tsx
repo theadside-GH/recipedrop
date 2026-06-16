@@ -13,7 +13,7 @@ const FAQS = [
   {
     question: "What can RecipeDrop import?",
     answer:
-      "Regular recipe websites, TikTok, Instagram, Facebook, YouTube, pasted captions, pasted recipe text, and photos or screenshots of recipes.",
+      "Regular recipe websites, TikTok, Instagram, Facebook, YouTube, pasted captions, pasted recipe text, and photos or screenshots of recipes. You can also attach your own recipe photo.",
     icon: Link2,
   },
   {
@@ -49,7 +49,7 @@ const FAQS = [
   {
     question: "Who can use this app?",
     answer:
-      "For testing, login is currently turned off so the phone install and share flow is easier to use. Auth can be turned back on later.",
+      "For testing, accounts use Google sign-in. Profiles can have a photo, display name, and public sharing setting.",
     icon: LockKeyhole,
   },
   {
@@ -67,7 +67,7 @@ export default function AboutPage() {
         <h1 className="text-3xl font-bold tracking-tight">About RecipeDrop</h1>
         <p className="max-w-3xl text-muted">
           RecipeDrop turns messy recipe sources into a clean personal recipe library, then helps
-          you plan meals and build shopping lists from what you saved.
+          you plan meals, print recipes, and build shopping lists from what you saved.
         </p>
       </section>
 
