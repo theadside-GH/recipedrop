@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env, features } from "@/lib/env";
 import { pathWithSearch } from "@/lib/auth-redirect";
 
-const PUBLIC_PREFIXES = ["/auth", "/login", "/api/health", "/discover", "/about"];
+const PUBLIC_PREFIXES = ["/auth", "/login", "/api/health", "/discover", "/about", "/r"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));

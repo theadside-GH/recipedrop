@@ -8,9 +8,11 @@ import { setRecipePublicAction } from "@/app/actions";
 export function RecipePublicToggle({
   recipeId,
   initialPublic,
+  onChange,
 }: {
   recipeId: string;
   initialPublic: boolean;
+  onChange?: (isPublic: boolean) => void;
 }) {
   const [isPublic, setIsPublic] = useState(initialPublic);
   const [pending, startTransition] = useTransition();
@@ -18,11 +20,13 @@ export function RecipePublicToggle({
   function toggle() {
     const next = !isPublic;
     setIsPublic(next);
+    onChange?.(next);
     startTransition(async () => {
       try {
         await setRecipePublicAction(recipeId, next);
       } catch {
         setIsPublic(!next);
+        onChange?.(!next);
       }
     });
   }

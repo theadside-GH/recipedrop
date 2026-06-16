@@ -62,6 +62,10 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
         <ChefHat className="h-7 w-7" />
       </span>
       <h1 className="mt-4 text-2xl font-bold">Welcome to RecipeDrop</h1>
+      <p className="mt-1 text-muted">
+        Save recipes from TikTok, Instagram, YouTube, websites, photos, or pasted text,
+        then get clean instructions and shopping lists.
+      </p>
       <p className="mt-1 text-muted">Sign in with a magic link — no password needed.</p>
 
       {!authEnabled ? (

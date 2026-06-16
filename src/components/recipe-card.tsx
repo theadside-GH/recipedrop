@@ -11,16 +11,18 @@ export function RecipeCard({
   showFavorite = true,
   byline,
   bylineAvatar,
+  href,
 }: {
   recipe: Recipe;
   showFavorite?: boolean;
   byline?: string;
   bylineAvatar?: string | null;
+  href?: string;
 }) {
   const quick = (recipe.totalMinutes ?? 999) <= 30;
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
-      <Link href={`/recipes/${recipe.id}`} className="block">
+      <Link href={href ?? `/recipes/${recipe.id}`} className="block">
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface">
           <RecipeImage
             src={recipe.imagePath}

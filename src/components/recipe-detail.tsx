@@ -31,14 +31,17 @@ export function RecipeDetail({
   ingredients,
   steps,
   tags,
+  readOnly = false,
 }: {
   recipe: Recipe;
   ingredients: RecipeIngredient[];
   steps: Step[];
   tags: string[];
+  readOnly?: boolean;
 }) {
   const router = useRouter();
   const [servings, setServings] = useState(recipe.servingsDefault);
+  const [isPublic, setIsPublic] = useState(recipe.isPublic);
   const [isPending, startTransition] = useTransition();
   const [repairPending, startRepairTransition] = useTransition();
   const [repairMessage, setRepairMessage] = useState<string | null>(null);
@@ -113,32 +116,55 @@ export function RecipeDetail({
           <h1 className="text-3xl font-bold tracking-tight">{recipe.title}</h1>
           {recipe.description && <p className="text-muted">{recipe.description}</p>}
           <div className="flex flex-wrap gap-2 pt-1">
-            {tags.map((t) => (
-              <Link key={t} href={`/?tag=${encodeURIComponent(t)}`}>
-                <Badge variant="neutral" className="capitalize hover:bg-brand-soft">
+            {tags.map((t) =>
+              readOnly ? (
+                <Badge key={t} variant="neutral" className="capitalize">
                   #{t}
                 </Badge>
-              </Link>
-            ))}
+              ) : (
+                <Link key={t} href={`/?tag=${encodeURIComponent(t)}`}>
+                  <Badge variant="neutral" className="capitalize hover:bg-brand-soft">
+                    #{t}
+                  </Badge>
+                </Link>
+              ),
+            )}
           </div>
         </div>
       </div>
 
       {/* Actions */}
       <div className="flex flex-wrap gap-3 print:hidden">
-        <Link href={`/recipes/${recipe.id}/cook`}>
-          <Button size="lg">
-            <ChefHat className="h-5 w-5" /> Start cooking
-          </Button>
-        </Link>
-        <Link href={`/recipes/${recipe.id}/edit`}>
-          <Button variant="secondary" size="lg">
-            <Pencil className="h-4 w-4" /> Edit
-          </Button>
-        </Link>
-        <RecipePublicToggle recipeId={recipe.id} initialPublic={recipe.isPublic} />
-        <ShareLinkButton />
-        {recipe.sourceUrl && (
+        {!readOnly && (
+          <>
+            <Link href={`/recipes/${recipe.id}/cook`}>
+              <Button size="lg">
+                <ChefHat className="h-5 w-5" /> Start cooking
+              </Button>
+            </Link>
+            <Link href={`/recipes/${recipe.id}/edit`}>
+              <Button variant="secondary" size="lg">
+                <Pencil className="h-4 w-4" /> Edit
+              </Button>
+            </Link>
+            <RecipePublicToggle
+              recipeId={recipe.id}
+              initialPublic={recipe.isPublic}
+              onChange={setIsPublic}
+            />
+          </>
+        )}
+        {readOnly || isPublic ? (
+          <ShareLinkButton
+            href={`/r/${recipe.id}`}
+            label={readOnly ? "Copy recipe link" : "Copy public link"}
+          />
+        ) : (
+          <div className="flex items-center rounded-full border border-border bg-surface px-4 py-2 text-sm text-muted">
+            Make public to share
+          </div>
+        )}
+        {!readOnly && recipe.sourceUrl && (
           <>
             <Button variant="secondary" size="lg" onClick={handleRepair} disabled={repairPending}>
               <Wrench className="h-4 w-4" /> {repairPending ? "Improving..." : "Improve"}
@@ -156,11 +182,13 @@ export function RecipeDetail({
           </a>
         )}
         <PrintButton />
-        <Button variant="danger" size="lg" onClick={handleDelete} disabled={isPending}>
-          <Trash2 className="h-4 w-4" /> Delete
-        </Button>
+        {!readOnly && (
+          <Button variant="danger" size="lg" onClick={handleDelete} disabled={isPending}>
+            <Trash2 className="h-4 w-4" /> Delete
+          </Button>
+        )}
       </div>
-      {couldUseHelp && recipe.sourceUrl && (
+      {couldUseHelp && recipe.sourceUrl && !readOnly && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 print:hidden">
           This one looks like it may be missing a photo or details. Use <strong>Improve</strong>{" "}
           or <strong>Fix image</strong> to have RecipeDrop try the source again.

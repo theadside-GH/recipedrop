@@ -4,11 +4,12 @@ import { useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function ShareLinkButton({ label = "Copy link" }: { label?: string }) {
+export function ShareLinkButton({ href, label = "Copy link" }: { href?: string; label?: string }) {
   const [copied, setCopied] = useState(false);
 
   async function copyLink() {
-    await navigator.clipboard.writeText(window.location.href);
+    const url = href ? new URL(href, window.location.origin).toString() : window.location.href;
+    await navigator.clipboard.writeText(url);
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1500);
   }

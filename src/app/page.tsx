@@ -120,6 +120,7 @@ function MiniPublicSection({
           <RecipeCard
             key={row.recipe.id}
             recipe={row.recipe}
+            href={`/r/${row.recipe.id}`}
             showFavorite={false}
             byline={row.handle ? `@${row.handle}` : row.displayName}
             bylineAvatar={row.avatarUrl}
