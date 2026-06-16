@@ -607,6 +607,7 @@ function cleanIngredientName(value: string): string {
 
 /** Full recipe detail: recipe + ingredients + steps + tag names. */
 export async function getRecipeFull(id: string) {
+  if (!isUuid(id)) return null;
   const db = await getDb();
   const [r] = await db.select().from(recipe).where(eq(recipe.id, id)).limit(1);
   if (!r) return null;
@@ -626,6 +627,12 @@ export async function getRecipeFull(id: string) {
     .innerJoin(tag, eq(tag.id, recipeTag.tagId))
     .where(eq(recipeTag.recipeId, id));
   return { recipe: r, ingredients, steps, tags: tags.map((t) => t.name) };
+}
+
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }
 
 export async function deleteRecipe(id: string): Promise<void> {
