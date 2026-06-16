@@ -1,14 +1,18 @@
 "use client";
 
 import { FormEvent, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Save, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { updateProfileAction } from "@/app/actions";
+import { getBrowserSupabase } from "@/lib/supabase/client";
 import type { UserProfile } from "@/lib/db/schema";
 
-export function ProfileForm({ profile }: { profile: UserProfile }) {
+export function ProfileForm({ profile, email }: { profile: UserProfile; email: string }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [signingOut, startSignOutTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
     displayName: profile.displayName,
@@ -33,13 +37,30 @@ export function ProfileForm({ profile }: { profile: UserProfile }) {
     });
   }
 
+  function signOut() {
+    startSignOutTransition(async () => {
+      const supabase = getBrowserSupabase();
+      await supabase.auth.signOut();
+      router.push("/login");
+      router.refresh();
+    });
+  }
+
   return (
     <form onSubmit={submit} className="space-y-5 rounded-2xl border border-border bg-card p-5 sm:p-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
-        <p className="mt-1 text-sm text-muted">
-          Control how your public recipe drops appear. Recipes stay private unless you mark them public.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Profile</h1>
+          <p className="mt-1 text-sm text-muted">
+            Signed in as <strong className="font-medium text-foreground">{email}</strong>
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Control how your public recipe drops appear. Recipes stay private unless you mark them public.
+          </p>
+        </div>
+        <Button type="button" variant="secondary" onClick={signOut} disabled={signingOut}>
+          {signingOut ? "Signing out..." : "Sign out"}
+        </Button>
       </div>
 
       <div className="flex items-center gap-4 rounded-xl border border-border bg-surface p-4">

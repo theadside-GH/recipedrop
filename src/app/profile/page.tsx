@@ -13,7 +13,7 @@ export default async function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <ProfileForm profile={profile} />
+      <ProfileForm profile={profile} email={currentUser.email} />
     </div>
   );
 }
