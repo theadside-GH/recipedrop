@@ -11,6 +11,11 @@ function isPublicPath(pathname: string) {
 
 export async function proxy(request: NextRequest) {
   if (!features.authEnabled) return NextResponse.next({ request });
+  const { pathname, search } = request.nextUrl;
+
+  if (pathname === "/") {
+    return NextResponse.redirect(new URL("/discover", request.url));
+  }
 
   let response = NextResponse.next({ request });
   const supabase = createServerClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -31,7 +36,6 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const { pathname, search } = request.nextUrl;
 
   if (!user && !isPublicPath(pathname)) {
     const loginUrl = request.nextUrl.clone();

@@ -6,8 +6,8 @@ import { ChefHat, BookOpen, PlusCircle, ShoppingBasket, Compass, User } from "lu
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/", label: "Recipes", icon: BookOpen, match: (p: string) => p === "/" || p.startsWith("/recipes") },
   { href: "/discover", label: "Discover", icon: Compass, match: (p: string) => p.startsWith("/discover") },
+  { href: "/recipes", label: "Recipes", icon: BookOpen, match: (p: string) => p.startsWith("/recipes") },
   { href: "/import", label: "Import", icon: PlusCircle, match: (p: string) => p.startsWith("/import") },
   { href: "/plans", label: "Meal Plans", icon: ShoppingBasket, match: (p: string) => p.startsWith("/plans") },
   { href: "/profile", label: "Profile", icon: User, match: (p: string) => p.startsWith("/profile") },
@@ -20,7 +20,7 @@ export function SiteNav() {
       {/* Top bar (desktop + mobile header) */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/" className="flex items-center gap-2 font-semibold text-lg">
+          <Link href="/discover" className="flex items-center gap-2 font-semibold text-lg">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground">
               <ChefHat className="h-5 w-5" />
             </span>

@@ -18,7 +18,7 @@ export default async function RecipePage({
   return (
     <div className="space-y-5">
       <Link
-        href="/"
+        href="/recipes"
         className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" /> All recipes

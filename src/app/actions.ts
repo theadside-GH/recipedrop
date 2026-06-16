@@ -101,7 +101,7 @@ export async function runImportJob(jobId: string): Promise<JobView | null> {
   try {
     const { processJob } = await import("@/lib/import/process");
     const job = await processJob(jobId);
-    if (job?.status === "done") revalidatePath("/");
+    if (job?.status === "done") revalidatePath("/recipes");
     return job ? toView(job) : null;
   } catch (error) {
     console.error("Import job failed", error);
@@ -122,7 +122,7 @@ export async function importPhotos(images: ImageInput[]): Promise<{ recipeId: st
   const owner = await getOwnerEmail();
   const { processPhotoImport } = await import("@/lib/import/process");
   const recipeId = await processPhotoImport(owner, images);
-  revalidatePath("/");
+  revalidatePath("/recipes");
   return { recipeId };
 }
 
@@ -130,19 +130,19 @@ export async function importPhotos(images: ImageInput[]): Promise<{ recipeId: st
 
 export async function deleteRecipeAction(id: string): Promise<void> {
   await deleteRecipe(id);
-  revalidatePath("/");
+  revalidatePath("/recipes");
 }
 
 export async function setFavoriteAction(id: string, isFavorite: boolean): Promise<void> {
   await setRecipeFavorite(id, isFavorite);
-  revalidatePath("/");
+  revalidatePath("/recipes");
   revalidatePath(`/recipes/${id}`);
 }
 
 export async function setRecipePublicAction(id: string, isPublic: boolean): Promise<void> {
   const owner = await getOwnerEmail();
   await setRecipePublic({ ownerEmail: owner, id, isPublic });
-  revalidatePath("/");
+  revalidatePath("/recipes");
   revalidatePath("/discover");
   revalidatePath(`/r/${id}`);
 }
@@ -150,7 +150,7 @@ export async function setRecipePublicAction(id: string, isPublic: boolean): Prom
 export async function setRecipeImageAction(id: string, imagePath: string): Promise<void> {
   const owner = await getOwnerEmail();
   await setRecipeImage({ ownerEmail: owner, id, imagePath });
-  revalidatePath("/");
+  revalidatePath("/recipes");
   revalidatePath(`/recipes/${id}`);
   revalidatePath(`/recipes/${id}/edit`);
 }
@@ -158,7 +158,7 @@ export async function setRecipeImageAction(id: string, imagePath: string): Promi
 export async function updateProfileAction(input: ProfileInput): Promise<void> {
   const owner = await getOwnerEmail();
   await updateProfile(owner, input);
-  revalidatePath("/");
+  revalidatePath("/recipes");
   revalidatePath("/discover");
   revalidatePath("/profile");
 }
@@ -169,7 +169,7 @@ export async function updateRecipeAction(
 ): Promise<void> {
   const owner = await getOwnerEmail();
   await updateRecipe({ ...input, id, ownerEmail: owner });
-  revalidatePath("/");
+  revalidatePath("/recipes");
   revalidatePath(`/recipes/${id}`);
   revalidatePath(`/recipes/${id}/edit`);
   revalidatePath("/plans");
@@ -180,7 +180,7 @@ export async function repairRecipeAction(id: string): Promise<{ ok: boolean; mes
     const owner = await getOwnerEmail();
     const { repairRecipeFromSource } = await import("@/lib/import/repair");
     const result = await repairRecipeFromSource(owner, id);
-    revalidatePath("/");
+    revalidatePath("/recipes");
     revalidatePath(`/recipes/${id}`);
     revalidatePath(`/recipes/${id}/edit`);
     revalidatePath("/plans");
@@ -198,7 +198,7 @@ export async function repairRecipeImageAction(id: string): Promise<{ ok: boolean
     const owner = await getOwnerEmail();
     const { repairRecipeImageFromSource } = await import("@/lib/import/repair");
     const result = await repairRecipeImageFromSource(owner, id);
-    revalidatePath("/");
+    revalidatePath("/recipes");
     revalidatePath(`/recipes/${id}`);
     revalidatePath(`/recipes/${id}/edit`);
     return { ok: true, message: result.message };

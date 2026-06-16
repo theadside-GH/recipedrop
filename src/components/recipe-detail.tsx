@@ -62,7 +62,7 @@ export function RecipeDetail({
     if (!confirm("Delete this recipe?")) return;
     startTransition(async () => {
       await deleteRecipeAction(recipe.id);
-      router.push("/");
+      router.push("/recipes");
     });
   }
 
@@ -149,7 +149,7 @@ export function RecipeDetail({
                   #{t}
                 </Badge>
               ) : (
-                <Link key={t} href={`/?tag=${encodeURIComponent(t)}`}>
+                <Link key={t} href={`/recipes?tag=${encodeURIComponent(t)}`}>
                   <Badge variant="neutral" className="capitalize hover:bg-brand-soft">
                     #{t}
                   </Badge>
