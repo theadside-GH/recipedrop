@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { PlusCircle, Sparkles } from "lucide-react";
+import type React from "react";
+import { Flame, PlusCircle, Sparkles } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
-import { listRecipes } from "@/lib/repo/recipes";
+import { listPublicRecipes, listRecipes } from "@/lib/repo/recipes";
 import { RecipeCard } from "@/components/recipe-card";
 import { LibraryFilters } from "@/components/library-filters";
 import { Button } from "@/components/ui/button";
@@ -23,15 +24,21 @@ export default async function LibraryPage({
   const sp = await searchParams;
   const owner = await getOwnerEmail();
   let recipes;
+  let newestPublic: Awaited<ReturnType<typeof listPublicRecipes>> = [];
+  let popularPublic: Awaited<ReturnType<typeof listPublicRecipes>> = [];
   try {
-    recipes = await listRecipes(owner, {
-      mealType: sp.meal,
-      maxMinutes: sp.max ? Number(sp.max) : undefined,
-      search: sp.q,
-      tag: sp.tag,
-      favorite: sp.favorite === "1",
-      sort: sp.sort,
-    });
+    [recipes, newestPublic, popularPublic] = await Promise.all([
+      listRecipes(owner, {
+        mealType: sp.meal,
+        maxMinutes: sp.max ? Number(sp.max) : undefined,
+        search: sp.q,
+        tag: sp.tag,
+        favorite: sp.favorite === "1",
+        sort: sp.sort,
+      }),
+      listPublicRecipes("newest", 4),
+      listPublicRecipes("popular", 4),
+    ]);
   } catch {
     return <DeploymentIssue />;
   }
@@ -52,6 +59,10 @@ export default async function LibraryPage({
         </Link>
       </div>
 
+      {!sp.meal && !sp.max && !sp.q && !sp.tag && !sp.favorite && (
+        <PublicHomeSections newest={newestPublic} popular={popularPublic} />
+      )}
+
       <LibraryFilters />
 
       {recipes.length === 0 ? (
@@ -64,6 +75,57 @@ export default async function LibraryPage({
         </div>
       )}
     </div>
+  );
+}
+
+function PublicHomeSections({
+  newest,
+  popular,
+}: {
+  newest: Awaited<ReturnType<typeof listPublicRecipes>>;
+  popular: Awaited<ReturnType<typeof listPublicRecipes>>;
+}) {
+  if (newest.length === 0 && popular.length === 0) return null;
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <MiniPublicSection title="Newest drops" icon={Sparkles} recipes={newest} />
+      <MiniPublicSection title="Most dropped" icon={Flame} recipes={popular} />
+    </div>
+  );
+}
+
+function MiniPublicSection({
+  title,
+  icon: Icon,
+  recipes,
+}: {
+  title: string;
+  icon: React.ComponentType<{ className?: string }>;
+  recipes: Awaited<ReturnType<typeof listPublicRecipes>>;
+}) {
+  if (recipes.length === 0) return null;
+  return (
+    <section className="rounded-2xl border border-border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-sm font-semibold">
+          <Icon className="h-4 w-4 text-brand" />
+          {title}
+        </h2>
+        <Link href="/discover" className="text-xs font-medium text-brand hover:underline">
+          See all
+        </Link>
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        {recipes.slice(0, 2).map((row) => (
+          <RecipeCard
+            key={row.recipe.id}
+            recipe={row.recipe}
+            showFavorite={false}
+            byline={row.handle ? `@${row.handle}` : row.displayName}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
 

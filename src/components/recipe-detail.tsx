@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RecipeImage } from "@/components/recipe-image";
 import { PrintButton } from "@/components/print-button";
+import { RecipePublicToggle } from "@/components/recipe-public-toggle";
 import { formatMinutes, tidyNumber } from "@/lib/utils";
 import { pluralize } from "@/lib/shopping/units";
 import { deleteRecipeAction, repairRecipeAction, repairRecipeImageAction } from "@/app/actions";
@@ -128,6 +129,7 @@ export function RecipeDetail({
             <Pencil className="h-4 w-4" /> Edit
           </Button>
         </Link>
+        <RecipePublicToggle recipeId={recipe.id} initialPublic={recipe.isPublic} />
         {recipe.sourceUrl && (
           <>
             <Button variant="secondary" size="lg" onClick={handleRepair} disabled={repairPending}>

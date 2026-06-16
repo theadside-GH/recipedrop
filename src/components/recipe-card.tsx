@@ -6,7 +6,15 @@ import { FavoriteButton } from "@/components/favorite-button";
 import { formatMinutes } from "@/lib/utils";
 import type { Recipe } from "@/lib/db/schema";
 
-export function RecipeCard({ recipe }: { recipe: Recipe }) {
+export function RecipeCard({
+  recipe,
+  showFavorite = true,
+  byline,
+}: {
+  recipe: Recipe;
+  showFavorite?: boolean;
+  byline?: string;
+}) {
   const quick = (recipe.totalMinutes ?? 999) <= 30;
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
@@ -26,6 +34,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
         </div>
         <div className="p-4">
           <h3 className="line-clamp-2 font-semibold leading-snug">{recipe.title}</h3>
+          {byline && <p className="mt-1 truncate text-xs text-muted">Dropped by {byline}</p>}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
             <span className="inline-flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
@@ -41,11 +50,13 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
           </div>
         </div>
       </Link>
-      <FavoriteButton
-        recipeId={recipe.id}
-        initialFavorite={recipe.isFavorite}
-        className="absolute right-3 top-3 z-10"
-      />
+      {showFavorite && (
+        <FavoriteButton
+          recipeId={recipe.id}
+          initialFavorite={recipe.isFavorite}
+          className="absolute right-3 top-3 z-10"
+        />
+      )}
     </div>
   );
 }

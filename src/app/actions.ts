@@ -14,9 +14,11 @@ import { detectSourceType } from "@/lib/sources/detect";
 import {
   deleteRecipe,
   setRecipeFavorite,
+  setRecipePublic,
   updateRecipe,
   type RecipeEditInput,
 } from "@/lib/repo/recipes";
+import { updateProfile, type ProfileInput } from "@/lib/repo/profiles";
 import { randomUUID } from "node:crypto";
 import {
   createPlan,
@@ -134,6 +136,22 @@ export async function setFavoriteAction(id: string, isFavorite: boolean): Promis
   await setRecipeFavorite(id, isFavorite);
   revalidatePath("/");
   revalidatePath(`/recipes/${id}`);
+}
+
+export async function setRecipePublicAction(id: string, isPublic: boolean): Promise<void> {
+  const owner = await getOwnerEmail();
+  await setRecipePublic({ ownerEmail: owner, id, isPublic });
+  revalidatePath("/");
+  revalidatePath("/discover");
+  revalidatePath(`/recipes/${id}`);
+}
+
+export async function updateProfileAction(input: ProfileInput): Promise<void> {
+  const owner = await getOwnerEmail();
+  await updateProfile(owner, input);
+  revalidatePath("/");
+  revalidatePath("/discover");
+  revalidatePath("/profile");
 }
 
 export async function updateRecipeAction(

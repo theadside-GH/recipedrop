@@ -8,6 +8,7 @@ import {
   tag,
   recipeTag,
   canonicalIngredient,
+  userProfile,
 } from "@/lib/db/schema";
 import type { RecipeExtraction } from "@/lib/ai/schema";
 import { MEAL_TYPES } from "@/lib/ai/schema";
@@ -284,6 +285,48 @@ function recipeOrder(sort: RecipeFilters["sort"] = "newest") {
 export async function setRecipeFavorite(id: string, isFavorite: boolean): Promise<void> {
   const db = await getDb();
   await db.update(recipe).set({ isFavorite }).where(eq(recipe.id, id));
+}
+
+export async function setRecipePublic(input: {
+  ownerEmail: string;
+  id: string;
+  isPublic: boolean;
+}): Promise<void> {
+  const db = await getDb();
+  const [updated] = await db
+    .update(recipe)
+    .set({ isPublic: input.isPublic })
+    .where(and(eq(recipe.id, input.id), eq(recipe.ownerEmail, input.ownerEmail)))
+    .returning({ id: recipe.id });
+  if (!updated) throw new Error("Recipe not found.");
+}
+
+export interface PublicRecipeRow {
+  recipe: typeof recipe.$inferSelect;
+  displayName: string;
+  handle: string | null;
+}
+
+export async function listPublicRecipes(
+  sort: "newest" | "popular" = "newest",
+  limit = 12,
+): Promise<PublicRecipeRow[]> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      recipe,
+      displayName: userProfile.displayName,
+      handle: userProfile.handle,
+    })
+    .from(recipe)
+    .innerJoin(userProfile, eq(userProfile.email, recipe.ownerEmail))
+    .where(and(eq(recipe.isPublic, true), eq(userProfile.publicFeedOptIn, true)))
+    .orderBy(
+      sort === "popular" ? desc(recipe.dropCount) : desc(recipe.createdAt),
+      desc(recipe.createdAt),
+    )
+    .limit(limit);
+  return rows;
 }
 
 export interface DuplicateRecipe {

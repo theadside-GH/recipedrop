@@ -76,6 +76,29 @@ export const canonicalIngredient = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// User profiles
+// ---------------------------------------------------------------------------
+
+export const userProfile = pgTable(
+  "user_profile",
+  {
+    email: text("email").primaryKey(),
+    displayName: text("display_name").notNull(),
+    handle: text("handle"),
+    bio: text("bio"),
+    publicFeedOptIn: boolean("public_feed_opt_in").notNull().default(false),
+    paidTier: text("paid_tier").notNull().default("free"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("user_profile_handle_idx").on(t.handle)],
+);
+
+// ---------------------------------------------------------------------------
 // Recipes
 // ---------------------------------------------------------------------------
 
@@ -97,6 +120,8 @@ export const recipe = pgTable(
     mealType: mealTypeEnum("meal_type").notNull().default("dinner"),
     difficulty: text("difficulty"), // "easy" | "medium" | "hard"
     isFavorite: boolean("is_favorite").notNull().default(false),
+    isPublic: boolean("is_public").notNull().default(false),
+    dropCount: integer("drop_count").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -106,6 +131,8 @@ export const recipe = pgTable(
     index("recipe_meal_type_idx").on(t.mealType),
     index("recipe_total_minutes_idx").on(t.totalMinutes),
     index("recipe_favorite_idx").on(t.isFavorite),
+    index("recipe_public_idx").on(t.isPublic),
+    index("recipe_drop_count_idx").on(t.dropCount),
   ],
 );
 
@@ -322,6 +349,7 @@ export const shoppingListItemRelations = relations(
 // Convenient inferred types
 export type Recipe = typeof recipe.$inferSelect;
 export type NewRecipe = typeof recipe.$inferInsert;
+export type UserProfile = typeof userProfile.$inferSelect;
 export type RecipeIngredient = typeof recipeIngredient.$inferSelect;
 export type Step = typeof step.$inferSelect;
 export type MealPlan = typeof mealPlan.$inferSelect;

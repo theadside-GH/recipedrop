@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChefHat, BookOpen, PlusCircle, ShoppingBasket, CircleHelp } from "lucide-react";
+import { ChefHat, BookOpen, PlusCircle, ShoppingBasket, Compass, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/", label: "Recipes", icon: BookOpen, match: (p: string) => p === "/" || p.startsWith("/recipes") },
+  { href: "/discover", label: "Discover", icon: Compass, match: (p: string) => p.startsWith("/discover") },
   { href: "/import", label: "Import", icon: PlusCircle, match: (p: string) => p.startsWith("/import") },
   { href: "/plans", label: "Meal Plans", icon: ShoppingBasket, match: (p: string) => p.startsWith("/plans") },
-  { href: "/about", label: "About", icon: CircleHelp, match: (p: string) => p.startsWith("/about") },
+  { href: "/profile", label: "Profile", icon: User, match: (p: string) => p.startsWith("/profile") },
 ];
 
 export function SiteNav() {
@@ -47,7 +48,7 @@ export function SiteNav() {
       </header>
 
       {/* Bottom tab bar (mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-4 border-t border-border bg-background/95 backdrop-blur sm:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-5 border-t border-border bg-background/95 backdrop-blur sm:hidden">
         {LINKS.map((l) => {
           const active = l.match(pathname);
           return (
