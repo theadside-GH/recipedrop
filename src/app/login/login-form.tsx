@@ -38,7 +38,7 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
     }
   }
 
-  async function signInWithProvider(provider: "google" | "facebook") {
+  async function signInWithGoogle() {
     setBusy(true);
     setError(null);
     try {
@@ -46,7 +46,7 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
       const confirmUrl = new URL("/auth/confirm", window.location.origin);
       if (next !== "/") confirmUrl.searchParams.set("next", next);
       const { error } = await supabase.auth.signInWithOAuth({
-        provider,
+        provider: "google",
         options: { redirectTo: confirmUrl.toString() },
       });
       if (error) throw error;
@@ -84,7 +84,7 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
             <Button
               type="button"
               variant="secondary"
-              onClick={() => signInWithProvider("google")}
+              onClick={signInWithGoogle}
               disabled={busy}
               className="w-full"
               size="lg"
@@ -93,19 +93,6 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
                 G
               </span>
               Continue with Google
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => signInWithProvider("facebook")}
-              disabled={busy}
-              className="w-full"
-              size="lg"
-            >
-              <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-[#1877f2] text-xs font-bold text-white">
-                f
-              </span>
-              Continue with Facebook
             </Button>
           </div>
           <div className="flex items-center gap-3 text-xs text-muted">
