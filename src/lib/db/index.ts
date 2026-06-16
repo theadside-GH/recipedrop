@@ -18,7 +18,12 @@ async function init(): Promise<DB> {
   if (features.usePostgres) {
     const postgres = (await import("postgres")).default;
     const { drizzle } = await import("drizzle-orm/postgres-js");
-    const client = postgres(env.databaseUrl, { prepare: false });
+    const client = postgres(env.databaseUrl, {
+      prepare: false,
+      max: 1,
+      idle_timeout: 20,
+      connect_timeout: 10,
+    });
     return drizzle(client, { schema }) as unknown as DB;
   }
 

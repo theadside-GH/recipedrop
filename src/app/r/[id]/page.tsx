@@ -28,6 +28,8 @@ export default async function PublicRecipePage({
         ingredients={data.ingredients}
         steps={data.steps}
         tags={data.tags}
+        dropperName={data.dropper?.handle ? `@${data.dropper.handle}` : data.dropper?.displayName}
+        dropperAvatar={data.dropper?.avatarUrl}
         readOnly
       />
     </div>

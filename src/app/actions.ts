@@ -144,7 +144,7 @@ export async function setRecipePublicAction(id: string, isPublic: boolean): Prom
   await setRecipePublic({ ownerEmail: owner, id, isPublic });
   revalidatePath("/");
   revalidatePath("/discover");
-  revalidatePath(`/recipes/${id}`);
+  revalidatePath(`/r/${id}`);
 }
 
 export async function setRecipeImageAction(id: string, imagePath: string): Promise<void> {

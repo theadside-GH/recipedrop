@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Clock,
+  CircleUserRound,
   Minus,
   Plus,
   ChefHat,
@@ -32,12 +33,16 @@ export function RecipeDetail({
   steps,
   tags,
   readOnly = false,
+  dropperName,
+  dropperAvatar,
 }: {
   recipe: Recipe;
   ingredients: RecipeIngredient[];
   steps: Step[];
   tags: string[];
   readOnly?: boolean;
+  dropperName?: string | null;
+  dropperAvatar?: string | null;
 }) {
   const router = useRouter();
   const [servings, setServings] = useState(recipe.servingsDefault);
@@ -114,6 +119,28 @@ export function RecipeDetail({
             </span>
           </div>
           <h1 className="text-3xl font-bold tracking-tight">{recipe.title}</h1>
+          {recipe.isPublic && dropperName && (
+            <div className="flex items-center gap-2 text-sm text-muted">
+              {dropperAvatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={dropperAvatar}
+                  alt=""
+                  className="h-7 w-7 rounded-full object-cover"
+                />
+              ) : (
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-soft text-brand">
+                  <CircleUserRound className="h-4 w-4" />
+                </span>
+              )}
+              <span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  Dropper
+                </span>{" "}
+                {dropperName}
+              </span>
+            </div>
+          )}
           {recipe.description && <p className="text-muted">{recipe.description}</p>}
           <div className="flex flex-wrap gap-2 pt-1">
             {tags.map((t) =>

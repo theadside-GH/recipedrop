@@ -626,7 +626,16 @@ export async function getRecipeFull(id: string) {
     .from(recipeTag)
     .innerJoin(tag, eq(tag.id, recipeTag.tagId))
     .where(eq(recipeTag.recipeId, id));
-  return { recipe: r, ingredients, steps, tags: tags.map((t) => t.name) };
+  const [dropper] = await db
+    .select({
+      displayName: userProfile.displayName,
+      handle: userProfile.handle,
+      avatarUrl: userProfile.avatarUrl,
+    })
+    .from(userProfile)
+    .where(eq(userProfile.email, r.ownerEmail))
+    .limit(1);
+  return { recipe: r, ingredients, steps, tags: tags.map((t) => t.name), dropper };
 }
 
 function isUuid(value: string) {
