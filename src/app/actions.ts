@@ -244,7 +244,8 @@ export async function removePlanItemAction(planId: string, itemId: string): Prom
 }
 
 export async function deletePlanAction(planId: string): Promise<void> {
-  await deletePlan(planId);
+  const owner = await getOwnerEmail();
+  await deletePlan(planId, owner);
   revalidatePath("/plans");
 }
 

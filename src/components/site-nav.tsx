@@ -4,11 +4,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   ChefHat,
+  Archive,
   BookOpen,
   PlusCircle,
   ShoppingBasket,
   Compass,
-  Home,
   User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,7 @@ const LINKS = [
     icon: ShoppingBasket,
     match: (p: string) => p.startsWith("/plans"),
   },
-  { href: "/pantry", label: "Pantry", icon: Home, match: (p: string) => p.startsWith("/pantry") },
+  { href: "/pantry", label: "Pantry", icon: Archive, match: (p: string) => p.startsWith("/pantry") },
   { href: "/profile", label: "Profile", mobileLabel: "Me", icon: User, match: (p: string) => p.startsWith("/profile") },
 ];
 

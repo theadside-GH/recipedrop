@@ -3,6 +3,7 @@ import { ShoppingBasket, ChevronRight } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { listPlans } from "@/lib/repo/plans";
 import { CreatePlan } from "./create-plan";
+import { DeletePlanButton } from "./delete-plan-button";
 
 export const dynamic = "force-dynamic";
 
@@ -28,22 +29,24 @@ export default async function PlansPage() {
       ) : (
         <div className="space-y-3">
           {plans.map((p) => (
-            <Link
+            <div
               key={p.id}
-              href={`/plans/${p.id}`}
               className="flex items-center gap-4 rounded-2xl border border-border bg-card p-4 transition-colors hover:bg-surface"
             >
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-brand-soft text-brand">
-                <ShoppingBasket className="h-5 w-5" />
-              </span>
-              <div className="flex-1">
-                <p className="font-semibold">{p.name}</p>
-                <p className="text-sm text-muted">
-                  {p.itemCount} recipe{p.itemCount === 1 ? "" : "s"}
-                </p>
-              </div>
-              <ChevronRight className="h-5 w-5 text-muted" />
-            </Link>
+              <Link href={`/plans/${p.id}`} className="flex min-w-0 flex-1 items-center gap-4">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
+                  <ShoppingBasket className="h-5 w-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">{p.name}</p>
+                  <p className="text-sm text-muted">
+                    {p.itemCount} recipe{p.itemCount === 1 ? "" : "s"}
+                  </p>
+                </div>
+                <ChevronRight className="h-5 w-5 shrink-0 text-muted" />
+              </Link>
+              <DeletePlanButton planId={p.id} planName={p.name} />
+            </div>
           ))}
         </div>
       )}

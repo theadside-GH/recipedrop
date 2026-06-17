@@ -2,7 +2,7 @@
 
 import type React from "react";
 import { useMemo, useState } from "react";
-import { Check, Copy, EyeOff, Home, PackageCheck, Printer } from "lucide-react";
+import { Archive, Check, Copy, EyeOff, PackageCheck, Printer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatPurchaseAmount } from "@/lib/shopping/purchase";
@@ -204,7 +204,7 @@ export function ShoppingListView({
                           <span className="mt-0.5 block text-xs text-muted">{reviewNote}</span>
                         )}
                         <span className="mt-2 flex flex-wrap gap-2 print:hidden">
-                          <MiniToggle active={pantry[item.id]} onClick={() => togglePantry(item)} icon={Home}>
+                          <MiniToggle active={pantry[item.id]} onClick={() => togglePantry(item)} icon={Archive}>
                             Pantry
                           </MiniToggle>
                           <MiniToggle

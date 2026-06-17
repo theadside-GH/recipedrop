@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type React from "react";
-import { ArrowRight, Home, PackageCheck, Sparkles } from "lucide-react";
+import { Archive, ArrowRight, PackageCheck, Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { RecipeImage } from "@/components/recipe-image";
 import { getOwnerEmail } from "@/lib/auth";
 import { listPantryItems, listPantryRecipeSuggestions, pantryCounts } from "@/lib/repo/pantry";
 import { cn } from "@/lib/utils";
+import { CommonItemsPicker } from "./common-items-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -36,10 +37,12 @@ export default async function PantryPage() {
         </Link>
       </div>
 
+      <CommonItemsPicker selectedItems={pantryItems.map((item) => item.canonicalName)} />
+
       <div className="grid gap-4 md:grid-cols-2">
         <IngredientPanel
           title="In your pantry"
-          icon={Home}
+          icon={Archive}
           count={counts.pantry}
           items={pantryItems.map((item) => item.canonicalName)}
           empty="Use a shopping list to mark items you already have."

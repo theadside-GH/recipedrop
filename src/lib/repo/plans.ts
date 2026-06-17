@@ -1,5 +1,5 @@
 import "server-only";
-import { eq, desc, sql } from "drizzle-orm";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import {
   mealPlan,
@@ -95,9 +95,9 @@ export async function removePlanItem(itemId: string) {
   await db.delete(mealPlanItem).where(eq(mealPlanItem.id, itemId));
 }
 
-export async function deletePlan(id: string) {
+export async function deletePlan(id: string, ownerEmail: string) {
   const db = await getDb();
-  await db.delete(mealPlan).where(eq(mealPlan.id, id));
+  await db.delete(mealPlan).where(and(eq(mealPlan.id, id), eq(mealPlan.ownerEmail, ownerEmail)));
 }
 
 /**
