@@ -256,7 +256,30 @@ export const shoppingListItem = pgTable(
 );
 
 // ---------------------------------------------------------------------------
-// Import jobs — async ingestion pipeline
+// Pantry items
+// ---------------------------------------------------------------------------
+
+export const pantryItem = pgTable(
+  "pantry_item",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerEmail: text("owner_email").notNull(),
+    canonicalName: text("canonical_name").notNull(),
+    aisle: text("aisle"),
+    inPantry: boolean("in_pantry").notNull().default(true),
+    hasLeftover: boolean("has_leftover").notNull().default(false),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("pantry_item_owner_name_idx").on(t.ownerEmail, t.canonicalName),
+    index("pantry_item_owner_idx").on(t.ownerEmail),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Import jobs - async ingestion pipeline
 // ---------------------------------------------------------------------------
 
 export const importJob = pgTable(
@@ -357,4 +380,5 @@ export type Step = typeof step.$inferSelect;
 export type MealPlan = typeof mealPlan.$inferSelect;
 export type MealPlanItem = typeof mealPlanItem.$inferSelect;
 export type ShoppingListItem = typeof shoppingListItem.$inferSelect;
+export type PantryItem = typeof pantryItem.$inferSelect;
 export type ImportJob = typeof importJob.$inferSelect;

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { getPlanFull, getLatestShoppingList } from "@/lib/repo/plans";
+import { listPantryItems } from "@/lib/repo/pantry";
 import { listRecipes } from "@/lib/repo/recipes";
 import { PlanEditor } from "./plan-editor";
 
@@ -18,9 +19,10 @@ export default async function PlanPage({
   const data = await getPlanFull(id);
   if (!data) notFound();
 
-  const [allRecipes, shopping] = await Promise.all([
+  const [allRecipes, shopping, pantry] = await Promise.all([
     listRecipes(owner),
     getLatestShoppingList(id),
+    listPantryItems(owner),
   ]);
 
   return (
@@ -64,6 +66,12 @@ export default async function PlanPage({
                   unitCategory: s.unitCategory,
                   isChecked: s.isChecked,
                   isSummable: s.isSummable,
+                  inPantry:
+                    pantry.find((item) => item.canonicalName === s.canonicalName)?.inPantry ??
+                    false,
+                  hasLeftover:
+                    pantry.find((item) => item.canonicalName === s.canonicalName)?.hasLeftover ??
+                    false,
                 })),
               }
             : null

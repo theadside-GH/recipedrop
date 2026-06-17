@@ -36,6 +36,13 @@
       "when": 1781697600000,
       "tag": "0004_profile_handle_lock",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781712000000,
+      "tag": "0005_pantry_items",
+      "breakpoints": true
     }
   ]
 }

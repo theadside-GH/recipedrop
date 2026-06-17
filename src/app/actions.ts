@@ -30,6 +30,7 @@ import {
   generateShoppingList,
   toggleShoppingItem,
 } from "@/lib/repo/plans";
+import { setLeftoverItem, setPantryItem } from "@/lib/repo/pantry";
 import type { ImageInput } from "@/lib/ai/extract";
 
 // ---- Imports --------------------------------------------------------------
@@ -259,4 +260,38 @@ export async function toggleShoppingItemAction(
 ): Promise<void> {
   await toggleShoppingItem(itemId, checked);
   revalidatePath(`/plans/${planId}`);
+}
+
+export async function setPantryItemAction(input: {
+  planId?: string;
+  canonicalName: string;
+  aisle: string | null;
+  checked: boolean;
+}): Promise<void> {
+  const owner = await getOwnerEmail();
+  await setPantryItem({
+    ownerEmail: owner,
+    canonicalName: input.canonicalName,
+    aisle: input.aisle,
+    checked: input.checked,
+  });
+  if (input.planId) revalidatePath(`/plans/${input.planId}`);
+  revalidatePath("/pantry");
+}
+
+export async function setLeftoverItemAction(input: {
+  planId?: string;
+  canonicalName: string;
+  aisle: string | null;
+  checked: boolean;
+}): Promise<void> {
+  const owner = await getOwnerEmail();
+  await setLeftoverItem({
+    ownerEmail: owner,
+    canonicalName: input.canonicalName,
+    aisle: input.aisle,
+    checked: input.checked,
+  });
+  if (input.planId) revalidatePath(`/plans/${input.planId}`);
+  revalidatePath("/pantry");
 }
