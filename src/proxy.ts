@@ -3,8 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env, features } from "@/lib/env";
 import { pathWithSearch } from "@/lib/auth-redirect";
 
-// "/api/img" is public so recipe photos render for anonymous visitors on /r and /discover.
-const PUBLIC_PREFIXES = ["/auth", "/login", "/api/health", "/api/img", "/discover", "/about", "/r"];
+// "/api/img" is public so recipe photos render for anonymous visitors on /r,
+// /c, and /discover.
+const PUBLIC_PREFIXES = ["/auth", "/login", "/api/health", "/api/img", "/discover", "/about", "/r", "/c"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));

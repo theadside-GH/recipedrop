@@ -314,6 +314,76 @@ export const importJob = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Collections — user-curated "cookbooks" of their own recipes
+// ---------------------------------------------------------------------------
+
+export const collection = pgTable(
+  "collection",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerEmail: text("owner_email").notNull(),
+    name: text("name").notNull(),
+    description: text("description"),
+    isPublic: boolean("is_public").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("collection_owner_idx").on(t.ownerEmail),
+    index("collection_public_idx").on(t.isPublic),
+  ],
+);
+
+export const collectionRecipe = pgTable(
+  "collection_recipe",
+  {
+    collectionId: uuid("collection_id")
+      .notNull()
+      .references(() => collection.id, { onDelete: "cascade" }),
+    recipeId: uuid("recipe_id")
+      .notNull()
+      .references(() => recipe.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+  },
+  (t) => [uniqueIndex("collection_recipe_pk").on(t.collectionId, t.recipeId)],
+);
+
+// ---------------------------------------------------------------------------
+// Social — follows between cooks and "I made this" events
+// ---------------------------------------------------------------------------
+
+export const follow = pgTable(
+  "follow",
+  {
+    followerEmail: text("follower_email").notNull(),
+    followeeEmail: text("followee_email").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("follow_pair_idx").on(t.followerEmail, t.followeeEmail),
+    index("follow_followee_idx").on(t.followeeEmail),
+  ],
+);
+
+export const cookedEvent = pgTable(
+  "cooked_event",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipeId: uuid("recipe_id")
+      .notNull()
+      .references(() => recipe.id, { onDelete: "cascade" }),
+    cookerEmail: text("cooker_email").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [uniqueIndex("cooked_event_pair_idx").on(t.recipeId, t.cookerEmail)],
+);
+
+// ---------------------------------------------------------------------------
 // AI usage — one row per metered AI call; powers tier quotas and, later,
 // per-user billing/usage displays
 // ---------------------------------------------------------------------------
@@ -404,3 +474,4 @@ export type MealPlanItem = typeof mealPlanItem.$inferSelect;
 export type ShoppingListItem = typeof shoppingListItem.$inferSelect;
 export type PantryItem = typeof pantryItem.$inferSelect;
 export type ImportJob = typeof importJob.$inferSelect;
+export type Collection = typeof collection.$inferSelect;

@@ -1,13 +1,31 @@
 import { env, features } from "@/lib/env";
 
 /**
- * Resolve the owner email for the current request. In local mode (no Supabase
- * configured) this is the configured OWNER_EMAIL. When auth is enabled, the
- * Supabase session email is used (see src/lib/supabase). Gating to a single
- * known email keeps this a personal, single-user app.
+ * The signed-in user's email, or null for anonymous visitors on public pages.
+ * In local mode (no Supabase configured) this is always OWNER_EMAIL.
+ */
+export async function getViewerEmail(): Promise<string | null> {
+  if (!features.authEnabled) return env.ownerEmail;
+  try {
+    const { getServerSupabase } = await import("@/lib/supabase/server");
+    const supabase = await getServerSupabase();
+    const { data } = await supabase.auth.getUser();
+    return data.user?.email ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The signed-in user's email for owner-scoped reads/writes. Throws for
+ * anonymous requests (public pages that tolerate anonymous viewers should use
+ * getViewerEmail instead) so writes can never fall back to someone else's
+ * account.
  */
 export async function getOwnerEmail(): Promise<string> {
-  return (await getCurrentUserProfileSeed()).email;
+  const email = await getViewerEmail();
+  if (!email) throw new Error("Please sign in to do that.");
+  return email;
 }
 
 export interface CurrentUserProfileSeed {
