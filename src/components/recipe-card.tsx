@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type React from "react";
-import { Clock, UtensilsCrossed } from "lucide-react";
+import { ChefHat, Clock, UtensilsCrossed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { RecipeImage } from "@/components/recipe-image";
 import { FavoriteButton } from "@/components/favorite-button";
@@ -14,6 +14,7 @@ export function RecipeCard({
   bylineAvatar,
   href,
   topRightSlot,
+  cookedCount,
 }: {
   recipe: Recipe;
   showFavorite?: boolean;
@@ -22,6 +23,8 @@ export function RecipeCard({
   href?: string;
   /** Overlay action rendered in the top-right corner (e.g. quick-save). */
   topRightSlot?: React.ReactNode;
+  /** "I made this" count shown on public cards when > 0. */
+  cookedCount?: number;
 }) {
   const quick = (recipe.totalMinutes ?? 999) <= 30;
   return (
@@ -66,6 +69,12 @@ export function RecipeCard({
               <span className="inline-flex items-center gap-1 capitalize">
                 <UtensilsCrossed className="h-3.5 w-3.5" />
                 {recipe.difficulty}
+              </span>
+            )}
+            {(cookedCount ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1" title="People who made this">
+                <ChefHat className="h-3.5 w-3.5" />
+                {cookedCount}&times; made
               </span>
             )}
             {quick && <Badge variant="fresh">Quick</Badge>}

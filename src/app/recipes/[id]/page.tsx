@@ -3,7 +3,9 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { getRecipeFull } from "@/lib/repo/recipes";
+import { listCollectionIdsForRecipe, listCollections } from "@/lib/repo/collections";
 import { RecipeDetail } from "@/components/recipe-detail";
+import { CollectionPicker } from "@/components/collection-picker";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,12 @@ export default async function RecipePage({
     notFound();
   }
 
+  const [collections, memberIds] = await Promise.all([
+    listCollections(viewer),
+    listCollectionIdsForRecipe(viewer, id),
+  ]);
+  const inCollections = new Set(memberIds);
+
   return (
     <div className="space-y-5">
       <Link
@@ -36,6 +44,16 @@ export default async function RecipePage({
         tags={data.tags}
         dropperName={data.dropper?.handle ? `@${data.dropper.handle}` : data.dropper?.displayName}
         dropperAvatar={data.dropper?.avatarUrl}
+        actionsSlot={
+          <CollectionPicker
+            recipeId={id}
+            collections={collections.map((c) => ({
+              id: c.id,
+              name: c.name,
+              has: inCollections.has(c.id),
+            }))}
+          />
+        }
       />
     </div>
   );

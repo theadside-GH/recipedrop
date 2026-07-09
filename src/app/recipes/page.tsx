@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Dices, PlusCircle, Sparkles } from "lucide-react";
+import { BookMarked, Dices, PlusCircle, Sparkles } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { listRecipes } from "@/lib/repo/recipes";
 import { RecipeCard } from "@/components/recipe-card";
@@ -46,6 +46,11 @@ export default async function LibraryPage({
           </p>
         </div>
         <div className="hidden items-center gap-2 sm:flex">
+          <Link href="/collections" title="Your collections">
+            <Button variant="secondary">
+              <BookMarked className="h-4 w-4" /> Collections
+            </Button>
+          </Link>
           {recipes.length > 1 && (
             <Link href="/recipes/surprise" prefetch={false} title="Open a random recipe">
               <Button variant="secondary">

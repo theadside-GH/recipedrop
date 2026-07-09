@@ -1,6 +1,6 @@
 import "server-only";
-import { and, asc, eq, ilike, lte, desc, inArray, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { and, asc, eq, exists, ilike, lte, desc, inArray, or, sql, type SQL } from "drizzle-orm";
+import { getDb, type DB } from "@/lib/db";
 import {
   recipe,
   recipeIngredient,
@@ -246,13 +246,43 @@ export interface RecipeFilters {
   sort?: "newest" | "oldest" | "favorites" | "quickest" | "title";
 }
 
+/**
+ * Search condition across title, description, ingredient names/lines, and
+ * tags. Plain ILIKE so it works on both Supabase and local PGlite.
+ */
+function recipeSearchCondition(db: DB, term: string): SQL {
+  const q = `%${term.trim()}%`;
+  return or(
+    ilike(recipe.title, q),
+    ilike(recipe.description, q),
+    exists(
+      db
+        .select({ one: sql`1` })
+        .from(recipeIngredient)
+        .where(
+          and(
+            eq(recipeIngredient.recipeId, recipe.id),
+            or(ilike(recipeIngredient.canonicalName, q), ilike(recipeIngredient.rawText, q)),
+          ),
+        ),
+    ),
+    exists(
+      db
+        .select({ one: sql`1` })
+        .from(recipeTag)
+        .innerJoin(tag, eq(tag.id, recipeTag.tagId))
+        .where(and(eq(recipeTag.recipeId, recipe.id), ilike(tag.name, q))),
+    ),
+  )!;
+}
+
 /** List recipes for the library grid with optional filters. */
 export async function listRecipes(ownerEmail: string, filters: RecipeFilters = {}) {
   const db = await getDb();
   const conds = [eq(recipe.ownerEmail, ownerEmail)];
   if (filters.mealType) conds.push(eq(recipe.mealType, filters.mealType as never));
   if (filters.maxMinutes) conds.push(lte(recipe.totalMinutes, filters.maxMinutes));
-  if (filters.search) conds.push(ilike(recipe.title, `%${filters.search}%`));
+  if (filters.search?.trim()) conds.push(recipeSearchCondition(db, filters.search));
   if (filters.favorite) conds.push(eq(recipe.isFavorite, true));
 
   let ids: string[] | null = null;
@@ -315,11 +345,20 @@ export interface PublicRecipeRow {
   avatarUrl: string | null;
 }
 
+export interface PublicRecipeFilters {
+  q?: string;
+  mealType?: string;
+}
+
 export async function listPublicRecipes(
   sort: "newest" | "popular" = "newest",
   limit = 12,
+  filters: PublicRecipeFilters = {},
 ): Promise<PublicRecipeRow[]> {
   const db = await getDb();
+  const conds = [eq(recipe.isPublic, true), eq(userProfile.publicFeedOptIn, true)];
+  if (filters.mealType) conds.push(eq(recipe.mealType, filters.mealType as never));
+  if (filters.q?.trim()) conds.push(recipeSearchCondition(db, filters.q));
   const rows = await db
     .select({
       recipe,
@@ -329,7 +368,7 @@ export async function listPublicRecipes(
     })
     .from(recipe)
     .innerJoin(userProfile, eq(userProfile.email, recipe.ownerEmail))
-    .where(and(eq(recipe.isPublic, true), eq(userProfile.publicFeedOptIn, true)))
+    .where(and(...conds))
     .orderBy(
       sort === "popular" ? desc(recipe.dropCount) : desc(recipe.createdAt),
       desc(recipe.createdAt),
@@ -758,6 +797,28 @@ export async function saveDropForOwner(
     .where(eq(recipe.id, sourceRecipeId));
 
   return { id: created.id, alreadySaved: false };
+}
+
+/** Canonical ingredient names per recipe (capped), for the AI weekly planner. */
+export async function listIngredientNames(
+  ownerEmail: string,
+  recipeIds: string[],
+): Promise<Map<string, string[]>> {
+  if (recipeIds.length === 0) return new Map();
+  const db = await getDb();
+  const rows = await db
+    .select({ recipeId: recipeIngredient.recipeId, name: recipeIngredient.canonicalName })
+    .from(recipeIngredient)
+    .innerJoin(recipe, eq(recipe.id, recipeIngredient.recipeId))
+    .where(and(eq(recipe.ownerEmail, ownerEmail), inArray(recipeIngredient.recipeId, recipeIds)));
+  const map = new Map<string, string[]>();
+  for (const row of rows) {
+    if (!row.name) continue;
+    const list = map.get(row.recipeId) ?? [];
+    if (list.length < 10 && !list.includes(row.name)) list.push(row.name);
+    map.set(row.recipeId, list);
+  }
+  return map;
 }
 
 /** Distinct tag names in use, for filter chips. */
