@@ -2,13 +2,15 @@
 
 /* ------------------------------------------------------------------ */
 /* Clean & bright theme — warm, airy, appetizing                       */
+/* Warm paper background + white cards gives the pages gentle depth;   */
+/* Fraunces (display serif) carries the food-editorial personality.    */
 /* ------------------------------------------------------------------ */
 @theme {
-  --color-background: #ffffff;
-  --color-surface: #faf8f5;
+  --color-background: #fdfbf7;
+  --color-surface: #f6f1e9;
   --color-foreground: #1c1917;
-  --color-muted: #78716c;
-  --color-border: #ececea;
+  --color-muted: #7d746b;
+  --color-border: #ece5db;
 
   --color-brand: #f0612f; /* warm tangerine — appetite */
   --color-brand-hover: #db4f20;
@@ -23,7 +25,11 @@
   --radius-xl: 1.25rem;
   --radius-2xl: 1.5rem;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --shadow-card: 0 1px 2px rgb(28 25 23 / 0.04), 0 6px 20px -10px rgb(28 25 23 / 0.12);
+  --shadow-card-hover: 0 2px 4px rgb(28 25 23 / 0.05), 0 14px 32px -12px rgb(28 25 23 / 0.18);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
 }
 
 html,
@@ -36,6 +42,13 @@ body {
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* Page titles get the editorial serif; anything else opts in via `font-display`. */
+h1 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 /* Subtle, friendly focus ring everywhere */
