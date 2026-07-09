@@ -13,6 +13,8 @@ import {
 import { detectSourceType } from "@/lib/sources/detect";
 import {
   deleteRecipe,
+  listIngredientNames,
+  listRecipes,
   saveDropForOwner,
   setRecipeFavorite,
   setRecipeImage,
@@ -31,7 +33,26 @@ import {
   generateShoppingList,
   toggleShoppingItem,
 } from "@/lib/repo/plans";
-import { setLeftoverItem, setPantryItem } from "@/lib/repo/pantry";
+import { setLeftoverItem, setPantryItem, listPantryItems } from "@/lib/repo/pantry";
+import {
+  addRecipeToCollection,
+  createCollection,
+  deleteCollection,
+  removeRecipeFromCollection,
+  renameCollection,
+  setCollectionPublic,
+} from "@/lib/repo/collections";
+import {
+  markCookedByRecipe,
+  setFollowByRecipe,
+  type CookedState,
+} from "@/lib/repo/social";
+import {
+  assertCanCreateCollection,
+  assertCanCreatePlan,
+  assertCanPublishCollection,
+  recordAiUse,
+} from "@/lib/entitlements";
 import type { ImageInput } from "@/lib/ai/extract";
 
 // ---- Imports --------------------------------------------------------------
@@ -230,6 +251,7 @@ export async function repairRecipeImageAction(id: string): Promise<{ ok: boolean
 
 export async function createPlanAction(name: string): Promise<{ id: string }> {
   const owner = await getOwnerEmail();
+  await assertCanCreatePlan(owner);
   const plan = await createPlan(owner, name);
   revalidatePath("/plans");
   return { id: plan.id };
@@ -281,6 +303,152 @@ export async function toggleShoppingItemAction(
   const owner = await getOwnerEmail();
   await toggleShoppingItem(owner, itemId, checked);
   revalidatePath(`/plans/${planId}`);
+}
+
+// ---- Weekly plan autopilot --------------------------------------------------
+
+export interface AutopilotInput {
+  nights: number;
+  quickMeals: number;
+  usePantry: boolean;
+}
+
+export type AutopilotResult = { ok: true; planId: string } | { ok: false; message: string };
+
+/** AI-plan the week from the user's own library, then build the shopping list. */
+export async function autopilotPlanAction(input: AutopilotInput): Promise<AutopilotResult> {
+  try {
+    const owner = await getOwnerEmail();
+    const nights = Math.min(7, Math.max(1, Math.round(input.nights)));
+    const quickMeals = Math.min(nights, Math.max(0, Math.round(input.quickMeals)));
+
+    await assertCanCreatePlan(owner);
+    const all = await listRecipes(owner);
+    if (all.length < 3) {
+      return {
+        ok: false,
+        message: "Save at least 3 recipes first — then autopilot has something to plan with.",
+      };
+    }
+    const pool = all.slice(0, 150); // newest first; keeps the prompt bounded
+    const [pantryItems, ingredientNames] = await Promise.all([
+      listPantryItems(owner),
+      listIngredientNames(
+        owner,
+        pool.map((r) => r.id),
+      ),
+    ]);
+
+    await recordAiUse(owner, "plan");
+    const { planWeek } = await import("@/lib/ai/planner");
+    const result = await planWeek({
+      recipes: pool.map((r) => ({
+        id: r.id,
+        title: r.title,
+        mealType: r.mealType,
+        totalMinutes: r.totalMinutes,
+        ingredients: ingredientNames.get(r.id) ?? [],
+      })),
+      pantry: pantryItems.filter((i) => i.inPantry).map((i) => i.canonicalName),
+      leftovers: pantryItems.filter((i) => i.hasLeftover).map((i) => i.canonicalName),
+      nights,
+      quickMeals,
+      usePantry: input.usePantry,
+    });
+
+    // Trust nothing from the model: only the user's own recipes, deduped, capped.
+    const owned = new Set(pool.map((r) => r.id));
+    const picks = [...new Set(result.recipeIds)].filter((id) => owned.has(id)).slice(0, nights);
+    if (picks.length === 0) {
+      return { ok: false, message: "The planner could not put a week together. Try again." };
+    }
+
+    const plan = await createPlan(owner, result.name);
+    for (const id of picks) {
+      await addRecipeToPlan(owner, plan.id, id, 0); // 0 → recipe's default servings
+    }
+    await generateShoppingList(owner, plan.id);
+    revalidatePath("/plans");
+    return { ok: true, planId: plan.id };
+  } catch (error) {
+    console.error("Autopilot failed", error);
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Autopilot failed. Try again.",
+    };
+  }
+}
+
+// ---- Collections ------------------------------------------------------------
+
+export async function createCollectionAction(name: string): Promise<{ id: string }> {
+  const owner = await getOwnerEmail();
+  await assertCanCreateCollection(owner);
+  const created = await createCollection(owner, name);
+  revalidatePath("/collections");
+  return { id: created.id };
+}
+
+export async function addToCollectionAction(collectionId: string, recipeId: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await addRecipeToCollection(owner, collectionId, recipeId);
+  revalidatePath("/collections");
+  revalidatePath(`/collections/${collectionId}`);
+}
+
+export async function removeFromCollectionAction(
+  collectionId: string,
+  recipeId: string,
+): Promise<void> {
+  const owner = await getOwnerEmail();
+  await removeRecipeFromCollection(owner, collectionId, recipeId);
+  revalidatePath("/collections");
+  revalidatePath(`/collections/${collectionId}`);
+  revalidatePath(`/c/${collectionId}`);
+}
+
+export async function setCollectionPublicAction(id: string, isPublic: boolean): Promise<void> {
+  const owner = await getOwnerEmail();
+  if (isPublic) await assertCanPublishCollection(owner);
+  await setCollectionPublic(owner, id, isPublic);
+  revalidatePath("/collections");
+  revalidatePath(`/collections/${id}`);
+  revalidatePath(`/c/${id}`);
+}
+
+export async function renameCollectionAction(id: string, name: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await renameCollection(owner, id, name);
+  revalidatePath("/collections");
+  revalidatePath(`/collections/${id}`);
+  revalidatePath(`/c/${id}`);
+}
+
+export async function deleteCollectionAction(id: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await deleteCollection(owner, id);
+  revalidatePath("/collections");
+}
+
+// ---- Social -----------------------------------------------------------------
+
+export async function setFollowAction(
+  recipeId: string,
+  following: boolean,
+): Promise<{ following: boolean }> {
+  const owner = await getOwnerEmail();
+  const result = await setFollowByRecipe(owner, recipeId, following);
+  revalidatePath("/discover");
+  revalidatePath(`/r/${recipeId}`);
+  return result;
+}
+
+export async function markCookedAction(recipeId: string): Promise<CookedState> {
+  const owner = await getOwnerEmail();
+  const result = await markCookedByRecipe(owner, recipeId);
+  revalidatePath(`/r/${recipeId}`);
+  revalidatePath("/discover");
+  return result;
 }
 
 export async function setPantryItemAction(input: {

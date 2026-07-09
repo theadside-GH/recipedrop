@@ -22,6 +22,9 @@ export const env = {
 
   /** The single owner of this personal app. */
   ownerEmail: process.env.OWNER_EMAIL ?? "owner@local",
+
+  /** Stripe secret key — presence turns on paid-tier limit enforcement. */
+  stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
 } as const;
 
 export const features = {
@@ -33,6 +36,14 @@ export const features = {
   },
   get authEnabled() {
     return env.supabaseUrl.length > 0 && env.supabaseAnonKey.length > 0;
+  },
+  /**
+   * Free/Pro feature limits stay dormant until billing exists (i.e. Stripe is
+   * configured). The global AI daily cap is enforced regardless — it protects
+   * the shared Anthropic key.
+   */
+  get billingEnabled() {
+    return env.stripeSecretKey.length > 0;
   },
 } as const;
 

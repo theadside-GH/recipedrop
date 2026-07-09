@@ -1,22 +1,41 @@
 import "server-only";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { aiUsageEvent, userProfile } from "@/lib/db/schema";
+import { aiUsageEvent, collection, mealPlan, userProfile } from "@/lib/db/schema";
+import { features } from "@/lib/env";
 
 /**
  * Plan tiers and what they entitle. `paidTier` on user_profile selects the
  * tier ("free" by default); anything unrecognized falls back to free so a bad
  * value can never grant unlimited use. Wire the upgrade flow (Stripe etc.) by
  * setting paidTier — enforcement here picks it up automatically.
+ *
+ * The aiUsesPerDay cap is always enforced (it protects the shared Anthropic
+ * key). Every other limit is dormant until `features.billingEnabled` (Stripe
+ * configured), so nothing is locked before there is a way to pay.
  */
 export const TIERS = {
-  free: { label: "Free", aiUsesPerDay: 10 },
-  pro: { label: "Pro", aiUsesPerDay: 200 },
+  free: {
+    label: "Free",
+    aiUsesPerDay: 10,
+    photoUsesPerDay: 3,
+    maxPlans: 2,
+    maxCollections: 2,
+    publicCollections: false,
+  },
+  pro: {
+    label: "Pro",
+    aiUsesPerDay: 200,
+    photoUsesPerDay: Infinity,
+    maxPlans: Infinity,
+    maxCollections: Infinity,
+    publicCollections: true,
+  },
 } as const;
 
 export type TierId = keyof typeof TIERS;
 
-export type AiUseKind = "import" | "photo" | "repair" | "segment";
+export type AiUseKind = "import" | "photo" | "repair" | "segment" | "plan";
 
 export class QuotaExceededError extends Error {
   constructor(tier: TierId) {
@@ -76,6 +95,28 @@ export async function recordAiUse(ownerEmail: string, kind: AiUseKind): Promise<
   try {
     const { tier, used, limit } = await getAiUsage(ownerEmail);
     if (used >= limit) throw new QuotaExceededError(tier);
+    if (kind === "photo" && features.billingEnabled) {
+      const photoLimit = TIERS[tier].photoUsesPerDay;
+      if (Number.isFinite(photoLimit)) {
+        const db = await getDb();
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const [row] = await db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(aiUsageEvent)
+          .where(
+            and(
+              eq(aiUsageEvent.ownerEmail, ownerEmail),
+              eq(aiUsageEvent.kind, "photo"),
+              gte(aiUsageEvent.createdAt, since),
+            ),
+          );
+        if ((row?.n ?? 0) >= photoLimit) {
+          throw new Error(
+            `Photo imports are limited to ${photoLimit}/day on the ${TIERS[tier].label} plan. Upgrade for unlimited photo imports.`,
+          );
+        }
+      }
+    }
     const db = await getDb();
     await db.insert(aiUsageEvent).values({ ownerEmail, kind });
   } catch (err) {
@@ -85,5 +126,50 @@ export async function recordAiUse(ownerEmail: string, kind: AiUseKind): Promise<
       return;
     }
     throw err;
+  }
+}
+
+/** Dormant until billing: cap how many meal plans a free user can keep. */
+export async function assertCanCreatePlan(ownerEmail: string): Promise<void> {
+  if (!features.billingEnabled) return;
+  const tier = await tierFor(ownerEmail);
+  const max = TIERS[tier].maxPlans;
+  if (!Number.isFinite(max)) return;
+  const db = await getDb();
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(mealPlan)
+    .where(eq(mealPlan.ownerEmail, ownerEmail));
+  if ((row?.n ?? 0) >= max) {
+    throw new Error(
+      `The ${TIERS[tier].label} plan allows ${max} meal plans. Delete one, or upgrade for unlimited plans.`,
+    );
+  }
+}
+
+/** Dormant until billing: cap how many collections a free user can keep. */
+export async function assertCanCreateCollection(ownerEmail: string): Promise<void> {
+  if (!features.billingEnabled) return;
+  const tier = await tierFor(ownerEmail);
+  const max = TIERS[tier].maxCollections;
+  if (!Number.isFinite(max)) return;
+  const db = await getDb();
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(collection)
+    .where(eq(collection.ownerEmail, ownerEmail));
+  if ((row?.n ?? 0) >= max) {
+    throw new Error(
+      `The ${TIERS[tier].label} plan allows ${max} collections. Delete one, or upgrade for unlimited collections.`,
+    );
+  }
+}
+
+/** Dormant until billing: public collections are a Pro feature. */
+export async function assertCanPublishCollection(ownerEmail: string): Promise<void> {
+  if (!features.billingEnabled) return;
+  const tier = await tierFor(ownerEmail);
+  if (!TIERS[tier].publicCollections) {
+    throw new Error("Sharing whole collections publicly is a Pro feature.");
   }
 }

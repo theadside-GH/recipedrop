@@ -1,15 +1,24 @@
 import Link from "next/link";
 import { ShoppingBasket, ChevronRight } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
+import { features } from "@/lib/env";
 import { listPlans } from "@/lib/repo/plans";
+import { listPantryItems } from "@/lib/repo/pantry";
+import { recipeCount } from "@/lib/repo/recipes";
 import { CreatePlan } from "./create-plan";
 import { DeletePlanButton } from "./delete-plan-button";
+import { PlanAutopilot } from "./plan-autopilot";
 
 export const dynamic = "force-dynamic";
 
 export default async function PlansPage() {
   const owner = await getOwnerEmail();
-  const plans = await listPlans(owner);
+  const [plans, recipes, pantryItems] = await Promise.all([
+    listPlans(owner),
+    recipeCount(owner),
+    listPantryItems(owner),
+  ]);
+  const showAutopilot = features.aiEnabled && recipes >= 3;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -19,6 +28,12 @@ export default async function PlansPage() {
           Pick recipes, set servings for each, and get one consolidated shopping list.
         </p>
       </div>
+
+      {showAutopilot && (
+        <PlanAutopilot
+          hasPantryItems={pantryItems.some((item) => item.inPantry || item.hasLeftover)}
+        />
+      )}
 
       <CreatePlan />
 
