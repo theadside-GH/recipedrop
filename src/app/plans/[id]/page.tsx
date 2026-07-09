@@ -16,12 +16,12 @@ export default async function PlanPage({
 }) {
   const { id } = await params;
   const owner = await getOwnerEmail();
-  const data = await getPlanFull(id);
+  const data = await getPlanFull(owner, id);
   if (!data) notFound();
 
   const [allRecipes, shopping, pantry] = await Promise.all([
     listRecipes(owner),
-    getLatestShoppingList(id),
+    getLatestShoppingList(owner, id),
     listPantryItems(owner),
   ]);
 

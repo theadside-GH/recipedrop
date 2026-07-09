@@ -45,7 +45,7 @@ export async function createBulkJobs(
 ): Promise<{ batchId: string; jobs: ImportJobRow[] }> {
   const db = await getDb();
   const batchId = randomUUID();
-  const items = await prepareBulkItems(blob);
+  const items = await prepareBulkItems(ownerEmail, blob);
   if (items.length === 0) {
     // Treat the whole blob as a single text recipe.
     items.push({ type: detectSourceType(blob), value: blob });
@@ -66,12 +66,18 @@ export async function createBulkJobs(
   return { batchId, jobs };
 }
 
-async function prepareBulkItems(blob: string): Promise<{ type: SourceType; value: string }[]> {
+async function prepareBulkItems(
+  ownerEmail: string,
+  blob: string,
+): Promise<{ type: SourceType; value: string }[]> {
   let items = splitBulkInput(blob);
   const hasLinks = items.some((item) => item.type === "url" || item.type === "youtube");
 
   if (!hasLinks && blob.trim().length > 120) {
     try {
+      // Metered: quota exhaustion falls through to the simple splitter below.
+      const { recordAiUse } = await import("@/lib/entitlements");
+      await recordAiUse(ownerEmail, "segment");
       const { segmentBulk } = await import("@/lib/ai/extract");
       const segments = await segmentBulk(blob);
       const segmented = segments
@@ -100,13 +106,18 @@ function dedupeItems(items: { type: SourceType; value: string }[]) {
   });
 }
 
-export async function getJob(id: string): Promise<ImportJobRow | null> {
+export async function getJob(ownerEmail: string, id: string): Promise<ImportJobRow | null> {
   const db = await getDb();
-  const [row] = await db.select().from(importJob).where(eq(importJob.id, id)).limit(1);
+  const [row] = await db
+    .select()
+    .from(importJob)
+    .where(and(eq(importJob.id, id), eq(importJob.ownerEmail, ownerEmail)))
+    .limit(1);
   return row ?? null;
 }
 
 export async function updateJob(
+  ownerEmail: string,
   id: string,
   patch: Partial<ImportJobRow>,
 ): Promise<ImportJobRow | null> {
@@ -114,17 +125,17 @@ export async function updateJob(
   const [row] = await db
     .update(importJob)
     .set({ ...patch, updatedAt: new Date() })
-    .where(eq(importJob.id, id))
+    .where(and(eq(importJob.id, id), eq(importJob.ownerEmail, ownerEmail)))
     .returning();
   return row ?? null;
 }
 
-export async function getBatch(batchId: string): Promise<ImportJobRow[]> {
+export async function getBatch(ownerEmail: string, batchId: string): Promise<ImportJobRow[]> {
   const db = await getDb();
   return db
     .select()
     .from(importJob)
-    .where(eq(importJob.batchId, batchId))
+    .where(and(eq(importJob.batchId, batchId), eq(importJob.ownerEmail, ownerEmail)))
     .orderBy(importJob.createdAt);
 }
 

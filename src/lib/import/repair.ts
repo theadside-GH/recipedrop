@@ -1,11 +1,13 @@
 import "server-only";
 import { extractRecipe } from "@/lib/ai/extract";
+import { recordAiUse } from "@/lib/entitlements";
 import type { Recipe } from "@/lib/db/schema";
 import { getKnownCanonicalNames, getRecipeFull, replaceRecipeFromExtraction, setRecipeImage } from "@/lib/repo/recipes";
 import { fetchWebsite } from "@/lib/sources/website";
 import { fetchYoutube } from "@/lib/sources/youtube";
 import type { SourceContent } from "@/lib/sources/types";
 import { hasUsefulRecipeDetails } from "./process";
+import { pickWorkingImage } from "./images";
 
 export interface RepairResult {
   ok: boolean;
@@ -35,6 +37,7 @@ export async function repairRecipeFromSource(
   const data = assertOwnedRecipe(await getRecipeFull(recipeId), ownerEmail);
   const content = await loadSourceForRecipe(data.recipe);
   const known = await getKnownCanonicalNames();
+  await recordAiUse(ownerEmail, "repair");
   const extraction = await extractRecipe({
     text: content.text,
     knownCanonical: known,
@@ -47,15 +50,19 @@ export async function repairRecipeFromSource(
     );
   }
 
-  if (content.imageUrl && !extraction.imageUrl) extraction.imageUrl = content.imageUrl;
   if (content.description && !extraction.description) extraction.description = content.description;
   if (content.author && !extraction.sourceAuthor) extraction.sourceAuthor = content.author;
+  const workingImage = await pickWorkingImage([
+    extraction.imageUrl,
+    content.imageUrl,
+    ...(content.imageCandidates ?? []),
+  ]);
 
   await replaceRecipeFromExtraction({
     ownerEmail,
     id: recipeId,
     extraction,
-    imagePath: content.imageUrl ?? extraction.imageUrl ?? data.recipe.imagePath,
+    imagePath: workingImage ?? data.recipe.imagePath,
   });
 
   return { ok: true, message: "Recipe repaired from the original source." };
@@ -67,9 +74,12 @@ export async function repairRecipeImageFromSource(
 ): Promise<RepairResult> {
   const data = assertOwnedRecipe(await getRecipeFull(recipeId), ownerEmail);
   const content = await loadSourceForRecipe(data.recipe);
-  const image = content.imageUrl?.trim();
+  const image = await pickWorkingImage([
+    content.imageUrl,
+    ...(content.imageCandidates ?? []),
+  ]);
   if (!image) {
-    throw new Error("No better image was found in the original source.");
+    throw new Error("No working image was found in the original source.");
   }
   await setRecipeImage({ ownerEmail, id: recipeId, imagePath: image });
   return { ok: true, message: "Recipe image repaired from the original source." };

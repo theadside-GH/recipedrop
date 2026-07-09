@@ -30,14 +30,14 @@ async function main() {
 
   const plan = await createPlan(owner, "Verification plan");
   // Oatmeal for 2 (default) -> 1 apple. Salad for 4 (default) -> 2 apples. => 3 apples.
-  await addRecipeToPlan(plan.id, oatmeal.id, 2);
-  await addRecipeToPlan(plan.id, salad.id, 4);
+  await addRecipeToPlan(owner, plan.id, oatmeal.id, 2);
+  await addRecipeToPlan(owner, plan.id, salad.id, 4);
   // Chicken in two incompatible units across recipes.
-  await addRecipeToPlan(plan.id, lemon.id, 2);
-  await addRecipeToPlan(plan.id, bowl.id, 4);
+  await addRecipeToPlan(owner, plan.id, lemon.id, 2);
+  await addRecipeToPlan(owner, plan.id, bowl.id, 4);
 
-  await generateShoppingList(plan.id);
-  const list = await getLatestShoppingList(plan.id);
+  await generateShoppingList(owner, plan.id);
+  const list = await getLatestShoppingList(owner, plan.id);
   if (!list) throw new Error("No shopping list generated.");
 
   console.log("\n=== Generated shopping list ===");

@@ -200,15 +200,19 @@ export const recipeTag = pgTable(
 // Meal plans & shopping lists
 // ---------------------------------------------------------------------------
 
-export const mealPlan = pgTable("meal_plan", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  ownerEmail: text("owner_email").notNull(),
-  name: text("name").notNull(),
-  status: planStatusEnum("status").notNull().default("draft"),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-});
+export const mealPlan = pgTable(
+  "meal_plan",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerEmail: text("owner_email").notNull(),
+    name: text("name").notNull(),
+    status: planStatusEnum("status").notNull().default("draft"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("meal_plan_owner_idx").on(t.ownerEmail)],
+);
 
 export const mealPlanItem = pgTable(
   "meal_plan_item",
@@ -307,6 +311,24 @@ export const importJob = pgTable(
     index("import_job_owner_idx").on(t.ownerEmail),
     index("import_job_batch_idx").on(t.batchId),
   ],
+);
+
+// ---------------------------------------------------------------------------
+// AI usage — one row per metered AI call; powers tier quotas and, later,
+// per-user billing/usage displays
+// ---------------------------------------------------------------------------
+
+export const aiUsageEvent = pgTable(
+  "ai_usage_event",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    ownerEmail: text("owner_email").notNull(),
+    kind: text("kind").notNull(), // "import" | "photo" | "repair" | "segment"
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("ai_usage_owner_time_idx").on(t.ownerEmail, t.createdAt)],
 );
 
 // ---------------------------------------------------------------------------

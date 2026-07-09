@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { getOwnerEmail } from "@/lib/auth";
 import { getRecipeFull } from "@/lib/repo/recipes";
 import { RecipeEditForm } from "./recipe-edit-form";
 
@@ -12,8 +13,9 @@ export default async function EditRecipePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const data = await getRecipeFull(id);
-  if (!data) notFound();
+  const [data, viewer] = await Promise.all([getRecipeFull(id), getOwnerEmail()]);
+  // Only the owner may see the edit form — it exposes full private content.
+  if (!data || data.recipe.ownerEmail !== viewer) notFound();
 
   return (
     <div className="space-y-5">

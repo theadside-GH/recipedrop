@@ -13,6 +13,7 @@ import {
 import { detectSourceType } from "@/lib/sources/detect";
 import {
   deleteRecipe,
+  saveDropForOwner,
   setRecipeFavorite,
   setRecipeImage,
   setRecipePublic,
@@ -99,15 +100,16 @@ export async function startImport(input: {
 
 /** Run a single pending import job to completion and return its final state. */
 export async function runImportJob(jobId: string): Promise<JobView | null> {
+  const owner = await getOwnerEmail();
   try {
     const { processJob } = await import("@/lib/import/process");
-    const job = await processJob(jobId);
+    const job = await processJob(owner, jobId);
     if (job?.status === "done") revalidatePath("/recipes");
     return job ? toView(job) : null;
   } catch (error) {
     console.error("Import job failed", error);
     const message = error instanceof Error ? error.message : "Import failed while processing.";
-    const failed = await updateJob(jobId, { status: "failed", error: message });
+    const failed = await updateJob(owner, jobId, { status: "failed", error: message });
     return failed ? toView(failed) : failedJob("Import failed", "Import failed while processing. Try again.");
   }
 }
@@ -130,14 +132,27 @@ export async function importPhotos(images: ImageInput[]): Promise<{ recipeId: st
 // ---- Recipes --------------------------------------------------------------
 
 export async function deleteRecipeAction(id: string): Promise<void> {
-  await deleteRecipe(id);
+  const owner = await getOwnerEmail();
+  await deleteRecipe(owner, id);
   revalidatePath("/recipes");
 }
 
 export async function setFavoriteAction(id: string, isFavorite: boolean): Promise<void> {
-  await setRecipeFavorite(id, isFavorite);
+  const owner = await getOwnerEmail();
+  await setRecipeFavorite(owner, id, isFavorite);
   revalidatePath("/recipes");
   revalidatePath(`/recipes/${id}`);
+}
+
+/** Save a public drop into the viewer's own library so they can make it. */
+export async function saveDropAction(
+  recipeId: string,
+): Promise<{ id: string; alreadySaved: boolean }> {
+  const owner = await getOwnerEmail();
+  const result = await saveDropForOwner(owner, recipeId);
+  revalidatePath("/recipes");
+  revalidatePath("/discover");
+  return result;
 }
 
 export async function setRecipePublicAction(id: string, isPublic: boolean): Promise<void> {
@@ -225,7 +240,8 @@ export async function addToPlanAction(
   recipeId: string,
   servings: number,
 ): Promise<void> {
-  await addRecipeToPlan(planId, recipeId, servings);
+  const owner = await getOwnerEmail();
+  await addRecipeToPlan(owner, planId, recipeId, servings);
   revalidatePath(`/plans/${planId}`);
 }
 
@@ -234,12 +250,14 @@ export async function setServingsAction(
   itemId: string,
   servings: number,
 ): Promise<void> {
-  await setPlannedServings(itemId, servings);
+  const owner = await getOwnerEmail();
+  await setPlannedServings(owner, itemId, servings);
   revalidatePath(`/plans/${planId}`);
 }
 
 export async function removePlanItemAction(planId: string, itemId: string): Promise<void> {
-  await removePlanItem(itemId);
+  const owner = await getOwnerEmail();
+  await removePlanItem(owner, itemId);
   revalidatePath(`/plans/${planId}`);
 }
 
@@ -250,7 +268,8 @@ export async function deletePlanAction(planId: string): Promise<void> {
 }
 
 export async function generateListAction(planId: string): Promise<void> {
-  await generateShoppingList(planId);
+  const owner = await getOwnerEmail();
+  await generateShoppingList(owner, planId);
   revalidatePath(`/plans/${planId}`);
 }
 
@@ -259,7 +278,8 @@ export async function toggleShoppingItemAction(
   itemId: string,
   checked: boolean,
 ): Promise<void> {
-  await toggleShoppingItem(itemId, checked);
+  const owner = await getOwnerEmail();
+  await toggleShoppingItem(owner, itemId, checked);
   revalidatePath(`/plans/${planId}`);
 }
 

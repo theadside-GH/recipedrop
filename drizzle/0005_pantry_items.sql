@@ -7,6 +7,7 @@ CREATE TABLE "pantry_item" (
   "has_leftover" boolean DEFAULT false NOT NULL,
   "updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );
-
+--> statement-breakpoint
 CREATE UNIQUE INDEX "pantry_item_owner_name_idx" ON "pantry_item" ("owner_email", "canonical_name");
+--> statement-breakpoint
 CREATE INDEX "pantry_item_owner_idx" ON "pantry_item" ("owner_email");

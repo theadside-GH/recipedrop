@@ -43,6 +43,13 @@
       "when": 1781712000000,
       "tag": "0005_pantry_items",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783990800000,
+      "tag": "0006_ai_usage_and_indexes",
+      "breakpoints": true
     }
   ]
 }

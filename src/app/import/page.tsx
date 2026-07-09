@@ -1,6 +1,7 @@
 import { features } from "@/lib/env";
 import { ImportClient } from "./import-client";
 import { getOwnerEmail } from "@/lib/auth";
+import { getAiUsage } from "@/lib/entitlements";
 import { listRecentJobs } from "@/lib/repo/imports";
 import type { JobView } from "@/app/actions";
 
@@ -8,6 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ImportPage() {
   const recentJobs = await getRecentImportViews();
+  const usage = features.aiEnabled ? await getAiUsageSafe() : null;
 
   return (
     <div className="mx-auto max-w-2xl space-y-6">
@@ -18,6 +20,12 @@ export default async function ImportPage() {
           turns each one into a clean, step-by-step recipe.
         </p>
       </div>
+      {usage && (
+        <p className="text-sm text-muted">
+          AI imports today: {usage.used} of {usage.limit} used
+          {usage.tier === "free" ? " (Free plan)" : ""}.
+        </p>
+      )}
       {!features.aiEnabled && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <strong className="font-semibold">AI extraction isn&apos;t set up yet.</strong>{" "}
@@ -29,6 +37,14 @@ export default async function ImportPage() {
       <ImportClient aiEnabled={features.aiEnabled} initialJobs={recentJobs} />
     </div>
   );
+}
+
+async function getAiUsageSafe() {
+  try {
+    return await getAiUsage(await getOwnerEmail());
+  } catch {
+    return null;
+  }
 }
 
 async function getRecentImportViews(): Promise<JobView[]> {
