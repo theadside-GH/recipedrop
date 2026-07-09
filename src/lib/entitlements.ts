@@ -58,14 +58,32 @@ export async function getAiUsage(ownerEmail: string): Promise<{
   return { tier, used: row?.n ?? 0, limit: TIERS[tier].aiUsesPerDay };
 }
 
+/** Postgres 42P01 (undefined_table) — the usage migration hasn't run yet. */
+function isMissingTable(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: string }).code === "42P01";
+}
+
 /**
  * Gate a metered AI call: throws QuotaExceededError when the user's daily
  * allowance is spent, otherwise records the use. Call right before invoking
  * the model so failed quota checks never cost anything.
+ *
+ * Fails open if ai_usage_event doesn't exist yet (deploy landed before
+ * `npm run db:migrate`) so imports keep working; metering starts once the
+ * migration runs.
  */
 export async function recordAiUse(ownerEmail: string, kind: AiUseKind): Promise<void> {
-  const { tier, used, limit } = await getAiUsage(ownerEmail);
-  if (used >= limit) throw new QuotaExceededError(tier);
-  const db = await getDb();
-  await db.insert(aiUsageEvent).values({ ownerEmail, kind });
+  try {
+    const { tier, used, limit } = await getAiUsage(ownerEmail);
+    if (used >= limit) throw new QuotaExceededError(tier);
+    const db = await getDb();
+    await db.insert(aiUsageEvent).values({ ownerEmail, kind });
+  } catch (err) {
+    if (err instanceof QuotaExceededError) throw err;
+    if (isMissingTable(err)) {
+      console.warn("ai_usage_event table missing — run `npm run db:migrate`. Allowing AI use unmetered.");
+      return;
+    }
+    throw err;
+  }
 }
