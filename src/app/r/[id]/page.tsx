@@ -1,8 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { getOwnerEmail } from "@/lib/auth";
 import { getRecipeFull } from "@/lib/repo/recipes";
 import { RecipeDetail } from "@/components/recipe-detail";
+import { SaveDropButton } from "@/components/save-drop-button";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -12,8 +15,9 @@ export default async function PublicRecipePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const data = await getRecipeFull(id);
+  const [data, viewer] = await Promise.all([getRecipeFull(id), getOwnerEmail()]);
   if (!data || !data.recipe.isPublic) notFound();
+  const isOwner = data.recipe.ownerEmail === viewer;
 
   return (
     <div className="space-y-5">
@@ -31,6 +35,15 @@ export default async function PublicRecipePage({
         dropperName={data.dropper?.handle ? `@${data.dropper.handle}` : data.dropper?.displayName}
         dropperAvatar={data.dropper?.avatarUrl}
         readOnly
+        actionsSlot={
+          isOwner ? (
+            <Link href={`/recipes/${data.recipe.id}`}>
+              <Button size="lg">Open in Your Recipes</Button>
+            </Link>
+          ) : (
+            <SaveDropButton recipeId={data.recipe.id} />
+          )
+        }
       />
     </div>
   );

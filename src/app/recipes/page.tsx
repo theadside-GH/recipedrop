@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlusCircle, Sparkles } from "lucide-react";
+import { Dices, PlusCircle, Sparkles } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { listRecipes } from "@/lib/repo/recipes";
 import { RecipeCard } from "@/components/recipe-card";
@@ -45,11 +45,20 @@ export default async function LibraryPage({
             {recipes.length} recipe{recipes.length === 1 ? "" : "s"} - search, sort & filter below
           </p>
         </div>
-        <Link href="/import" className="hidden sm:block">
-          <Button>
-            <PlusCircle className="h-4 w-4" /> Import recipe
-          </Button>
-        </Link>
+        <div className="hidden items-center gap-2 sm:flex">
+          {recipes.length > 1 && (
+            <Link href="/recipes/surprise" prefetch={false} title="Open a random recipe">
+              <Button variant="secondary">
+                <Dices className="h-4 w-4" /> Surprise me
+              </Button>
+            </Link>
+          )}
+          <Link href="/import">
+            <Button>
+              <PlusCircle className="h-4 w-4" /> Import recipe
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <LibraryFilters />

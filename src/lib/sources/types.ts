@@ -6,6 +6,8 @@ export interface SourceContent {
   text: string;
   /** A candidate hero image URL discovered in the source, if any. */
   imageUrl?: string | null;
+  /** Backup image URLs (best first) to try if imageUrl turns out to be dead. */
+  imageCandidates?: string[];
   /** A short source-provided summary/caption to use if extraction leaves description blank. */
   description?: string | null;
   /** Author/channel/site, if discoverable. */

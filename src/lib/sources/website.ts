@@ -139,7 +139,8 @@ function absoluteUrl(value: string, pageUrl: string): string | null {
   }
 }
 
-function bestImageFromHtml(html: string, pageUrl: string): string | null {
+/** Ranked hero-image candidates from meta tags + inline URLs, best first. */
+function imagesFromHtml(html: string, pageUrl: string): string[] {
   const candidates = new Set<string>();
   for (const key of ["og:image", "twitter:image", "twitter:image:src"]) {
     const value = meta(html, key);
@@ -151,15 +152,14 @@ function bestImageFromHtml(html: string, pageUrl: string): string | null {
   ) ?? [];
   for (const value of matches) candidates.add(value);
 
-  const scored = [...candidates]
+  return [...candidates]
     .map((value) => absoluteUrl(value, pageUrl))
     .filter((value): value is string => !!value)
     .filter((value) => !/(?:logo|icon|favicon|avatar|sprite|placeholder|blank|cropped-tab)/i.test(value))
     .map((value) => ({ value, score: imageScore(value) }))
     .filter((item) => item.score > 0)
-    .sort((a, b) => b.score - a.score);
-
-  return scored[0]?.value ?? null;
+    .sort((a, b) => b.score - a.score)
+    .map((item) => item.value);
 }
 
 function imageScore(url: string): number {
@@ -275,6 +275,18 @@ function firstImage(v: unknown): string | null {
   return null;
 }
 
+/** All image URLs on a schema.org Recipe node (image can be string/array/object). */
+function allImages(v: unknown): string[] {
+  if (!v) return [];
+  if (typeof v === "string") return [v];
+  if (Array.isArray(v)) return v.flatMap(allImages);
+  if (typeof v === "object") {
+    const o = v as Record<string, unknown>;
+    return allImages(o.url ?? o.contentUrl ?? null);
+  }
+  return [];
+}
+
 /**
  * Build a compact text block from a schema.org Recipe node so the model gets
  * structured ingredients/steps instead of raw page chrome.
@@ -309,9 +321,31 @@ function recipeNodeToText(node: Record<string, unknown>): SourceContent {
   return {
     text: lines.join("\n"),
     imageUrl: firstImage(node.image),
+    imageCandidates: allImages(node.image),
     description: asText(node.description) || null,
     author: author || null,
   };
+}
+
+/**
+ * Main-article text via Mozilla Readability — strips nav, comments, and
+ * related-recipe teasers that used to leak into extraction and produce wrong
+ * recipes on pages without JSON-LD.
+ */
+async function readableText(html: string, url: string): Promise<string | null> {
+  try {
+    const [{ JSDOM }, { Readability }] = await Promise.all([
+      import("jsdom"),
+      import("@mozilla/readability"),
+    ]);
+    const dom = new JSDOM(html, { url });
+    const article = new Readability(dom.window.document).parse();
+    const text = article?.textContent?.replace(/\n{3,}/g, "\n\n").trim();
+    if (!text || text.length < 200) return null;
+    return `${article?.title ? `Title: ${article.title}\n\n` : ""}${text}`.slice(0, 16000);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -333,18 +367,35 @@ export async function fetchWebsite(url: string): Promise<SourceContent> {
 
   if (social) return fetchSocialCaption(html, url);
 
+  const pageImages = imagesFromHtml(html, url);
+
   const recipeNode = collectJsonLd(html).find(isRecipeNode);
   if (recipeNode) {
     const content = recipeNodeToText(recipeNode);
     return {
       ...content,
-      imageUrl: content.imageUrl ?? bestImageFromHtml(html, url),
+      imageUrl: content.imageUrl ?? pageImages[0] ?? null,
+      imageCandidates: [...(content.imageCandidates ?? []), ...pageImages],
       context: url,
     };
   }
 
-  const ogImage = bestImageFromHtml(html, url);
   const ogDescription = meta(html, "og:description") ?? meta(html, "description");
+
+  // No structured recipe data: prefer Readability's main-article text so nav,
+  // comments, and "you may also like" recipes don't confuse extraction.
+  const readable = await readableText(html, url);
+  if (readable) {
+    return {
+      text: readable,
+      imageUrl: pageImages[0] ?? null,
+      imageCandidates: pageImages,
+      description: ogDescription ? captionToDescription(ogDescription) : null,
+      author: null,
+      context: url,
+    };
+  }
+
   const title = meta(html, "og:title") ?? html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1];
   const text = html
     .replace(/<script\b[\s\S]*?<\/script>/gi, " ")
@@ -360,7 +411,8 @@ export async function fetchWebsite(url: string): Promise<SourceContent> {
   }
   return {
     text: `${title ? `Title: ${decodeHtml(title)}\n\n` : ""}${decodeHtml(text)}`.slice(0, 16000),
-    imageUrl: ogImage ?? null,
+    imageUrl: pageImages[0] ?? null,
+    imageCandidates: pageImages,
     description: ogDescription ? captionToDescription(ogDescription) : null,
     author: null,
     context: url,

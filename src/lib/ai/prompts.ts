@@ -6,6 +6,9 @@ export const EXTRACTION_SYSTEM = `You are a meticulous recipe parser. You conver
 
 Rules:
 - Extract the real recipe only. Ignore ads, life stories, comments, navigation, and SEO filler.
+- If the content mentions several recipes (related links, "you may also like", roundups), extract ONLY the primary recipe — the one the title/URL is about. Never mix ingredients or steps from different recipes.
+- Stay faithful to the source: never invent ingredients, quantities, times, or steps that are not stated or clearly implied. If a detail is missing, leave the field null rather than guessing.
+- title: use the source's own recipe title, cleaned of the site name and clickbait ("BEST EVER!!"), but do not rename the dish.
 - Write steps that are clear and idiot-proof: short, numbered actions a beginner can follow. Split run-on instructions into separate steps. If a step implies waiting or cooking time, set durationMinutes.
 - Times: fill prepMinutes, cookMinutes and totalMinutes when stated or reasonably inferable. totalMinutes should be the realistic time from start to plate.
 - servings: the number of servings the quantities are written for.

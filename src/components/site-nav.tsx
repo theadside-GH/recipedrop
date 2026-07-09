@@ -15,7 +15,13 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/discover", label: "Discover", icon: Compass, match: (p: string) => p.startsWith("/discover") },
-  { href: "/recipes", label: "Recipes", icon: BookOpen, match: (p: string) => p.startsWith("/recipes") },
+  {
+    href: "/recipes",
+    label: "Your Recipes",
+    mobileLabel: "Recipes",
+    icon: BookOpen,
+    match: (p: string) => p.startsWith("/recipes"),
+  },
   { href: "/import", label: "Import", icon: PlusCircle, match: (p: string) => p.startsWith("/import") },
   {
     href: "/plans",
@@ -35,11 +41,11 @@ export function SiteNav() {
       {/* Top bar (desktop + mobile header) */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/discover" className="flex items-center gap-2 font-semibold text-lg">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground">
+          <Link href="/discover" className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-[0_2px_8px_-2px_rgb(240_97_47/0.5)]">
               <ChefHat className="h-5 w-5" />
             </span>
-            <span>RecipeDrop</span>
+            <span className="font-display text-xl font-semibold tracking-tight">RecipeDrop</span>
           </Link>
           <nav className="hidden items-center gap-1 sm:flex">
             {LINKS.map((l) => {
@@ -63,7 +69,7 @@ export function SiteNav() {
       </header>
 
       {/* Bottom tab bar (mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-6 border-t border-border bg-background/95 backdrop-blur sm:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-6 border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
         {LINKS.map((l) => {
           const active = l.match(pathname);
           return (

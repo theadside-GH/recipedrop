@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { getOwnerEmail } from "@/lib/auth";
 import { getRecipeFull } from "@/lib/repo/recipes";
 import { RecipeDetail } from "@/components/recipe-detail";
 
@@ -12,8 +13,13 @@ export default async function RecipePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const data = await getRecipeFull(id);
+  const [data, viewer] = await Promise.all([getRecipeFull(id), getOwnerEmail()]);
   if (!data) notFound();
+  if (data.recipe.ownerEmail !== viewer) {
+    // Not yours: show the public view (or nothing if it isn't shared).
+    if (data.recipe.isPublic) redirect(`/r/${id}`);
+    notFound();
+  }
 
   return (
     <div className="space-y-5">

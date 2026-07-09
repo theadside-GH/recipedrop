@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ChefHat } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,19 @@ const TONE: Record<string, { bg: string; mark: string; line: string }> = {
   side: { bg: "bg-[#ecfeff]", mark: "bg-[#0891b2] text-white", line: "bg-[#a5f3fc]" },
   drink: { bg: "bg-[#eff6ff]", mark: "bg-[#2563eb] text-white", line: "bg-[#bfdbfe]" },
 };
+
+/**
+ * Remote recipe photos are often hotlink-protected, so we try them through our
+ * image proxy first, then the raw URL, and finally a styled placeholder.
+ * Data URLs and local paths are used as-is.
+ */
+function candidatesFor(src: string | null): string[] {
+  if (!src) return [];
+  if (/^https?:\/\//i.test(src)) {
+    return [`/api/img?u=${encodeURIComponent(src)}`, src];
+  }
+  return [src];
+}
 
 export function RecipeImage({
   src,
@@ -27,18 +40,21 @@ export function RecipeImage({
   imgClassName?: string;
   loading?: "eager" | "lazy";
 }) {
-  const [failedSrc, setFailedSrc] = useState<string | null>(null);
-  const canUseImage = src && src !== failedSrc;
+  const candidates = useMemo(() => candidatesFor(src), [src]);
+  // Reset the failure cursor whenever the source changes (state-from-props).
+  const [state, setState] = useState({ src, failed: 0 });
+  if (state.src !== src) setState({ src, failed: 0 });
+  const current = state.failed < candidates.length ? candidates[state.failed] : null;
 
-  if (canUseImage) {
+  if (current) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={src}
+        src={current}
         alt={title}
         className={cn("h-full w-full object-cover", imgClassName)}
         loading={loading}
-        onError={() => setFailedSrc(src)}
+        onError={() => setState((s) => ({ ...s, failed: s.failed + 1 }))}
       />
     );
   }

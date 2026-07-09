@@ -282,9 +282,16 @@ function recipeOrder(sort: RecipeFilters["sort"] = "newest") {
   return [desc(recipe.createdAt)];
 }
 
-export async function setRecipeFavorite(id: string, isFavorite: boolean): Promise<void> {
+export async function setRecipeFavorite(
+  ownerEmail: string,
+  id: string,
+  isFavorite: boolean,
+): Promise<void> {
   const db = await getDb();
-  await db.update(recipe).set({ isFavorite }).where(eq(recipe.id, id));
+  await db
+    .update(recipe)
+    .set({ isFavorite })
+    .where(and(eq(recipe.id, id), eq(recipe.ownerEmail, ownerEmail)));
 }
 
 export async function setRecipePublic(input: {
@@ -644,9 +651,113 @@ function isUuid(value: string) {
   );
 }
 
-export async function deleteRecipe(id: string): Promise<void> {
+export async function deleteRecipe(ownerEmail: string, id: string): Promise<void> {
   const db = await getDb();
-  await db.delete(recipe).where(eq(recipe.id, id));
+  await db
+    .delete(recipe)
+    .where(and(eq(recipe.id, id), eq(recipe.ownerEmail, ownerEmail)));
+}
+
+/** Random recipe id for the "Surprise me" button; null when the library is empty. */
+export async function getRandomRecipeId(ownerEmail: string): Promise<string | null> {
+  const db = await getDb();
+  const [row] = await db
+    .select({ id: recipe.id })
+    .from(recipe)
+    .where(eq(recipe.ownerEmail, ownerEmail))
+    .orderBy(sql`random()`)
+    .limit(1);
+  return row?.id ?? null;
+}
+
+export interface SaveDropResult {
+  id: string;
+  alreadySaved: boolean;
+}
+
+/**
+ * Copy a public recipe (a "drop") into the viewer's own library so they can
+ * cook, edit, and plan with it. Credits the original by bumping its dropCount.
+ * Saving twice (or saving your own recipe) returns the existing copy instead.
+ */
+export async function saveDropForOwner(
+  ownerEmail: string,
+  sourceRecipeId: string,
+): Promise<SaveDropResult> {
+  const source = await getRecipeFull(sourceRecipeId);
+  if (!source || (!source.recipe.isPublic && source.recipe.ownerEmail !== ownerEmail)) {
+    throw new Error("Recipe not found.");
+  }
+  if (source.recipe.ownerEmail === ownerEmail) {
+    return { id: source.recipe.id, alreadySaved: true };
+  }
+
+  const duplicate = await findDuplicateRecipe({
+    ownerEmail,
+    sourceUrl: source.recipe.sourceUrl,
+    title: source.recipe.title,
+  });
+  if (duplicate) return { id: duplicate.id, alreadySaved: true };
+
+  const db = await getDb();
+  const [created] = await db
+    .insert(recipe)
+    .values({
+      ownerEmail,
+      title: source.recipe.title,
+      description: source.recipe.description,
+      sourceType: source.recipe.sourceType,
+      sourceUrl: source.recipe.sourceUrl,
+      sourceAuthor: source.recipe.sourceAuthor,
+      imagePath: source.recipe.imagePath,
+      prepMinutes: source.recipe.prepMinutes,
+      cookMinutes: source.recipe.cookMinutes,
+      totalMinutes: source.recipe.totalMinutes,
+      servingsDefault: source.recipe.servingsDefault,
+      mealType: source.recipe.mealType,
+      difficulty: source.recipe.difficulty,
+    })
+    .returning();
+
+  if (source.ingredients.length > 0) {
+    await db.insert(recipeIngredient).values(
+      source.ingredients.map((ing, i) => ({
+        recipeId: created.id,
+        rawText: ing.rawText,
+        canonicalIngredientId: ing.canonicalIngredientId,
+        canonicalName: ing.canonicalName,
+        quantity: ing.quantity,
+        unit: ing.unit,
+        unitCategory: ing.unitCategory,
+        note: ing.note,
+        optional: ing.optional,
+        sortOrder: i,
+      })),
+    );
+  }
+  if (source.steps.length > 0) {
+    await db.insert(step).values(
+      source.steps.map((s) => ({
+        recipeId: created.id,
+        stepNumber: s.stepNumber,
+        instruction: s.instruction,
+        durationMinutes: s.durationMinutes,
+      })),
+    );
+  }
+  for (const t of source.tags) {
+    const tagId = await upsertTag(db, t);
+    if (tagId) {
+      await db.insert(recipeTag).values({ recipeId: created.id, tagId }).onConflictDoNothing();
+    }
+  }
+
+  await db
+    .update(recipe)
+    .set({ dropCount: sql`${recipe.dropCount} + 1` })
+    .where(eq(recipe.id, sourceRecipeId));
+
+  return { id: created.id, alreadySaved: false };
 }
 
 /** Distinct tag names in use, for filter chips. */

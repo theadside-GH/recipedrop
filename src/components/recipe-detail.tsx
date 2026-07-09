@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
+  Check,
   Clock,
   CircleUserRound,
   Minus,
@@ -22,7 +23,7 @@ import { RecipeImage } from "@/components/recipe-image";
 import { PrintButton } from "@/components/print-button";
 import { RecipePublicToggle } from "@/components/recipe-public-toggle";
 import { ShareLinkButton } from "@/components/share-link-button";
-import { formatMinutes, tidyNumber } from "@/lib/utils";
+import { cn, formatMinutes, tidyNumber } from "@/lib/utils";
 import { pluralize } from "@/lib/shopping/units";
 import { deleteRecipeAction, repairRecipeAction, repairRecipeImageAction } from "@/app/actions";
 import type { Recipe, RecipeIngredient, Step } from "@/lib/db/schema";
@@ -35,6 +36,7 @@ export function RecipeDetail({
   readOnly = false,
   dropperName,
   dropperAvatar,
+  actionsSlot,
 }: {
   recipe: Recipe;
   ingredients: RecipeIngredient[];
@@ -43,9 +45,12 @@ export function RecipeDetail({
   readOnly?: boolean;
   dropperName?: string | null;
   dropperAvatar?: string | null;
+  /** Extra actions (e.g. "Save to Your Recipes" on public pages). */
+  actionsSlot?: React.ReactNode;
 }) {
   const router = useRouter();
   const [servings, setServings] = useState(recipe.servingsDefault);
+  const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
   const [isPublic, setIsPublic] = useState(recipe.isPublic);
   const [isPending, startTransition] = useTransition();
   const [repairPending, startRepairTransition] = useTransition();
@@ -162,13 +167,14 @@ export function RecipeDetail({
 
       {/* Actions */}
       <div className="flex flex-wrap gap-3 print:hidden">
+        {actionsSlot}
+        <Link href={`/recipes/${recipe.id}/cook`}>
+          <Button size="lg" variant={readOnly ? "secondary" : "primary"}>
+            <ChefHat className="h-5 w-5" /> {readOnly ? "Make this recipe" : "Start cooking"}
+          </Button>
+        </Link>
         {!readOnly && (
           <>
-            <Link href={`/recipes/${recipe.id}/cook`}>
-              <Button size="lg">
-                <ChefHat className="h-5 w-5" /> Start cooking
-              </Button>
-            </Link>
             <Link href={`/recipes/${recipe.id}/edit`}>
               <Button variant="secondary" size="lg">
                 <Pencil className="h-4 w-4" /> Edit
@@ -256,16 +262,47 @@ export function RecipeDetail({
             </div>
           </div>
           <ul className="divide-y divide-border rounded-xl border border-border bg-card">
-            {ingredients.map((ing) => (
-              <li key={ing.id} className="flex items-start gap-3 p-3.5">
-                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand" />
-                <span className="text-sm">
-                  <span className="font-medium">{scaledAmount(ing, factor)}</span>{" "}
-                  {displayName(ing)}
-                  {ing.note && <span className="text-muted"> · {ing.note}</span>}
-                </span>
-              </li>
-            ))}
+            {ingredients.map((ing) => {
+              const checked = checkedIngredients.has(ing.id);
+              return (
+                <li key={ing.id}>
+                  <button
+                    type="button"
+                    aria-pressed={checked}
+                    onClick={() =>
+                      setCheckedIngredients((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(ing.id)) next.delete(ing.id);
+                        else next.add(ing.id);
+                        return next;
+                      })
+                    }
+                    className="flex w-full items-start gap-3 p-3.5 text-left transition-colors hover:bg-surface print:hover:bg-transparent"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full border transition-colors print:hidden",
+                        checked
+                          ? "border-brand bg-brand text-brand-foreground"
+                          : "border-border bg-card",
+                      )}
+                    >
+                      {checked && <Check className="h-3 w-3" />}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-sm transition-opacity",
+                        checked && "text-muted line-through opacity-60 print:no-underline print:opacity-100",
+                      )}
+                    >
+                      <span className="font-medium">{scaledAmount(ing, factor)}</span>{" "}
+                      {displayName(ing)}
+                      {ing.note && <span className="text-muted"> · {ing.note}</span>}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         </div>
 

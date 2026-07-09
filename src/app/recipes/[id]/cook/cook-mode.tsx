@@ -14,16 +14,20 @@ interface CookStep {
 
 export function CookMode({
   recipeId,
+  exitHref,
   title,
   steps,
   ingredients,
 }: {
   recipeId: string;
+  /** Where the X/Done buttons return to (the owner page or the public page). */
+  exitHref?: string;
   title: string;
   steps: CookStep[];
   ingredients: { text: string; note: string | null }[];
 }) {
   const router = useRouter();
+  const exit = exitHref ?? `/recipes/${recipeId}`;
   const [i, setI] = useState(0);
   const [showIngredients, setShowIngredients] = useState(true);
   const total = steps.length;
@@ -44,11 +48,11 @@ export function CookMode({
         if (!showIngredients && i === 0) setShowIngredients(true);
         else prev();
       }
-      if (e.key === "Escape") router.push(`/recipes/${recipeId}`);
+      if (e.key === "Escape") router.push(exit);
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [i, next, prev, router, recipeId, showIngredients]);
+  }, [i, next, prev, router, exit, showIngredients]);
 
   if (!step) {
     return (
@@ -62,7 +66,7 @@ export function CookMode({
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
       <div className="flex items-center justify-between px-5 py-4">
         <button
-          onClick={() => router.push(`/recipes/${recipeId}`)}
+          onClick={() => router.push(exit)}
           className="flex h-11 w-11 items-center justify-center rounded-full bg-surface hover:bg-brand-soft"
           aria-label="Exit cooking mode"
         >
@@ -123,7 +127,7 @@ export function CookMode({
       <div className="flex items-center justify-between gap-4 border-t border-border p-5">
         {showIngredients ? (
           <>
-            <Button variant="secondary" size="lg" onClick={() => router.push(`/recipes/${recipeId}`)}>
+            <Button variant="secondary" size="lg" onClick={() => router.push(exit)}>
               <ChevronLeft className="h-5 w-5" /> Recipe
             </Button>
             <Button size="lg" onClick={() => setShowIngredients(false)} className="flex-1 sm:flex-none">
@@ -140,7 +144,7 @@ export function CookMode({
               <ChevronLeft className="h-5 w-5" /> Back
             </Button>
             {i === total - 1 ? (
-              <Button size="lg" onClick={() => router.push(`/recipes/${recipeId}`)}>
+              <Button size="lg" onClick={() => router.push(exit)}>
                 Done
               </Button>
             ) : (

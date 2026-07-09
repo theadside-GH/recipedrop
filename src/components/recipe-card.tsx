@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type React from "react";
 import { Clock, UtensilsCrossed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { RecipeImage } from "@/components/recipe-image";
@@ -12,16 +13,19 @@ export function RecipeCard({
   byline,
   bylineAvatar,
   href,
+  topRightSlot,
 }: {
   recipe: Recipe;
   showFavorite?: boolean;
   byline?: string;
   bylineAvatar?: string | null;
   href?: string;
+  /** Overlay action rendered in the top-right corner (e.g. quick-save). */
+  topRightSlot?: React.ReactNode;
 }) {
   const quick = (recipe.totalMinutes ?? 999) <= 30;
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md">
+    <div className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover">
       <Link href={href ?? `/recipes/${recipe.id}`} className="block">
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface">
           <RecipeImage
@@ -37,7 +41,9 @@ export function RecipeCard({
           </div>
         </div>
         <div className="p-4">
-          <h3 className="line-clamp-2 font-semibold leading-snug">{recipe.title}</h3>
+          <h3 className="line-clamp-2 font-display text-[1.06rem] font-semibold leading-snug">
+            {recipe.title}
+          </h3>
           {byline && (
             <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted">
               {bylineAvatar ? (
@@ -73,6 +79,7 @@ export function RecipeCard({
           className="absolute right-3 top-3 z-10"
         />
       )}
+      {topRightSlot && <div className="absolute right-3 top-3 z-10">{topRightSlot}</div>}
     </div>
   );
 }
