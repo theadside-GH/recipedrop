@@ -113,6 +113,9 @@ export const recipe = pgTable(
     description: text("description"),
     sourceType: sourceTypeEnum("source_type").notNull().default("text"),
     sourceUrl: text("source_url"),
+    // Normalized sourceUrl (see sourceKeyFor) — groups the same link dropped
+    // by different people so public listings can dedupe and count droppers.
+    sourceKey: text("source_key"),
     sourceAuthor: text("source_author"),
     imagePath: text("image_path"), // storage key or remote URL
     prepMinutes: integer("prep_minutes"),
@@ -135,6 +138,7 @@ export const recipe = pgTable(
     index("recipe_favorite_idx").on(t.isFavorite),
     index("recipe_public_idx").on(t.isPublic),
     index("recipe_drop_count_idx").on(t.dropCount),
+    index("recipe_source_key_idx").on(t.sourceKey),
   ],
 );
 

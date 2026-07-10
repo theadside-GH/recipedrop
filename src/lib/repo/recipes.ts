@@ -1,5 +1,22 @@
 import "server-only";
-import { and, asc, eq, exists, ilike, lte, desc, inArray, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  asc,
+  countDistinct,
+  eq,
+  exists,
+  ilike,
+  isNotNull,
+  lt,
+  lte,
+  desc,
+  inArray,
+  notExists,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb, type DB } from "@/lib/db";
 import {
   recipe,
@@ -13,6 +30,7 @@ import {
 import type { RecipeExtraction } from "@/lib/ai/schema";
 import { MEAL_TYPES } from "@/lib/ai/schema";
 import type { SourceType } from "@/lib/sources/types";
+import { sourceKeyFor } from "@/lib/source-key";
 import { guessAisle } from "@/lib/shopping/aisle";
 import { normalizeUnit, type UnitCategory } from "@/lib/shopping/units";
 
@@ -91,6 +109,7 @@ export async function createRecipeFromExtraction(
       description: ex.description,
       sourceType: opts.sourceType,
       sourceUrl: opts.sourceUrl ?? null,
+      sourceKey: sourceKeyFor(opts.sourceUrl),
       sourceAuthor: ex.sourceAuthor,
       imagePath: opts.imagePath ?? ex.imageUrl ?? null,
       prepMinutes: ex.prepMinutes,
@@ -343,11 +362,81 @@ export interface PublicRecipeRow {
   displayName: string;
   handle: string | null;
   avatarUrl: string | null;
+  /** People who dropped this dish (distinct owners of the same source link). */
+  dropperCount: number;
 }
 
 export interface PublicRecipeFilters {
   q?: string;
   mealType?: string;
+}
+
+/**
+ * Only list a source link once: keep the earliest public drop (the original
+ * dropper gets the byline) and hide later re-drops of the same sourceKey.
+ */
+function isEarliestPublicDrop(db: DB): SQL {
+  const earlier = alias(recipe, "earlier_drop");
+  const earlierProfile = alias(userProfile, "earlier_profile");
+  return notExists(
+    db
+      .select({ one: sql`1` })
+      .from(earlier)
+      .innerJoin(earlierProfile, eq(earlierProfile.email, earlier.ownerEmail))
+      .where(
+        and(
+          isNotNull(recipe.sourceKey),
+          eq(earlier.sourceKey, recipe.sourceKey),
+          eq(earlier.isPublic, true),
+          eq(earlierProfile.publicFeedOptIn, true),
+          or(
+            lt(earlier.createdAt, recipe.createdAt),
+            and(eq(earlier.createdAt, recipe.createdAt), lt(earlier.id, recipe.id)),
+          ),
+        ),
+      ),
+  ) as SQL;
+}
+
+/**
+ * How many distinct cooks hold each source link (independent imports and
+ * saved copies both keep the link). Keyless recipes (typed in by hand or from
+ * photos) fall back to dropCount, which tracks their saved copies directly.
+ */
+export async function attachDropperCounts(
+  rows: Omit<PublicRecipeRow, "dropperCount">[],
+): Promise<PublicRecipeRow[]> {
+  const keys = [...new Set(rows.map((row) => row.recipe.sourceKey).filter((k): k is string => !!k))];
+  if (keys.length === 0) {
+    return rows.map((row) => ({ ...row, dropperCount: row.recipe.dropCount }));
+  }
+  const db = await getDb();
+  const counts = await db
+    .select({ key: recipe.sourceKey, n: countDistinct(recipe.ownerEmail) })
+    .from(recipe)
+    .where(inArray(recipe.sourceKey, keys))
+    .groupBy(recipe.sourceKey);
+  const byKey = new Map(counts.map((c) => [c.key as string, Number(c.n)]));
+  return rows.map((row) => ({
+    ...row,
+    dropperCount: row.recipe.sourceKey
+      ? (byKey.get(row.recipe.sourceKey) ?? 1)
+      : row.recipe.dropCount,
+  }));
+}
+
+/** Dropper count for a single recipe (public detail page). */
+export async function dropperCountForRecipe(r: {
+  sourceKey: string | null;
+  dropCount: number;
+}): Promise<number> {
+  if (!r.sourceKey) return r.dropCount;
+  const db = await getDb();
+  const [row] = await db
+    .select({ n: countDistinct(recipe.ownerEmail) })
+    .from(recipe)
+    .where(eq(recipe.sourceKey, r.sourceKey));
+  return Number(row?.n ?? 1);
 }
 
 export async function listPublicRecipes(
@@ -356,7 +445,11 @@ export async function listPublicRecipes(
   filters: PublicRecipeFilters = {},
 ): Promise<PublicRecipeRow[]> {
   const db = await getDb();
-  const conds = [eq(recipe.isPublic, true), eq(userProfile.publicFeedOptIn, true)];
+  const conds = [
+    eq(recipe.isPublic, true),
+    eq(userProfile.publicFeedOptIn, true),
+    isEarliestPublicDrop(db),
+  ];
   if (filters.mealType) conds.push(eq(recipe.mealType, filters.mealType as never));
   if (filters.q?.trim()) conds.push(recipeSearchCondition(db, filters.q));
   const rows = await db
@@ -374,7 +467,7 @@ export async function listPublicRecipes(
       desc(recipe.createdAt),
     )
     .limit(limit);
-  return rows;
+  return attachDropperCounts(rows);
 }
 
 export interface DuplicateRecipe {
@@ -388,10 +481,21 @@ export async function findDuplicateRecipeBySource(input: {
   sourceUrl: string;
 }): Promise<DuplicateRecipe | null> {
   const db = await getDb();
+  // Match on the normalized key so re-sharing the same page with different
+  // tracking params still counts as a duplicate; fall back to the exact URL
+  // for rows whose key can't be computed.
+  const key = sourceKeyFor(input.sourceUrl);
   const [bySource] = await db
     .select({ id: recipe.id, title: recipe.title })
     .from(recipe)
-    .where(and(eq(recipe.ownerEmail, input.ownerEmail), eq(recipe.sourceUrl, input.sourceUrl.trim())))
+    .where(
+      and(
+        eq(recipe.ownerEmail, input.ownerEmail),
+        key
+          ? or(eq(recipe.sourceKey, key), eq(recipe.sourceUrl, input.sourceUrl.trim()))
+          : eq(recipe.sourceUrl, input.sourceUrl.trim()),
+      ),
+    )
     .limit(1);
   return bySource ? { ...bySource, reason: "source" } : null;
 }
@@ -470,10 +574,12 @@ export interface RecipeEditInput {
 function normalizeEditedFields(input: Omit<RecipeEditInput, "id" | "ownerEmail">) {
   const prepMinutes = positiveIntOrNull(input.prepMinutes);
   const cookMinutes = positiveIntOrNull(input.cookMinutes);
+  const sourceUrl = cleanOptional(input.sourceUrl);
   return {
     title: input.title.trim() || "Untitled Recipe",
     description: cleanOptional(input.description),
-    sourceUrl: cleanOptional(input.sourceUrl),
+    sourceUrl,
+    sourceKey: sourceKeyFor(sourceUrl),
     sourceAuthor: cleanOptional(input.sourceAuthor),
     imagePath: cleanOptional(input.imagePath),
     prepMinutes,
@@ -769,6 +875,7 @@ export async function saveDropForOwner(
       description: source.recipe.description,
       sourceType: source.recipe.sourceType,
       sourceUrl: source.recipe.sourceUrl,
+      sourceKey: sourceKeyFor(source.recipe.sourceUrl),
       sourceAuthor: source.recipe.sourceAuthor,
       imagePath: source.recipe.imagePath,
       prepMinutes: source.recipe.prepMinutes,

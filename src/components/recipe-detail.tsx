@@ -36,6 +36,7 @@ export function RecipeDetail({
   readOnly = false,
   dropperName,
   dropperAvatar,
+  dropperCount,
   actionsSlot,
 }: {
   recipe: Recipe;
@@ -45,6 +46,8 @@ export function RecipeDetail({
   readOnly?: boolean;
   dropperName?: string | null;
   dropperAvatar?: string | null;
+  /** People who dropped this dish; credited next to the dropper when > 1. */
+  dropperCount?: number;
   /** Extra actions (e.g. "Save to Your Recipes" on public pages). */
   actionsSlot?: React.ReactNode;
 }) {
@@ -143,6 +146,12 @@ export function RecipeDetail({
                   Dropper
                 </span>{" "}
                 {dropperName}
+                {(dropperCount ?? 0) > 1 && (
+                  <>
+                    {" "}
+                    and {dropperCount! - 1} other cook{dropperCount! - 1 === 1 ? "" : "s"}
+                  </>
+                )}
               </span>
             </div>
           )}

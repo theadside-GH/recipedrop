@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getViewerEmail } from "@/lib/auth";
-import { getRecipeFull } from "@/lib/repo/recipes";
+import { dropperCountForRecipe, getRecipeFull } from "@/lib/repo/recipes";
 import { getCookedState, isFollowingOwnerOfRecipe } from "@/lib/repo/social";
 import { RecipeDetail } from "@/components/recipe-detail";
 import { SaveDropButton } from "@/components/save-drop-button";
@@ -20,9 +20,10 @@ export default async function PublicRecipePage({
   const [data, viewer] = await Promise.all([getRecipeFull(id), getViewerEmail()]);
   if (!data || !data.recipe.isPublic) notFound();
   const isOwner = data.recipe.ownerEmail === viewer;
-  const [following, cookedState] = await Promise.all([
+  const [following, cookedState, dropperCount] = await Promise.all([
     isOwner || !viewer ? Promise.resolve(false) : isFollowingOwnerOfRecipe(viewer, id),
     getCookedState(viewer ?? "", id),
+    dropperCountForRecipe(data.recipe),
   ]);
   const cookName = data.dropper?.handle ? `@${data.dropper.handle}` : data.dropper?.displayName;
 
@@ -43,6 +44,7 @@ export default async function PublicRecipePage({
         tags={data.tags}
         dropperName={cookName}
         dropperAvatar={data.dropper?.avatarUrl}
+        dropperCount={dropperCount}
         readOnly
         actionsSlot={
           isOwner ? (

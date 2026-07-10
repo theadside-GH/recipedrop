@@ -191,6 +191,7 @@ function PublicSection({
               byline={row.handle ? `@${row.handle}` : row.displayName}
               bylineAvatar={row.avatarUrl}
               cookedCount={cookedCounts.get(row.recipe.id)}
+              dropperCount={row.dropperCount}
               topRightSlot={
                 row.recipe.ownerEmail === viewer ? undefined : (
                   <SaveDropButton compact recipeId={row.recipe.id} />

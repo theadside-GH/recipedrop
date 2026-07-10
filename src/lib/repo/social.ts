@@ -2,7 +2,7 @@ import "server-only";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, type DB } from "@/lib/db";
 import { cookedEvent, follow, recipe, userProfile } from "@/lib/db/schema";
-import type { PublicRecipeRow } from "@/lib/repo/recipes";
+import { attachDropperCounts, type PublicRecipeRow } from "@/lib/repo/recipes";
 
 /**
  * Follows and "I made this" events. All actions are keyed by recipeId — owner
@@ -142,7 +142,7 @@ export async function listFollowedRecipes(
 ): Promise<PublicRecipeRow[]> {
   return readSafe([], async () => {
     const db = await getDb();
-    return db
+    const rows = await db
       .select({
         recipe,
         displayName: userProfile.displayName,
@@ -157,7 +157,18 @@ export async function listFollowedRecipes(
       .innerJoin(userProfile, eq(userProfile.email, recipe.ownerEmail))
       .where(and(eq(recipe.isPublic, true), eq(userProfile.publicFeedOptIn, true)))
       .orderBy(desc(recipe.createdAt))
-      .limit(limit);
+      // Overfetch so hiding same-link re-drops below can still fill the row.
+      .limit(limit * 2);
+    // If several cooks you follow dropped the same link, show it once.
+    const seenKeys = new Set<string>();
+    const deduped = rows.filter((row) => {
+      const key = row.recipe.sourceKey;
+      if (!key) return true;
+      if (seenKeys.has(key)) return false;
+      seenKeys.add(key);
+      return true;
+    });
+    return attachDropperCounts(deduped.slice(0, limit));
   });
 }
 
