@@ -22,7 +22,7 @@ async function main() {
   const { eq } = await import("drizzle-orm");
   const { getDb, schema } = await import("../src/lib/db");
   const { features } = await import("../src/lib/env");
-  const { imageUrlToDataUrl } = await import("../src/lib/import/images");
+  const { imageUrlToDataUrl, photoLooksReal } = await import("../src/lib/import/images");
   const { findStandInImage } = await import("../src/lib/ai/image-search");
 
   if (!features.aiEnabled) {
@@ -43,15 +43,21 @@ async function main() {
   for (const row of rows) {
     const label = row.title.slice(0, 48);
 
-    // Already an embedded snapshot (uploaded or previously backfilled) — durable.
+    // Already an embedded snapshot (uploaded or previously backfilled) —
+    // durable, but re-check that it's a real photo: earlier stand-in searches
+    // could land on a site's flat "no photo" placeholder graphic.
     if (row.imagePath?.startsWith("data:")) {
-      ok += 1;
-      console.log(`ok       ${label} (embedded photo)`);
-      continue;
+      const bytes = Buffer.from(row.imagePath.split(",")[1] ?? "", "base64");
+      if (bytes.length > 0 && (await photoLooksReal(bytes))) {
+        ok += 1;
+        console.log(`ok       ${label} (embedded photo)`);
+        continue;
+      }
+      console.log(`REDO     ${label} (embedded image looks like a placeholder graphic)`);
     }
 
     // Remote URL that still loads: embed its bytes before the URL rots.
-    if (row.imagePath) {
+    if (row.imagePath && !row.imagePath.startsWith("data:")) {
       const snapshot = await imageUrlToDataUrl(row.imagePath);
       if (snapshot) {
         await db.update(schema.recipe).set({ imagePath: snapshot }).where(eq(schema.recipe.id, row.id));
@@ -61,7 +67,11 @@ async function main() {
       }
     }
 
-    const reason = row.imagePath ? "dead URL" : "missing";
+    const reason = row.imagePath
+      ? row.imagePath.startsWith("data:")
+        ? "placeholder graphic"
+        : "dead URL"
+      : "missing";
     if (!features.aiEnabled) {
       failed += 1;
       console.log(`SKIP     ${label} (photo ${reason}; no API key for stand-in search)`);

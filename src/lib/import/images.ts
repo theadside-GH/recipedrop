@@ -8,6 +8,26 @@ const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
 // Match the client-side upload settings (see imageFileToDataUrl callers).
 const MAX_EDGE = 900;
 const JPEG_QUALITY = 76;
+// Reject icons and flat "no photo" placeholder graphics. Real recipe photos
+// measure entropy >= 6.4 in practice; site placeholders land near 1-3.
+const MIN_EDGE = 180;
+const MIN_ENTROPY = 5;
+
+/**
+ * True when the (already JPEG-encoded) buffer looks like an actual photo
+ * rather than an icon or a recipe site's flat "no photo" placeholder.
+ */
+export async function photoLooksReal(jpeg: Buffer): Promise<boolean> {
+  try {
+    const img = sharp(jpeg);
+    const meta = await img.metadata();
+    if (Math.min(meta.width ?? 0, meta.height ?? 0) < MIN_EDGE) return false;
+    const stats = await img.stats();
+    return stats.entropy >= MIN_ENTROPY;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Download an image and re-encode it as a self-contained JPEG data: URL.
@@ -34,6 +54,7 @@ export async function imageUrlToDataUrl(url: string): Promise<string | null> {
       .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: "inside", withoutEnlargement: true })
       .jpeg({ quality: JPEG_QUALITY })
       .toBuffer();
+    if (!(await photoLooksReal(jpeg))) return null;
     return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
   } catch {
     return null;
