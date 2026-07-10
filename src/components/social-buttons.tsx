@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { ChefHat, Loader2, UserCheck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { markCookedAction, setFollowAction } from "@/app/actions";
+import { markCookedAction, setFollowAction, setFollowByHandleAction } from "@/app/actions";
 import { cn } from "@/lib/utils";
 
 /** Follow the cook behind a public drop. Keyed by recipeId — no emails client-side. */
@@ -84,6 +84,43 @@ export function MadeThisButton({
       {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChefHat className="h-4 w-4" />}
       {cooked ? "You made this" : "I made this"}
       {count > 0 && <span className="tabular-nums">· {count}</span>}
+    </Button>
+  );
+}
+
+/** Follow a cook from their public profile page (keyed by handle). */
+export function FollowCookButton({
+  handle,
+  initialFollowing,
+}: {
+  handle: string;
+  initialFollowing: boolean;
+}) {
+  const [following, setFollowing] = useState(initialFollowing);
+  const [pending, startTransition] = useTransition();
+
+  function toggle() {
+    if (pending) return;
+    startTransition(async () => {
+      try {
+        const result = await setFollowByHandleAction(handle, !following);
+        setFollowing(result.following);
+      } catch {
+        // Leave state as-is; the page still works without the follow.
+      }
+    });
+  }
+
+  return (
+    <Button type="button" size="lg" variant={following ? "secondary" : "primary"} onClick={toggle} disabled={pending}>
+      {pending ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : following ? (
+        <UserCheck className="h-4 w-4" />
+      ) : (
+        <UserPlus className="h-4 w-4" />
+      )}
+      {following ? "Following" : "Follow"}
     </Button>
   );
 }

@@ -19,7 +19,7 @@ export default async function PublicCollectionPage({
   const [data, viewer] = await Promise.all([getCollectionFull(id), getViewerEmail()]);
   if (!data || !data.collection.isPublic) notFound();
   const isOwner = data.collection.ownerEmail === viewer;
-  const recipes = data.recipes.filter((r) => r.isPublic);
+  const recipes = data.recipes.filter((r) => r.isPublic && !r.isHidden);
   const byline = data.owner?.handle ? `@${data.owner.handle}` : data.owner?.displayName;
 
   return (

@@ -5,6 +5,7 @@ import { getViewerEmail } from "@/lib/auth";
 import { dropperCountForRecipe, getRecipeFull } from "@/lib/repo/recipes";
 import { getCookedState, isFollowingOwnerOfRecipe } from "@/lib/repo/social";
 import { RecipeDetail } from "@/components/recipe-detail";
+import { ReportDropButton } from "@/components/report-drop-button";
 import { SaveDropButton } from "@/components/save-drop-button";
 import { FollowButton, MadeThisButton } from "@/components/social-buttons";
 import { Button } from "@/components/ui/button";
@@ -20,6 +21,8 @@ export default async function PublicRecipePage({
   const [data, viewer] = await Promise.all([getRecipeFull(id), getViewerEmail()]);
   if (!data || !data.recipe.isPublic) notFound();
   const isOwner = data.recipe.ownerEmail === viewer;
+  // Moderation-hidden drops stay reachable for their owner only.
+  if (data.recipe.isHidden && !isOwner) notFound();
   const [following, cookedState, dropperCount] = await Promise.all([
     isOwner || !viewer ? Promise.resolve(false) : isFollowingOwnerOfRecipe(viewer, id),
     getCookedState(viewer ?? "", id),
@@ -44,6 +47,7 @@ export default async function PublicRecipePage({
         tags={data.tags}
         dropperName={cookName}
         dropperAvatar={data.dropper?.avatarUrl}
+        dropperHandle={data.dropper?.handle}
         dropperCount={dropperCount}
         readOnly
         actionsSlot={
@@ -68,6 +72,11 @@ export default async function PublicRecipePage({
           )
         }
       />
+      {viewer && !isOwner && (
+        <div className="border-t border-border pt-4">
+          <ReportDropButton recipeId={data.recipe.id} />
+        </div>
+      )}
     </div>
   );
 }

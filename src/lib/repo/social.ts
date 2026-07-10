@@ -1,7 +1,7 @@
 import "server-only";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, type DB } from "@/lib/db";
-import { cookedEvent, follow, recipe, userProfile } from "@/lib/db/schema";
+import { contentReport, cookedEvent, follow, recipe, userProfile } from "@/lib/db/schema";
 import { attachDropperCounts, type PublicRecipeRow } from "@/lib/repo/recipes";
 
 /**
@@ -155,7 +155,13 @@ export async function listFollowedRecipes(
         eq(follow.followerEmail, viewerEmail),
       ))
       .innerJoin(userProfile, eq(userProfile.email, recipe.ownerEmail))
-      .where(and(eq(recipe.isPublic, true), eq(userProfile.publicFeedOptIn, true)))
+      .where(
+        and(
+          eq(recipe.isPublic, true),
+          eq(recipe.isHidden, false),
+          eq(userProfile.publicFeedOptIn, true),
+        ),
+      )
       .orderBy(desc(recipe.createdAt))
       // Overfetch so hiding same-link re-drops below can still fill the row.
       .limit(limit * 2);
@@ -187,4 +193,126 @@ export async function cookedCountsFor(recipeIds: string[]): Promise<Map<string, 
       .groupBy(cookedEvent.recipeId);
     return new Map(rows.map((r) => [r.recipeId, r.n]));
   });
+}
+
+// ---------------------------------------------------------------------------
+// Public cook profiles (/u/[handle]) and content reports
+// ---------------------------------------------------------------------------
+
+export interface CookProfile {
+  email: string;
+  displayName: string;
+  handle: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  dropCount: number;
+  followerCount: number;
+}
+
+/**
+ * A cook's public profile by handle — null unless they opted into the public
+ * feed (opting out hides the profile page along with their drops).
+ */
+export async function getCookProfileByHandle(handle: string): Promise<CookProfile | null> {
+  const cleaned = handle.trim().toLowerCase();
+  if (!cleaned) return null;
+  const db = await getDb();
+  const [profile] = await db
+    .select()
+    .from(userProfile)
+    .where(and(eq(userProfile.handle, cleaned), eq(userProfile.publicFeedOptIn, true)))
+    .limit(1);
+  if (!profile?.handle) return null;
+
+  const [drops] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(recipe)
+    .where(
+      and(
+        eq(recipe.ownerEmail, profile.email),
+        eq(recipe.isPublic, true),
+        eq(recipe.isHidden, false),
+      ),
+    );
+  const followers = await readSafe([{ n: 0 }], async () =>
+    db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(follow)
+      .where(eq(follow.followeeEmail, profile.email)),
+  );
+  return {
+    email: profile.email,
+    displayName: profile.displayName,
+    handle: profile.handle,
+    avatarUrl: profile.avatarUrl,
+    bio: profile.bio,
+    dropCount: drops?.n ?? 0,
+    followerCount: followers[0]?.n ?? 0,
+  };
+}
+
+/** Follow/unfollow a cook by handle (profile pages). */
+export async function setFollowByHandle(
+  viewerEmail: string,
+  handle: string,
+  following: boolean,
+): Promise<{ following: boolean }> {
+  const profile = await getCookProfileByHandle(handle);
+  if (!profile) throw new Error("Cook not found.");
+  if (profile.email === viewerEmail) return { following: false };
+  const db = await getDb();
+  try {
+    if (following) {
+      await db
+        .insert(follow)
+        .values({ followerEmail: viewerEmail, followeeEmail: profile.email })
+        .onConflictDoNothing();
+    } else {
+      await db
+        .delete(follow)
+        .where(and(eq(follow.followerEmail, viewerEmail), eq(follow.followeeEmail, profile.email)));
+    }
+  } catch (err) {
+    if (isMissingTable(err)) throw migrationPendingError();
+    throw err;
+  }
+  return { following };
+}
+
+export async function isFollowingHandle(viewerEmail: string, handle: string): Promise<boolean> {
+  return readSafe(false, async () => {
+    const profile = await getCookProfileByHandle(handle);
+    if (!profile || profile.email === viewerEmail) return false;
+    const db = await getDb();
+    const [row] = await db
+      .select({ one: sql`1` })
+      .from(follow)
+      .where(and(eq(follow.followerEmail, viewerEmail), eq(follow.followeeEmail, profile.email)))
+      .limit(1);
+    return !!row;
+  });
+}
+
+/**
+ * Flag a public drop for the operator to review. Rows are read straight from
+ * the content_report table for now — no admin UI.
+ */
+export async function reportDrop(
+  reporterEmail: string,
+  recipeId: string,
+  reason: string | null,
+): Promise<void> {
+  const db = await getDb();
+  const owner = await publicRecipeOwner(db, recipeId);
+  if (!owner) throw new Error("Recipe not found.");
+  try {
+    await db.insert(contentReport).values({
+      recipeId,
+      reporterEmail,
+      reason: reason?.trim().slice(0, 500) || null,
+    });
+  } catch (err) {
+    if (isMissingTable(err)) throw migrationPendingError();
+    throw err;
+  }
 }

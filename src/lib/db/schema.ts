@@ -126,6 +126,9 @@ export const recipe = pgTable(
     difficulty: text("difficulty"), // "easy" | "medium" | "hard"
     isFavorite: boolean("is_favorite").notNull().default(false),
     isPublic: boolean("is_public").notNull().default(false),
+    // Moderation kill switch: hides a drop from every public surface without
+    // touching the owner's copy. Flipped by the operator (no UI yet).
+    isHidden: boolean("is_hidden").notNull().default(false),
     // Set when this recipe was saved from someone else's public drop — the
     // original dropper's email. Null on recipes the owner dropped themselves.
     savedFromEmail: text("saved_from_email"),
@@ -412,6 +415,27 @@ export const recipeNote = pgTable(
     index("recipe_note_recipe_idx").on(t.recipeId),
     index("recipe_note_owner_idx").on(t.ownerEmail),
   ],
+);
+
+// ---------------------------------------------------------------------------
+// Content reports — viewers flagging a public drop; reviewed by the operator
+// (rows are read straight from the DB for now, no admin UI)
+// ---------------------------------------------------------------------------
+
+export const contentReport = pgTable(
+  "content_report",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipeId: uuid("recipe_id")
+      .notNull()
+      .references(() => recipe.id, { onDelete: "cascade" }),
+    reporterEmail: text("reporter_email").notNull(),
+    reason: text("reason"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [index("content_report_recipe_idx").on(t.recipeId)],
 );
 
 // ---------------------------------------------------------------------------

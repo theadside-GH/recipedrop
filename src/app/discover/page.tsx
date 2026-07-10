@@ -8,6 +8,7 @@ import { getViewerEmail } from "@/lib/auth";
 import { listPublicRecipes, type PublicRecipeRow } from "@/lib/repo/recipes";
 import { cookedCountsFor, listFollowedRecipes } from "@/lib/repo/social";
 import { cn } from "@/lib/utils";
+import { ShareOnboardingCard } from "./share-onboarding-card";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +92,8 @@ export default async function DiscoverPage({
           ))}
         </div>
       </div>
+
+      {viewer && <ShareOnboardingCard />}
 
       {filtering || viewAll ? (
         <PublicSection
@@ -223,6 +226,7 @@ function PublicSection({
               showFavorite={false}
               byline={row.handle ? `@${row.handle}` : row.displayName}
               bylineAvatar={row.avatarUrl}
+              bylineHref={row.handle ? `/u/${row.handle}` : undefined}
               cookedCount={cookedCounts.get(row.recipe.id)}
               dropperCount={row.dropperCount}
               topRightSlot={

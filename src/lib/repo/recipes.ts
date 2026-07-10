@@ -399,6 +399,7 @@ function isEarliestPublicDrop(db: DB): SQL {
           isNotNull(recipe.sourceKey),
           eq(earlier.sourceKey, recipe.sourceKey),
           eq(earlier.isPublic, true),
+          eq(earlier.isHidden, false),
           eq(earlierProfile.publicFeedOptIn, true),
           or(
             lt(earlier.createdAt, recipe.createdAt),
@@ -436,6 +437,34 @@ export async function attachDropperCounts(
   }));
 }
 
+/** A cook's public drops, newest first — for their public profile page. */
+export async function listPublicRecipesByOwner(
+  ownerEmail: string,
+  limit = 60,
+): Promise<PublicRecipeRow[]> {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      recipe,
+      displayName: userProfile.displayName,
+      handle: userProfile.handle,
+      avatarUrl: userProfile.avatarUrl,
+    })
+    .from(recipe)
+    .innerJoin(userProfile, eq(userProfile.email, recipe.ownerEmail))
+    .where(
+      and(
+        eq(recipe.ownerEmail, ownerEmail),
+        eq(recipe.isPublic, true),
+        eq(recipe.isHidden, false),
+        eq(userProfile.publicFeedOptIn, true),
+      ),
+    )
+    .orderBy(desc(recipe.createdAt))
+    .limit(limit);
+  return attachDropperCounts(rows);
+}
+
 /** Dropper count for a single recipe (public detail page). */
 export async function dropperCountForRecipe(r: {
   sourceKey: string | null;
@@ -458,6 +487,7 @@ export async function listPublicRecipes(
   const db = await getDb();
   const conds = [
     eq(recipe.isPublic, true),
+    eq(recipe.isHidden, false),
     eq(userProfile.publicFeedOptIn, true),
     isEarliestPublicDrop(db),
   ];

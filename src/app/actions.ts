@@ -45,6 +45,8 @@ import {
 } from "@/lib/repo/collections";
 import {
   markCookedByRecipe,
+  reportDrop,
+  setFollowByHandle,
   setFollowByRecipe,
   type CookedState,
 } from "@/lib/repo/social";
@@ -471,6 +473,22 @@ export async function setFollowAction(
   revalidatePath("/discover");
   revalidatePath(`/r/${recipeId}`);
   return result;
+}
+
+export async function setFollowByHandleAction(
+  handle: string,
+  following: boolean,
+): Promise<{ following: boolean }> {
+  const owner = await getOwnerEmail();
+  const result = await setFollowByHandle(owner, handle, following);
+  revalidatePath(`/u/${handle}`);
+  revalidatePath("/discover");
+  return result;
+}
+
+export async function reportDropAction(recipeId: string, reason: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await reportDrop(owner, recipeId, reason || null);
 }
 
 export async function markCookedAction(recipeId: string): Promise<CookedState> {

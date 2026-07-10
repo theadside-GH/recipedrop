@@ -25,6 +25,8 @@ import { RecipePublicToggle } from "@/components/recipe-public-toggle";
 import { ShareLinkButton } from "@/components/share-link-button";
 import { cn, formatMinutes, tidyNumber } from "@/lib/utils";
 import { pluralize } from "@/lib/shopping/units";
+import { convertedAmount, type UnitSystem } from "@/lib/unit-display";
+import { useLocalSetting } from "@/lib/use-local-setting";
 import { deleteRecipeAction, repairRecipeAction, repairRecipeImageAction } from "@/app/actions";
 import type { Recipe, RecipeIngredient, Step } from "@/lib/db/schema";
 
@@ -36,6 +38,7 @@ export function RecipeDetail({
   readOnly = false,
   dropperName,
   dropperAvatar,
+  dropperHandle,
   dropperCount,
   actionsSlot,
 }: {
@@ -46,6 +49,8 @@ export function RecipeDetail({
   readOnly?: boolean;
   dropperName?: string | null;
   dropperAvatar?: string | null;
+  /** Handle for linking the dropper credit to their public cook page. */
+  dropperHandle?: string | null;
   /** People who dropped this dish; credited next to the dropper when > 1. */
   dropperCount?: number;
   /** Extra actions (e.g. "Save to Your Recipes" on public pages). */
@@ -54,6 +59,9 @@ export function RecipeDetail({
   const router = useRouter();
   const [servings, setServings] = useState(recipe.servingsDefault);
   const [checkedIngredients, setCheckedIngredients] = useState<Set<string>>(new Set());
+  const [unitSetting, setUnitSystem] = useLocalSetting("rd-units", "original");
+  const unitSystem: UnitSystem =
+    unitSetting === "us" || unitSetting === "metric" ? unitSetting : "original";
   const [isPublic, setIsPublic] = useState(recipe.isPublic);
   const [isPending, startTransition] = useTransition();
   const [repairPending, startRepairTransition] = useTransition();
@@ -145,7 +153,16 @@ export function RecipeDetail({
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted">
                   Dropper
                 </span>{" "}
-                {dropperName}
+                {dropperHandle ? (
+                  <Link
+                    href={`/u/${dropperHandle}`}
+                    className="font-medium text-foreground hover:text-brand hover:underline"
+                  >
+                    {dropperName}
+                  </Link>
+                ) : (
+                  dropperName
+                )}
                 {(dropperCount ?? 0) > 1 && (
                   <>
                     {" "}
@@ -245,8 +262,36 @@ export function RecipeDetail({
       <div className="grid gap-8 lg:grid-cols-[340px_1fr]">
         {/* Ingredients */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <h2 className="text-xl font-semibold">Ingredients</h2>
+            <div
+              className="flex rounded-full border border-border bg-surface p-0.5 text-xs font-medium print:hidden"
+              role="group"
+              aria-label="Measurement units"
+            >
+              {(
+                [
+                  ["original", "As written"],
+                  ["us", "US"],
+                  ["metric", "Metric"],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setUnitSystem(value)}
+                  aria-pressed={unitSystem === value}
+                  className={cn(
+                    "rounded-full px-2.5 py-1 transition-colors",
+                    unitSystem === value
+                      ? "bg-card font-semibold text-foreground shadow-sm"
+                      : "text-muted hover:text-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="flex items-center justify-between rounded-xl border border-border bg-surface p-2">
             <span className="flex items-center gap-2 pl-2 text-sm font-medium">
@@ -304,7 +349,7 @@ export function RecipeDetail({
                         checked && "text-muted line-through opacity-60 print:no-underline print:opacity-100",
                       )}
                     >
-                      <span className="font-medium">{scaledAmount(ing, factor)}</span>{" "}
+                      <span className="font-medium">{scaledAmount(ing, factor, unitSystem)}</span>{" "}
                       {displayName(ing)}
                       {ing.note && <span className="text-muted"> · {ing.note}</span>}
                     </span>
@@ -349,10 +394,14 @@ function displayName(ing: RecipeIngredient): string {
 }
 
 /** Scaled, friendly amount for an ingredient line. */
-function scaledAmount(ing: RecipeIngredient, factor: number): string {
+function scaledAmount(ing: RecipeIngredient, factor: number, system: UnitSystem): string {
   if (ing.quantity == null) {
     // no number — show the unit/qualifier as-is ("to taste", "a pinch")
     return ing.unit ?? "";
+  }
+  if (system !== "original" && ing.unit) {
+    const converted = convertedAmount(ing.quantity * factor, ing.unit, system);
+    if (converted) return converted;
   }
   const qty = tidyNumber(ing.quantity * factor);
   if (!ing.unit) return `${qty}×`;

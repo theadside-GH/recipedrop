@@ -12,6 +12,7 @@ export function RecipeCard({
   showFavorite = true,
   byline,
   bylineAvatar,
+  bylineHref,
   href,
   topRightSlot,
   cookedCount,
@@ -21,6 +22,8 @@ export function RecipeCard({
   showFavorite?: boolean;
   byline?: string;
   bylineAvatar?: string | null;
+  /** Link target for the byline (the cook's public page). */
+  bylineHref?: string;
   href?: string;
   /** Overlay action rendered in the top-right corner (e.g. quick-save). */
   topRightSlot?: React.ReactNode;
@@ -30,9 +33,25 @@ export function RecipeCard({
   dropperCount?: number;
 }) {
   const quick = (recipe.totalMinutes ?? 999) <= 30;
+  const bylineContent = byline && (
+    <>
+      {bylineAvatar ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={bylineAvatar} alt="" className="h-4 w-4 rounded-full object-cover" />
+      ) : (
+        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[9px] font-semibold text-brand">
+          {byline.replace(/^@/, "").slice(0, 1).toUpperCase()}
+        </span>
+      )}
+      <span className="truncate">Dropped by {byline}</span>
+    </>
+  );
   return (
+    // The card link is a stretched overlay (rendered last, z-[5]) rather than
+    // a wrapper, so the byline can be its own link — <a> can't nest in <a>.
+    // Interactive corners (favorite, save, byline) sit above it at z-10.
     <div className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover">
-      <Link href={href ?? `/recipes/${recipe.id}`} className="block">
+      <div>
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface">
           <RecipeImage
             src={recipe.imagePath}
@@ -50,19 +69,19 @@ export function RecipeCard({
           <h3 className="line-clamp-2 font-display text-[1.06rem] font-semibold leading-snug">
             {recipe.title}
           </h3>
-          {byline && (
-            <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted">
-              {bylineAvatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={bylineAvatar} alt="" className="h-4 w-4 rounded-full object-cover" />
-              ) : (
-                <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-soft text-[9px] font-semibold text-brand">
-                  {byline.replace(/^@/, "").slice(0, 1).toUpperCase()}
-                </span>
-              )}
-              <span className="truncate">Dropped by {byline}</span>
-            </p>
-          )}
+          {byline &&
+            (bylineHref ? (
+              <Link
+                href={bylineHref}
+                className="relative z-10 mt-1 flex items-center gap-1.5 truncate text-xs text-muted hover:text-brand hover:underline"
+              >
+                {bylineContent}
+              </Link>
+            ) : (
+              <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-muted">
+                {bylineContent}
+              </p>
+            ))}
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
             <span className="inline-flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
@@ -89,7 +108,12 @@ export function RecipeCard({
             {quick && <Badge variant="fresh">Quick</Badge>}
           </div>
         </div>
-      </Link>
+      </div>
+      <Link
+        href={href ?? `/recipes/${recipe.id}`}
+        aria-label={recipe.title}
+        className="absolute inset-0 z-[5]"
+      />
       {showFavorite && (
         <FavoriteButton
           recipeId={recipe.id}
