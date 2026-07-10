@@ -13,8 +13,15 @@ describe("sourceKeyFor", () => {
   it("collapses tiktok share links that differ only by share tokens", () => {
     const a = sourceKeyFor("https://www.tiktok.com/@cook/video/7123?_t=8abc&_r=1");
     const b = sourceKeyFor("https://www.tiktok.com/@cook/video/7123?_t=9zzz&_r=1&is_from_webapp=1");
-    expect(a).toBe("tiktok.com/@cook/video/7123");
+    expect(a).toBe("tiktok.com/video/7123");
     expect(b).toBe(a);
+  });
+
+  it("collapses every tiktok video URL form onto the video id", () => {
+    const key = "tiktok.com/video/7123";
+    expect(sourceKeyFor("https://www.tiktok.com/@/video/7123?share_app_id=1233&share_item_id=7123")).toBe(key);
+    expect(sourceKeyFor("https://m.tiktok.com/v/7123.html")).toBe(key);
+    expect(sourceKeyFor("https://www.tiktok.com/video/7123")).toBe(key);
   });
 
   it("keeps content-identifying params like youtube's v", () => {

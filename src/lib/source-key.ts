@@ -27,6 +27,13 @@ export function sourceKeyFor(sourceUrl: string | null | undefined): string | nul
     const id = url.pathname.split("/").filter(Boolean)[0];
     if (id) return `youtube.com/watch?v=${id}`;
   }
+  // TikTok serves the same video as /@user/video/ID, /@/video/ID (username
+  // elided, share params attached), /video/ID, and /v/ID.html — the numeric
+  // video id alone identifies the content.
+  if (host === "tiktok.com") {
+    const videoId = url.pathname.match(/^\/(?:@[^/]*\/video|video|v)\/(\d+)/)?.[1];
+    if (videoId) return `tiktok.com/video/${videoId}`;
+  }
   for (const key of [...url.searchParams.keys()]) {
     if (TRACKING_PARAMS.test(key.toLowerCase())) url.searchParams.delete(key);
   }
