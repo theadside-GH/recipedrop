@@ -69,9 +69,15 @@ export async function processJob(ownerEmail: string, jobId: string): Promise<Imp
       knownCanonical: known,
       context: content.context ?? job.rawInput,
     });
-    if (!hasUsefulRecipeDetails(extraction)) {
+    // Incomplete extraction: save what we got when there's a real start
+    // (finished below as needs_review so the user can fill in the rest);
+    // fail with specifics only when there's nothing worth keeping.
+    const partial = !hasUsefulRecipeDetails(extraction);
+    if (partial && !hasPartialRecipeDetails(extraction)) {
       throw new Error(
-        "RecipeDrop could not find enough ingredient and direction detail in that source. Try the original recipe page or paste the recipe text.",
+        `RecipeDrop read the source but ${describeExtractionGaps(extraction)}. ` +
+          "The recipe details are probably in the video itself rather than the caption — " +
+          'copy the full recipe text (or type what you see in the video) into the "Paste text" tab.',
       );
     }
     // Verify the image actually loads before saving it; fall back through the
@@ -113,19 +119,70 @@ export async function processJob(ownerEmail: string, jobId: string): Promise<Imp
       sourceUrl: job.sourceType === "text" ? null : job.rawInput,
       sourceKey,
     });
+    if (partial) {
+      return updateJob(jobId, {
+        status: "needs_review",
+        recipeId,
+        error:
+          `Imported what we could, but ${describeExtractionGaps(extraction)}. ` +
+          "Open it to fill in the rest, or paste the full recipe text over it with Edit.",
+      });
+    }
     return updateJob(jobId, { status: "done", recipeId, error: null });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error during import.";
-    return updateJob(jobId, { status: "failed", error: message });
+    return updateJob(jobId, { status: "failed", error: friendlyImportError(err) });
   }
 }
 
-export function hasUsefulRecipeDetails(extraction: RecipeExtraction): boolean {
-  const ingredientCount = extraction.ingredients.filter((ingredient) =>
-    ingredient.raw.trim() || ingredient.canonicalName.trim(),
+/** Enough to be worth saving as a draft the user can finish by hand. */
+function hasPartialRecipeDetails(extraction: RecipeExtraction): boolean {
+  const ingredientCount = countIngredients(extraction);
+  const stepCount = countSteps(extraction);
+  return ingredientCount >= 2 || stepCount >= 2;
+}
+
+/** Human-readable summary of what the extraction did and didn't find. */
+export function describeExtractionGaps(extraction: RecipeExtraction): string {
+  const ingredientCount = countIngredients(extraction);
+  const stepCount = countSteps(extraction);
+  const found: string[] = [];
+  const missing: string[] = [];
+  (ingredientCount > 0 ? found : missing).push(
+    ingredientCount > 0
+      ? `${ingredientCount} ingredient${ingredientCount === 1 ? "" : "s"}`
+      : "the ingredient list",
+  );
+  (stepCount > 0 ? found : missing).push(
+    stepCount > 0 ? `${stepCount} step${stepCount === 1 ? "" : "s"}` : "the cooking steps",
+  );
+  const foundText = found.length ? `only found a title and ${found.join(" and ")}` : "found only a title";
+  return `${foundText} — missing ${missing.length ? missing.join(" and ") : "detail"}`;
+}
+
+/**
+ * Errors from our own stack (DB writes, network hiccups) read as scary
+ * internals and are usually transient — tell the user to retry instead.
+ */
+function friendlyImportError(err: unknown): string {
+  const raw = err instanceof Error ? err.message : "Unknown error during import.";
+  if (/^failed query|econnre|etimedout|fetch failed|connection|timeout/i.test(raw)) {
+    return "A temporary glitch on our side stopped this import — the link itself is fine. Press Retry.";
+  }
+  return raw;
+}
+
+function countIngredients(extraction: RecipeExtraction): number {
+  return extraction.ingredients.filter(
+    (ingredient) => ingredient.raw.trim() || ingredient.canonicalName.trim(),
   ).length;
-  const stepCount = extraction.steps.filter((step) => step.instruction.trim()).length;
-  return ingredientCount >= 2 && stepCount >= 1;
+}
+
+function countSteps(extraction: RecipeExtraction): number {
+  return extraction.steps.filter((step) => step.instruction.trim()).length;
+}
+
+export function hasUsefulRecipeDetails(extraction: RecipeExtraction): boolean {
+  return countIngredients(extraction) >= 2 && countSteps(extraction) >= 1;
 }
 
 /**
@@ -141,7 +198,8 @@ export async function processPhotoImport(
   const extraction = await extractRecipe({ images, knownCanonical: known });
   if (!hasUsefulRecipeDetails(extraction)) {
     throw new Error(
-      "RecipeDrop could not find enough ingredient and direction detail in those images.",
+      `RecipeDrop read the image${images.length === 1 ? "" : "s"} but ` +
+        `${describeExtractionGaps(extraction)}. Try a sharper photo, or include the page with the missing part.`,
     );
   }
   // Photo imports rarely carry a usable dish photo — find a stand-in by title.

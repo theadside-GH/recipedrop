@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
+  AlertCircle,
   Link2,
   FileText,
   Image as ImageIcon,
@@ -70,9 +71,9 @@ export function ImportClient({
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [singleImagePath, setSingleImagePath] = useState("");
   const [singleImageError, setSingleImageError] = useState<string | null>(null);
-  const visibleJobs = hideSkipped ? jobs.filter((job) => job.status !== "needs_review") : jobs;
+  const visibleJobs = hideSkipped ? jobs.filter((job) => !isSkippedDuplicate(job)) : jobs;
   const failedJobs = jobs.filter((job) => job.status === "failed");
-  const skippedCount = jobs.filter((job) => job.status === "needs_review").length;
+  const skippedCount = jobs.filter(isSkippedDuplicate).length;
   const summary = summarizeJobs(jobs);
 
   function updateJob(updated: JobView) {
@@ -421,15 +422,25 @@ export function ImportClient({
   );
 }
 
+/** Duplicate-skip rows, as opposed to partial imports that need finishing. */
+function isSkippedDuplicate(job: JobView): boolean {
+  return job.status === "needs_review" && !isPartialImport(job);
+}
+
+/** Partial imports: saved with gaps for the user to finish by hand. */
+function isPartialImport(job: JobView): boolean {
+  return job.status === "needs_review" && !!job.error?.startsWith("Imported what we could");
+}
+
 function JobRow({ job, onRetry }: { job: JobView; onRetry: () => void }) {
   const canOpen = (job.status === "done" || job.status === "needs_review") && job.recipeId;
   return (
     <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-      <StatusIcon status={job.status} />
+      <StatusIcon job={job} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{job.label || "Recipe"}</p>
         <p className="text-xs text-muted">
-          {statusLabel(job.status)} · {SOURCE_LABEL[job.sourceType] ?? job.sourceType}
+          {statusLabel(job)} · {SOURCE_LABEL[job.sourceType] ?? job.sourceType}
           {(job.status === "failed" || job.status === "needs_review") && job.error
             ? ` · ${job.error}`
             : ""}
@@ -438,7 +449,7 @@ function JobRow({ job, onRetry }: { job: JobView; onRetry: () => void }) {
       {canOpen && (
         <Link href={`/recipes/${job.recipeId}`}>
           <Button size="sm" variant="secondary">
-            View <ArrowRight className="h-4 w-4" />
+            {isPartialImport(job) ? "Finish it" : "View"} <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
       )}
@@ -451,8 +462,10 @@ function JobRow({ job, onRetry }: { job: JobView; onRetry: () => void }) {
   );
 }
 
-function StatusIcon({ status }: { status: JobView["status"] }) {
+function StatusIcon({ job }: { job: JobView }) {
+  const status = job.status;
   if (status === "done") return <CheckCircle2 className="h-5 w-5 shrink-0 text-fresh" />;
+  if (isPartialImport(job)) return <AlertCircle className="h-5 w-5 shrink-0 text-amber-500" />;
   if (status === "needs_review") return <CheckCircle2 className="h-5 w-5 shrink-0 text-muted" />;
   if (status === "failed") return <XCircle className="h-5 w-5 shrink-0 text-red-500" />;
   if (status === "processing")
@@ -462,10 +475,12 @@ function StatusIcon({ status }: { status: JobView["status"] }) {
 
 function summarizeJobs(jobs: JobView[]) {
   const done = jobs.filter((job) => job.status === "done").length;
-  const skipped = jobs.filter((job) => job.status === "needs_review").length;
+  const partial = jobs.filter(isPartialImport).length;
+  const skipped = jobs.filter(isSkippedDuplicate).length;
   const failed = jobs.filter((job) => job.status === "failed").length;
   const active = jobs.filter((job) => job.status === "pending" || job.status === "processing").length;
   const parts = [`${done} imported`];
+  if (partial) parts.push(`${partial} to finish`);
   if (skipped) parts.push(`${skipped} skipped`);
   if (failed) parts.push(`${failed} failed`);
   if (active) parts.push(`${active} working`);
@@ -473,11 +488,12 @@ function summarizeJobs(jobs: JobView[]) {
   return parts.join(" · ");
 }
 
-function statusLabel(status: JobView["status"]) {
-  if (status === "done") return "Imported";
-  if (status === "failed") return "Needs help";
-  if (status === "processing") return "Importing";
-  if (status === "needs_review") return "Skipped";
+function statusLabel(job: JobView) {
+  if (job.status === "done") return "Imported";
+  if (job.status === "failed") return "Needs help";
+  if (job.status === "processing") return "Importing";
+  if (isPartialImport(job)) return "Imported with gaps";
+  if (job.status === "needs_review") return "Skipped";
   return "Waiting";
 }
 

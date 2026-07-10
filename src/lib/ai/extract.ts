@@ -72,7 +72,23 @@ export async function extractRecipe(args: ExtractArgs): Promise<RecipeExtraction
       "The model could not extract a recipe from this source. Try pasting the recipe text directly.",
     );
   }
-  return message.parsed_output;
+  return roundMinuteFields(message.parsed_output);
+}
+
+/**
+ * The model sometimes returns fractional minutes ("2-3 minutes" -> 2.5), but
+ * every minutes column is a Postgres integer — unrounded values made the
+ * recipe insert fail after a successful extraction.
+ */
+function roundMinuteFields(ex: RecipeExtraction): RecipeExtraction {
+  const round = (v: number | null) => (v == null ? null : Math.round(v));
+  return {
+    ...ex,
+    prepMinutes: round(ex.prepMinutes),
+    cookMinutes: round(ex.cookMinutes),
+    totalMinutes: round(ex.totalMinutes),
+    steps: ex.steps.map((s) => ({ ...s, durationMinutes: round(s.durationMinutes) })),
+  };
 }
 
 const segmentSchema = z.object({ items: z.array(z.string()) });

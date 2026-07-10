@@ -372,9 +372,22 @@ export async function fetchWebsite(url: string): Promise<SourceContent> {
     if (embedded) return embedded;
     return fetchSocialCaption(html, url);
   }
-  const html = await fetchHtml(url, social ? CRAWLER_UA : UA);
-
-  if (social) return fetchSocialCaption(html, url);
+  if (social) {
+    // Instagram/Facebook intermittently serve a login shell instead of the
+    // caption meta tags — the very same URL then works seconds later. Retry
+    // with a short backoff before asking the user to paste the caption.
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise((resolve) => setTimeout(resolve, 1200 * attempt));
+      try {
+        return fetchSocialCaption(await fetchHtml(url, CRAWLER_UA), url);
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError;
+  }
+  const html = await fetchHtml(url, UA);
 
   const pageImages = imagesFromHtml(html, url);
 
