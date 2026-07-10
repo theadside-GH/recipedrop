@@ -384,6 +384,30 @@ export const cookedEvent = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Recipe journal — the owner's private notes and dated "cooked it" log
+// ---------------------------------------------------------------------------
+
+export const recipeNote = pgTable(
+  "recipe_note",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipeId: uuid("recipe_id")
+      .notNull()
+      .references(() => recipe.id, { onDelete: "cascade" }),
+    ownerEmail: text("owner_email").notNull(),
+    kind: text("kind").notNull().default("note"), // "note" | "cooked"
+    body: text("body"), // null for a bare "cooked it" entry
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("recipe_note_recipe_idx").on(t.recipeId),
+    index("recipe_note_owner_idx").on(t.ownerEmail),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // AI usage — one row per metered AI call; powers tier quotas and, later,
 // per-user billing/usage displays
 // ---------------------------------------------------------------------------
@@ -475,3 +499,4 @@ export type ShoppingListItem = typeof shoppingListItem.$inferSelect;
 export type PantryItem = typeof pantryItem.$inferSelect;
 export type ImportJob = typeof importJob.$inferSelect;
 export type Collection = typeof collection.$inferSelect;
+export type RecipeNote = typeof recipeNote.$inferSelect;

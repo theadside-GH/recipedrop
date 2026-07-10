@@ -12,6 +12,7 @@ import {
 } from "@/lib/repo/imports";
 import { detectSourceType } from "@/lib/sources/detect";
 import {
+  createRecipeManual,
   deleteRecipe,
   listIngredientNames,
   listRecipes,
@@ -47,6 +48,7 @@ import {
   setFollowByRecipe,
   type CookedState,
 } from "@/lib/repo/social";
+import { addRecipeNote, deleteRecipeNote, type RecipeNoteKind } from "@/lib/repo/notes";
 import {
   assertCanCreateCollection,
   assertCanCreatePlan,
@@ -198,6 +200,16 @@ export async function updateProfileAction(input: ProfileInput): Promise<void> {
   revalidatePath("/recipes");
   revalidatePath("/discover");
   revalidatePath("/profile");
+}
+
+/** Create a recipe the user typed in by hand. */
+export async function createRecipeAction(
+  input: Omit<RecipeEditInput, "id" | "ownerEmail">,
+): Promise<{ id: string }> {
+  const owner = await getOwnerEmail();
+  const id = await createRecipeManual(owner, input);
+  revalidatePath("/recipes");
+  return { id };
 }
 
 export async function updateRecipeAction(
@@ -428,6 +440,24 @@ export async function deleteCollectionAction(id: string): Promise<void> {
   const owner = await getOwnerEmail();
   await deleteCollection(owner, id);
   revalidatePath("/collections");
+}
+
+// ---- Recipe journal ----------------------------------------------------------
+
+export async function addRecipeNoteAction(
+  recipeId: string,
+  kind: RecipeNoteKind,
+  body: string | null,
+): Promise<void> {
+  const owner = await getOwnerEmail();
+  await addRecipeNote(owner, recipeId, kind, body);
+  revalidatePath(`/recipes/${recipeId}`);
+}
+
+export async function deleteRecipeNoteAction(recipeId: string, noteId: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await deleteRecipeNote(owner, noteId);
+  revalidatePath(`/recipes/${recipeId}`);
 }
 
 // ---- Social -----------------------------------------------------------------

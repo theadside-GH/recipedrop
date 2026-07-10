@@ -4,8 +4,10 @@ import { ArrowLeft } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { getRecipeFull } from "@/lib/repo/recipes";
 import { listCollectionIdsForRecipe, listCollections } from "@/lib/repo/collections";
+import { listRecipeNotes } from "@/lib/repo/notes";
 import { RecipeDetail } from "@/components/recipe-detail";
 import { CollectionPicker } from "@/components/collection-picker";
+import { RecipeJournal } from "@/components/recipe-journal";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +25,10 @@ export default async function RecipePage({
     notFound();
   }
 
-  const [collections, memberIds] = await Promise.all([
+  const [collections, memberIds, notes] = await Promise.all([
     listCollections(viewer),
     listCollectionIdsForRecipe(viewer, id),
+    listRecipeNotes(viewer, id),
   ]);
   const inCollections = new Set(memberIds);
 
@@ -54,6 +57,15 @@ export default async function RecipePage({
             }))}
           />
         }
+      />
+      <RecipeJournal
+        recipeId={id}
+        entries={notes.map((note) => ({
+          id: note.id,
+          kind: note.kind,
+          body: note.body,
+          createdAt: note.createdAt.toISOString(),
+        }))}
       />
     </div>
   );
