@@ -4,6 +4,7 @@ import { fetchWebsite } from "@/lib/sources/website";
 import { fetchYoutube } from "@/lib/sources/youtube";
 import type { SourceContent } from "@/lib/sources/types";
 import { extractRecipe, type ImageInput } from "@/lib/ai/extract";
+import { findStandInImage } from "@/lib/ai/image-search";
 import { recordAiUse } from "@/lib/entitlements";
 import { pickWorkingImage } from "@/lib/import/images";
 import type { RecipeExtraction } from "@/lib/ai/schema";
@@ -76,6 +77,11 @@ export async function processJob(ownerEmail: string, jobId: string): Promise<Imp
       content.imageUrl,
       ...(content.imageCandidates ?? []),
     ]);
+    if (!extraction.imageUrl) {
+      // No usable photo anywhere in the source: find a stand-in by dish name
+      // so the recipe never lands pictureless. The owner can replace it later.
+      extraction.imageUrl = await findStandInImage(extraction.title);
+    }
     if (content.description && !extraction.description) {
       extraction.description = content.description;
     }
@@ -132,5 +138,9 @@ export async function processPhotoImport(
       "RecipeDrop could not find enough ingredient and direction detail in those images.",
     );
   }
+  // Photo imports rarely carry a usable dish photo — find a stand-in by title.
+  extraction.imageUrl =
+    (await pickWorkingImage([extraction.imageUrl])) ??
+    (await findStandInImage(extraction.title));
   return createRecipeFromExtraction(ownerEmail, extraction, { sourceType: "photo" });
 }

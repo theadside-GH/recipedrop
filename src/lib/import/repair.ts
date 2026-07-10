@@ -1,5 +1,6 @@
 import "server-only";
 import { extractRecipe } from "@/lib/ai/extract";
+import { findStandInImage } from "@/lib/ai/image-search";
 import { recordAiUse } from "@/lib/entitlements";
 import type { Recipe } from "@/lib/db/schema";
 import { getKnownCanonicalNames, getRecipeFull, replaceRecipeFromExtraction, setRecipeImage } from "@/lib/repo/recipes";
@@ -57,12 +58,14 @@ export async function repairRecipeFromSource(
     content.imageUrl,
     ...(content.imageCandidates ?? []),
   ]);
+  const imagePath =
+    workingImage ?? data.recipe.imagePath ?? (await findStandInImage(extraction.title));
 
   await replaceRecipeFromExtraction({
     ownerEmail,
     id: recipeId,
     extraction,
-    imagePath: workingImage ?? data.recipe.imagePath,
+    imagePath,
   });
 
   return { ok: true, message: "Recipe repaired from the original source." };
@@ -73,14 +76,28 @@ export async function repairRecipeImageFromSource(
   recipeId: string,
 ): Promise<RepairResult> {
   const data = assertOwnedRecipe(await getRecipeFull(recipeId), ownerEmail);
-  const content = await loadSourceForRecipe(data.recipe);
-  const image = await pickWorkingImage([
-    content.imageUrl,
-    ...(content.imageCandidates ?? []),
-  ]);
+  let image: string | null = null;
+  let fromSource = true;
+  try {
+    const content = await loadSourceForRecipe(data.recipe);
+    image = await pickWorkingImage([content.imageUrl, ...(content.imageCandidates ?? [])]);
+  } catch {
+    // No source link (text/photo recipes) — go straight to the title search.
+  }
   if (!image) {
-    throw new Error("No working image was found in the original source.");
+    // Metered: the title search is an AI call.
+    await recordAiUse(ownerEmail, "repair");
+    image = await findStandInImage(data.recipe.title);
+    fromSource = false;
+  }
+  if (!image) {
+    throw new Error("No working image was found for this recipe. Try again later.");
   }
   await setRecipeImage({ ownerEmail, id: recipeId, imagePath: image });
-  return { ok: true, message: "Recipe image repaired from the original source." };
+  return {
+    ok: true,
+    message: fromSource
+      ? "Recipe image repaired from the original source."
+      : "Found a stand-in photo for this dish — replace it any time from Edit.",
+  };
 }

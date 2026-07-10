@@ -349,6 +349,15 @@ async function readableText(html: string, url: string): Promise<string | null> {
 }
 
 /**
+ * Just the ranked hero-image candidates from a page — used by the stand-in
+ * image search, which only needs photos, not recipe text.
+ */
+export async function fetchPageImages(url: string): Promise<string[]> {
+  const html = await fetchHtml(url);
+  return imagesFromHtml(html, url);
+}
+
+/**
  * Fetch a recipe web page and return clean text for extraction. Tries
  * schema.org JSON-LD first (most recipe sites embed it); falls back to
  * Readability main-content extraction.
