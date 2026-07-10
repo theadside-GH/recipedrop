@@ -1,30 +1,51 @@
 import "server-only";
+import sharp from "sharp";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
-/** True when the URL responds with an actual image we could show. */
-async function isWorkingImage(url: string): Promise<boolean> {
+const MAX_SOURCE_BYTES = 12 * 1024 * 1024;
+// Match the client-side upload settings (see imageFileToDataUrl callers).
+const MAX_EDGE = 900;
+const JPEG_QUALITY = 76;
+
+/**
+ * Download an image and re-encode it as a self-contained JPEG data: URL.
+ * Recipe photos are routinely hosted on signed social CDNs (TikTok/Instagram)
+ * whose URLs expire within days — a stored remote URL rots even if it loads
+ * at save time. Storing the resized bytes keeps the photo working forever.
+ * Returns null (never throws) when the URL is dead, not an image, or too big.
+ */
+export async function imageUrlToDataUrl(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
-      headers: { "user-agent": UA, accept: "image/*,*/*;q=0.8", range: "bytes=0-2047" },
+      headers: { "user-agent": UA, accept: "image/*,*/*;q=0.8" },
       redirect: "follow",
-      signal: AbortSignal.timeout(6_000),
+      signal: AbortSignal.timeout(8_000),
     });
-    if (!res.ok) return false;
+    if (!res.ok) return null;
     const type = res.headers.get("content-type") ?? "";
-    // Read a little of the body so half-dead CDN endpoints don't slip through.
-    await res.body?.cancel();
-    return type.startsWith("image/");
+    if (!type.startsWith("image/")) return null;
+    if (Number(res.headers.get("content-length") ?? 0) > MAX_SOURCE_BYTES) return null;
+    const bytes = Buffer.from(await res.arrayBuffer());
+    if (bytes.byteLength === 0 || bytes.byteLength > MAX_SOURCE_BYTES) return null;
+    const jpeg = await sharp(bytes)
+      .rotate()
+      .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: JPEG_QUALITY })
+      .toBuffer();
+    return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
   } catch {
-    return false;
+    return null;
   }
 }
 
 /**
- * Pick the first image URL that actually loads. Imported pages often list a
- * hero image that 404s or is login-gated, while a lower-ranked candidate is
- * fine — checking at import time means saved recipes get a photo that works.
+ * Snapshot the first candidate that is a real, loadable image, as a data: URL
+ * ready to store in recipe.imagePath. Imported pages often list a hero image
+ * that 404s or is login-gated while a lower-ranked candidate is fine, so each
+ * candidate is fetched until one converts. data: candidates pass through
+ * unchanged (already self-contained).
  */
 export async function pickWorkingImage(
   candidates: Array<string | null | undefined>,
@@ -33,12 +54,15 @@ export async function pickWorkingImage(
   const urls: string[] = [];
   for (const candidate of candidates) {
     const url = candidate?.trim();
-    if (!url || !/^https?:\/\//i.test(url) || seen.has(url)) continue;
+    if (!url || seen.has(url)) continue;
+    if (url.startsWith("data:image/")) return url;
+    if (!/^https?:\/\//i.test(url)) continue;
     seen.add(url);
     urls.push(url);
   }
   for (const url of urls.slice(0, 6)) {
-    if (await isWorkingImage(url)) return url;
+    const snapshot = await imageUrlToDataUrl(url);
+    if (snapshot) return snapshot;
   }
   return null;
 }
