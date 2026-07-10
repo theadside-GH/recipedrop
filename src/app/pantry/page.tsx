@@ -8,6 +8,7 @@ import { getOwnerEmail } from "@/lib/auth";
 import { listPantryItems, listPantryRecipeSuggestions, pantryCounts } from "@/lib/repo/pantry";
 import { cn } from "@/lib/utils";
 import { CommonItemsPicker } from "./common-items-picker";
+import { AddItemForm, RemovableItemChips } from "./pantry-controls";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,9 @@ export default async function PantryPage() {
           icon={Archive}
           count={counts.pantry}
           items={pantryItems.map((item) => item.canonicalName)}
-          empty="Use a shopping list to mark items you already have."
+          empty="Type anything you have on hand, or check items off a shopping list."
+          kind="pantry"
+          addPlaceholder="Add anything you have - chicken thighs, kimchi..."
         />
         <IngredientPanel
           title="Left over"
@@ -53,6 +56,8 @@ export default async function PantryPage() {
           count={counts.leftovers}
           items={leftoverItems.map((item) => item.canonicalName)}
           empty="After shopping or cooking, mark extras as left over."
+          kind="leftover"
+          addPlaceholder="Add a leftover - half an onion, cooked rice..."
         />
       </div>
 
@@ -87,12 +92,16 @@ function IngredientPanel({
   count,
   items,
   empty,
+  kind,
+  addPlaceholder,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
   count: number;
   items: string[];
   empty: string;
+  kind: "pantry" | "leftover";
+  addPlaceholder: string;
 }) {
   return (
     <section className="rounded-2xl border border-border bg-card p-5">
@@ -103,16 +112,11 @@ function IngredientPanel({
         </h2>
         <Badge variant="brand">{count}</Badge>
       </div>
+      <AddItemForm kind={kind} placeholder={addPlaceholder} />
       {items.length === 0 ? (
         <p className="mt-3 text-sm text-muted">{empty}</p>
       ) : (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {items.map((item) => (
-            <Badge key={item} variant="neutral" className="capitalize">
-              {item}
-            </Badge>
-          ))}
-        </div>
+        <RemovableItemChips items={items} kind={kind} />
       )}
     </section>
   );
