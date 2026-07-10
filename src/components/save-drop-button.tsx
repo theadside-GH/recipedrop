@@ -48,18 +48,19 @@ export function SaveDropButton({
         aria-label={saved ? "Saved to your recipes" : "Save to your recipes"}
         title={saved ? "Saved to your recipes" : "Save to your recipes"}
         className={cn(
-          "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-sm transition-colors hover:bg-surface",
+          "inline-flex h-8 items-center gap-1 rounded-full border border-border bg-card/95 px-2.5 text-xs font-semibold text-brand shadow-sm transition-colors hover:bg-surface",
           saved && "border-green-200 bg-green-50 text-green-700",
           className,
         )}
       >
         {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
         ) : saved ? (
-          <Check className="h-4 w-4" />
+          <Check className="h-3.5 w-3.5" />
         ) : (
-          <BookmarkPlus className="h-4 w-4" />
+          <BookmarkPlus className="h-3.5 w-3.5" />
         )}
+        {saved ? "Saved" : "Save"}
       </button>
     );
   }

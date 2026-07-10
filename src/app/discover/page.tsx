@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type React from "react";
-import { Compass, Flame, Search, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Compass, Flame, LayoutGrid, Search, Sparkles, Users } from "lucide-react";
 import { RecipeCard } from "@/components/recipe-card";
 import { SaveDropButton } from "@/components/save-drop-button";
 import { Button } from "@/components/ui/button";
@@ -16,21 +16,23 @@ const MEALS = ["breakfast", "lunch", "dinner", "snack", "dessert", "side", "drin
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; meal?: string }>;
+  searchParams: Promise<{ q?: string; meal?: string; view?: string }>;
 }) {
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "";
   const meal = MEALS.includes(sp.meal ?? "") ? (sp.meal as string) : "";
   const filtering = !!(q || meal);
+  const viewAll = sp.view === "all" && !filtering;
   const viewer = (await getViewerEmail()) ?? "";
 
-  const [newest, popular, followed] = filtering
-    ? [await listPublicRecipes("newest", 24, { q, mealType: meal }), [], []]
-    : await Promise.all([
-        listPublicRecipes("newest", 12),
-        listPublicRecipes("popular", 8),
-        viewer ? listFollowedRecipes(viewer, 8) : Promise.resolve([]),
-      ]);
+  const [newest, popular, followed] =
+    filtering || viewAll
+      ? [await listPublicRecipes("newest", viewAll ? 300 : 24, { q, mealType: meal }), [], []]
+      : await Promise.all([
+          listPublicRecipes("newest", 12),
+          listPublicRecipes("popular", 8),
+          viewer ? listFollowedRecipes(viewer, 8) : Promise.resolve([]),
+        ]);
 
   const cookedCounts = await cookedCountsFor(
     [...newest, ...popular, ...followed].map((row) => row.recipe.id),
@@ -51,12 +53,20 @@ export default async function DiscoverPage({
               save one straight to Your Recipes.
             </p>
           </div>
-          <Link href="/profile">
-            <Button variant="secondary">
-              <Compass className="h-4 w-4" />
-              Public settings
-            </Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/discover?view=all">
+              <Button variant={viewAll ? "primary" : "secondary"}>
+                <LayoutGrid className="h-4 w-4" />
+                Browse all drops
+              </Button>
+            </Link>
+            <Link href="/profile">
+              <Button variant="secondary">
+                <Compass className="h-4 w-4" />
+                Public settings
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <form action="/discover" className="relative mt-5 max-w-xl">
@@ -82,14 +92,24 @@ export default async function DiscoverPage({
         </div>
       </div>
 
-      {filtering ? (
+      {filtering || viewAll ? (
         <PublicSection
-          title={q ? `Results for "${q}"` : `${capitalize(meal)} drops`}
-          icon={Search}
+          title={
+            viewAll
+              ? `All drops (${newest.length})`
+              : q
+                ? `Results for "${q}"`
+                : `${capitalize(meal)} drops`
+          }
+          icon={viewAll ? LayoutGrid : Search}
           recipes={newest}
           viewer={viewer}
           cookedCounts={cookedCounts}
-          empty="No public drops match. Try another dish, ingredient, or tag."
+          empty={
+            viewAll
+              ? "No public drops yet."
+              : "No public drops match. Try another dish, ingredient, or tag."
+          }
         />
       ) : (
         <>
@@ -111,6 +131,14 @@ export default async function DiscoverPage({
             viewer={viewer}
             cookedCounts={cookedCounts}
             empty="No public drops yet."
+            action={
+              <Link
+                href="/discover?view=all"
+                className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+              >
+                See all drops <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            }
           />
 
           <PublicSection
@@ -162,6 +190,7 @@ function PublicSection({
   viewer,
   cookedCounts,
   empty,
+  action,
 }: {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -169,13 +198,17 @@ function PublicSection({
   viewer: string;
   cookedCounts: Map<string, number>;
   empty: string;
+  action?: React.ReactNode;
 }) {
   return (
     <section className="space-y-3">
-      <h2 className="flex items-center gap-2 text-xl font-semibold">
-        <Icon className="h-5 w-5 text-brand" />
-        {title}
-      </h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-xl font-semibold">
+          <Icon className="h-5 w-5 text-brand" />
+          {title}
+        </h2>
+        {action}
+      </div>
       {recipes.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-surface p-6 text-sm text-muted">
           {empty}
