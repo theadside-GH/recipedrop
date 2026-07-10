@@ -117,7 +117,8 @@ export function CookMode({
             </p>
             {step.durationMinutes ? (
               <div className="mt-8 flex justify-center">
-                <StepTimer minutes={step.durationMinutes} />
+                {/* Keyed by step so the countdown resets instead of bleeding into the next step. */}
+                <StepTimer key={step.number} minutes={step.durationMinutes} />
               </div>
             ) : null}
           </div>
