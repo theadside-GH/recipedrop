@@ -17,6 +17,11 @@ const SORTS = [
   { label: "Quickest", value: "quickest" },
   { label: "Title", value: "title" },
 ];
+const ORIGINS = [
+  { label: "All recipes", value: "" },
+  { label: "Dropped by you", value: "own" },
+  { label: "Saved from cooks", value: "saved" },
+];
 
 export function LibraryFilters() {
   const router = useRouter();
@@ -25,6 +30,7 @@ export function LibraryFilters() {
   const max = params.get("max") ?? "";
   const search = params.get("q") ?? "";
   const favorite = params.get("favorite") === "1";
+  const origin = params.get("origin") ?? "";
   const sort = params.get("sort") ?? "newest";
 
   function setParam(key: string, value: string) {
@@ -36,7 +42,7 @@ export function LibraryFilters() {
     router.push(query ? `/recipes?${query}` : "/recipes");
   }
 
-  const hasFilters = meal || max || search || favorite || sort !== "newest";
+  const hasFilters = meal || max || search || favorite || origin || sort !== "newest";
 
   return (
     <div className="space-y-3">
@@ -75,6 +81,12 @@ export function LibraryFilters() {
           value={max}
           onChange={(value) => setParam("max", value)}
           options={[{ label: "Any time", value: "" }, ...TIMES]}
+        />
+        <FilterSelect
+          label="Source"
+          value={origin}
+          onChange={(value) => setParam("origin", value)}
+          options={ORIGINS}
         />
         <FilterSelect
           label="Sort"

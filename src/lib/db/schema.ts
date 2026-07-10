@@ -126,6 +126,9 @@ export const recipe = pgTable(
     difficulty: text("difficulty"), // "easy" | "medium" | "hard"
     isFavorite: boolean("is_favorite").notNull().default(false),
     isPublic: boolean("is_public").notNull().default(false),
+    // Set when this recipe was saved from someone else's public drop — the
+    // original dropper's email. Null on recipes the owner dropped themselves.
+    savedFromEmail: text("saved_from_email"),
     dropCount: integer("drop_count").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

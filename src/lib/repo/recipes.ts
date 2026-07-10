@@ -7,6 +7,7 @@ import {
   exists,
   ilike,
   isNotNull,
+  isNull,
   lt,
   lte,
   desc,
@@ -268,6 +269,8 @@ export interface RecipeFilters {
   search?: string;
   tag?: string;
   favorite?: boolean;
+  /** "own" = dropped by the owner; "saved" = saved from another cook's drop. */
+  origin?: "own" | "saved";
   sort?: "newest" | "oldest" | "favorites" | "quickest" | "title";
 }
 
@@ -309,6 +312,8 @@ export async function listRecipes(ownerEmail: string, filters: RecipeFilters = {
   if (filters.maxMinutes) conds.push(lte(recipe.totalMinutes, filters.maxMinutes));
   if (filters.search?.trim()) conds.push(recipeSearchCondition(db, filters.search));
   if (filters.favorite) conds.push(eq(recipe.isFavorite, true));
+  if (filters.origin === "own") conds.push(isNull(recipe.savedFromEmail));
+  if (filters.origin === "saved") conds.push(isNotNull(recipe.savedFromEmail));
 
   let ids: string[] | null = null;
   if (filters.tag) {
@@ -888,6 +893,7 @@ export async function saveDropForOwner(
       // Reuse the original's key — it may be short-link-resolved, which a
       // plain recompute from the URL would lose.
       sourceKey: source.recipe.sourceKey ?? sourceKeyFor(source.recipe.sourceUrl),
+      savedFromEmail: source.recipe.ownerEmail,
       sourceAuthor: source.recipe.sourceAuthor,
       imagePath: source.recipe.imagePath,
       prepMinutes: source.recipe.prepMinutes,

@@ -1,0 +1,1 @@
+ALTER TABLE "recipe" ADD COLUMN "saved_from_email" text;

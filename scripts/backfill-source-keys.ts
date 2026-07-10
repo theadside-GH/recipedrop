@@ -12,7 +12,7 @@ import { loadEnvConfig } from "@next/env";
 loadEnvConfig(process.cwd());
 
 async function main() {
-  const { eq, isNotNull } = await import("drizzle-orm");
+  const { and, eq, isNotNull, isNull } = await import("drizzle-orm");
   const { getDb, schema } = await import("../src/lib/db");
   const { resolveSourceKey } = await import("../src/lib/import/resolve-source");
 
@@ -40,6 +40,41 @@ async function main() {
   }
 
   console.log(`\nDone: ${keyed} keyed, ${unkeyable} skipped.`);
+
+  // Second pass: recipes created before saved_from_email existed. Best-effort
+  // heuristic — a later drop of a link someone else dropped first was almost
+  // certainly saved from (or at least discovered via) that original drop.
+  // Going forward, saveDropForOwner records this exactly at save time.
+  const all = await db
+    .select({
+      id: schema.recipe.id,
+      ownerEmail: schema.recipe.ownerEmail,
+      sourceKey: schema.recipe.sourceKey,
+      createdAt: schema.recipe.createdAt,
+      savedFromEmail: schema.recipe.savedFromEmail,
+    })
+    .from(schema.recipe)
+    .where(and(isNotNull(schema.recipe.sourceKey), isNull(schema.recipe.savedFromEmail)))
+    .orderBy(schema.recipe.createdAt);
+  const byKey = new Map<string, typeof all>();
+  for (const row of all) {
+    const list = byKey.get(row.sourceKey as string) ?? [];
+    list.push(row);
+    byKey.set(row.sourceKey as string, list);
+  }
+  let marked = 0;
+  for (const rows of byKey.values()) {
+    const original = rows[0];
+    for (const later of rows.slice(1)) {
+      if (later.ownerEmail === original.ownerEmail) continue;
+      await db
+        .update(schema.recipe)
+        .set({ savedFromEmail: original.ownerEmail })
+        .where(eq(schema.recipe.id, later.id));
+      marked += 1;
+    }
+  }
+  if (marked > 0) console.log(`Marked ${marked} pre-existing cop${marked === 1 ? "y" : "ies"} as saved-from-another-cook.`);
   process.exit(0);
 }
 
