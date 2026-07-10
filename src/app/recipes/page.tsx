@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookMarked, Dices, PlusCircle, Sparkles } from "lucide-react";
+import { BookMarked, Dices, PenLine, PlusCircle, Sparkles } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { listRecipes } from "@/lib/repo/recipes";
 import { RecipeCard } from "@/components/recipe-card";
@@ -58,6 +58,11 @@ export default async function LibraryPage({
               </Button>
             </Link>
           )}
+          <Link href="/recipes/new" title="Write a recipe by hand">
+            <Button variant="secondary">
+              <PenLine className="h-4 w-4" /> New recipe
+            </Button>
+          </Link>
           <Link href="/import">
             <Button>
               <PlusCircle className="h-4 w-4" /> Import recipe
@@ -111,11 +116,18 @@ function EmptyState({ hasAny }: { hasAny: boolean }) {
           : "Try clearing a filter or searching for something else."}
       </p>
       {hasAny && (
-        <Link href="/import" className="mt-5">
-          <Button>
-            <PlusCircle className="h-4 w-4" /> Import a recipe
-          </Button>
-        </Link>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <Link href="/import">
+            <Button>
+              <PlusCircle className="h-4 w-4" /> Import a recipe
+            </Button>
+          </Link>
+          <Link href="/recipes/new">
+            <Button variant="secondary">
+              <PenLine className="h-4 w-4" /> Write one yourself
+            </Button>
+          </Link>
+        </div>
       )}
     </div>
   );

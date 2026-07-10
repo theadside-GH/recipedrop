@@ -6,20 +6,21 @@ import Link from "next/link";
 import { ImagePlus, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
-import { updateRecipeAction } from "@/app/actions";
+import { createRecipeAction, updateRecipeAction } from "@/app/actions";
 import { imageFileToDataUrl } from "@/lib/client-image";
 import type { Recipe } from "@/lib/db/schema";
 
 const mealTypes = ["breakfast", "lunch", "dinner", "snack", "dessert", "side", "drink"];
 const difficulties = ["easy", "medium", "hard"];
 
+/** Edit an existing recipe, or — when `recipe` is null — write a new one by hand. */
 export function RecipeEditForm({
   recipe,
   ingredients,
   steps,
   tags,
 }: {
-  recipe: Recipe;
+  recipe: Recipe | null;
   ingredients: string[];
   steps: string[];
   tags: string[];
@@ -28,17 +29,17 @@ export function RecipeEditForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
-    title: recipe.title,
-    description: recipe.description ?? "",
-    sourceUrl: recipe.sourceUrl ?? "",
-    sourceAuthor: recipe.sourceAuthor ?? "",
-    imagePath: recipe.imagePath ?? "",
-    prepMinutes: String(recipe.prepMinutes ?? ""),
-    cookMinutes: String(recipe.cookMinutes ?? ""),
-    totalMinutes: String(recipe.totalMinutes ?? ""),
-    servingsDefault: String(recipe.servingsDefault),
-    mealType: recipe.mealType,
-    difficulty: recipe.difficulty ?? "",
+    title: recipe?.title ?? "",
+    description: recipe?.description ?? "",
+    sourceUrl: recipe?.sourceUrl ?? "",
+    sourceAuthor: recipe?.sourceAuthor ?? "",
+    imagePath: recipe?.imagePath ?? "",
+    prepMinutes: String(recipe?.prepMinutes ?? ""),
+    cookMinutes: String(recipe?.cookMinutes ?? ""),
+    totalMinutes: String(recipe?.totalMinutes ?? ""),
+    servingsDefault: String(recipe?.servingsDefault ?? 2),
+    mealType: recipe?.mealType ?? "dinner",
+    difficulty: recipe?.difficulty ?? "",
     tags: tags.join(", "),
     ingredients: ingredients.join("\n"),
     steps: steps.join("\n"),
@@ -64,7 +65,7 @@ export function RecipeEditForm({
     setError(null);
     startTransition(async () => {
       try {
-        await updateRecipeAction(recipe.id, {
+        const input = {
           title: form.title,
           description: form.description || null,
           sourceUrl: form.sourceUrl || null,
@@ -79,8 +80,14 @@ export function RecipeEditForm({
           tags: splitCommaList(form.tags),
           ingredients: splitLines(form.ingredients),
           steps: splitLines(form.steps),
-        });
-        router.push(`/recipes/${recipe.id}`);
+        };
+        let recipeId = recipe?.id;
+        if (recipeId) {
+          await updateRecipeAction(recipeId, input);
+        } else {
+          recipeId = (await createRecipeAction(input)).id;
+        }
+        router.push(`/recipes/${recipeId}`);
         router.refresh();
       } catch (err) {
         console.error(err);
@@ -92,9 +99,13 @@ export function RecipeEditForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-border bg-card p-5 sm:p-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight">Edit recipe</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {recipe ? "Edit recipe" : "Add a recipe"}
+        </h1>
         <p className="text-sm text-muted">
-          Fix anything the import missed, then save it back to your library.
+          {recipe
+            ? "Fix anything the import missed, then save it back to your library."
+            : "Type it in the way you'd tell a friend — one ingredient and one step per line."}
         </p>
       </div>
 
@@ -262,6 +273,7 @@ export function RecipeEditForm({
             onChange={(event) => setField("ingredients", event.target.value)}
             rows={12}
             className="min-h-72"
+            placeholder={"One per line, e.g.\n2 chicken breasts\n1 cup rice\n1 lemon, juiced"}
           />
         </label>
 
@@ -272,6 +284,7 @@ export function RecipeEditForm({
             onChange={(event) => setField("steps", event.target.value)}
             rows={12}
             className="min-h-72"
+            placeholder={"One step per line, e.g.\nSeason the chicken and sear until golden.\nAdd rice and stock; simmer 15 minutes."}
           />
         </label>
       </div>
@@ -280,7 +293,7 @@ export function RecipeEditForm({
         <Button type="submit" size="lg" disabled={isPending}>
           <Save className="h-5 w-5" /> {isPending ? "Saving..." : "Save recipe"}
         </Button>
-        <Link href={`/recipes/${recipe.id}`}>
+        <Link href={recipe ? `/recipes/${recipe.id}` : "/recipes"}>
           <Button type="button" variant="secondary" size="lg">
             Cancel
           </Button>

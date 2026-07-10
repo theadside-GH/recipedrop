@@ -466,43 +466,39 @@ export interface RecipeEditInput {
   steps: string[];
 }
 
-export async function updateRecipe(input: RecipeEditInput): Promise<void> {
-  const db = await getDb();
-  const title = input.title.trim() || "Untitled Recipe";
+/** Validate/normalize the editable recipe fields shared by create and update. */
+function normalizeEditedFields(input: Omit<RecipeEditInput, "id" | "ownerEmail">) {
   const prepMinutes = positiveIntOrNull(input.prepMinutes);
   const cookMinutes = positiveIntOrNull(input.cookMinutes);
-  const totalMinutes =
-    positiveIntOrNull(input.totalMinutes) ?? ((prepMinutes ?? 0) + (cookMinutes ?? 0) || null);
-  const mealType = MEAL_TYPES.includes(input.mealType as (typeof MEAL_TYPES)[number])
-    ? input.mealType
-    : "dinner";
-  const difficulty = ["easy", "medium", "hard"].includes(input.difficulty ?? "")
-    ? input.difficulty
-    : null;
+  return {
+    title: input.title.trim() || "Untitled Recipe",
+    description: cleanOptional(input.description),
+    sourceUrl: cleanOptional(input.sourceUrl),
+    sourceAuthor: cleanOptional(input.sourceAuthor),
+    imagePath: cleanOptional(input.imagePath),
+    prepMinutes,
+    cookMinutes,
+    totalMinutes:
+      positiveIntOrNull(input.totalMinutes) ?? ((prepMinutes ?? 0) + (cookMinutes ?? 0) || null),
+    servingsDefault: Math.max(1, Math.round(input.servingsDefault || 1)),
+    mealType: (MEAL_TYPES.includes(input.mealType as (typeof MEAL_TYPES)[number])
+      ? input.mealType
+      : "dinner") as never,
+    difficulty: ["easy", "medium", "hard"].includes(input.difficulty ?? "")
+      ? input.difficulty
+      : null,
+  };
+}
 
-  const [updated] = await db
-    .update(recipe)
-    .set({
-      title,
-      description: cleanOptional(input.description),
-      sourceUrl: cleanOptional(input.sourceUrl),
-      sourceAuthor: cleanOptional(input.sourceAuthor),
-      imagePath: cleanOptional(input.imagePath),
-      prepMinutes,
-      cookMinutes,
-      totalMinutes,
-      servingsDefault: Math.max(1, Math.round(input.servingsDefault || 1)),
-      mealType: mealType as never,
-      difficulty,
-    })
-    .where(and(eq(recipe.id, input.id), eq(recipe.ownerEmail, input.ownerEmail)))
-    .returning({ id: recipe.id });
-
-  if (!updated) throw new Error("Recipe not found.");
-
-  await db.delete(recipeIngredient).where(eq(recipeIngredient.recipeId, input.id));
-  await db.delete(step).where(eq(step.recipeId, input.id));
-  await db.delete(recipeTag).where(eq(recipeTag.recipeId, input.id));
+/** Replace a recipe's ingredients/steps/tags from hand-edited text lines. */
+async function writeEditedParts(
+  db: DB,
+  recipeId: string,
+  input: Pick<RecipeEditInput, "ingredients" | "steps" | "tags">,
+): Promise<void> {
+  await db.delete(recipeIngredient).where(eq(recipeIngredient.recipeId, recipeId));
+  await db.delete(step).where(eq(step.recipeId, recipeId));
+  await db.delete(recipeTag).where(eq(recipeTag.recipeId, recipeId));
 
   const ingredientLines = input.ingredients.map((line) => line.trim()).filter(Boolean);
   let order = 0;
@@ -510,7 +506,7 @@ export async function updateRecipe(input: RecipeEditInput): Promise<void> {
     const parsed = parseEditedIngredient(line);
     const canonical = await resolveCanonical(db, parsed.canonicalName);
     await db.insert(recipeIngredient).values({
-      recipeId: input.id,
+      recipeId,
       rawText: line,
       canonicalIngredientId: canonical?.id ?? null,
       canonicalName: canonical?.name ?? parsed.canonicalName,
@@ -527,7 +523,7 @@ export async function updateRecipe(input: RecipeEditInput): Promise<void> {
   if (stepLines.length > 0) {
     await db.insert(step).values(
       stepLines.map((instruction, i) => ({
-        recipeId: input.id,
+        recipeId,
         stepNumber: i + 1,
         instruction,
         durationMinutes: null,
@@ -538,9 +534,35 @@ export async function updateRecipe(input: RecipeEditInput): Promise<void> {
   for (const t of input.tags.map((tagName) => tagName.trim()).filter(Boolean)) {
     const tagId = await upsertTag(db, t);
     if (tagId) {
-      await db.insert(recipeTag).values({ recipeId: input.id, tagId }).onConflictDoNothing();
+      await db.insert(recipeTag).values({ recipeId, tagId }).onConflictDoNothing();
     }
   }
+}
+
+export async function updateRecipe(input: RecipeEditInput): Promise<void> {
+  const db = await getDb();
+  const [updated] = await db
+    .update(recipe)
+    .set(normalizeEditedFields(input))
+    .where(and(eq(recipe.id, input.id), eq(recipe.ownerEmail, input.ownerEmail)))
+    .returning({ id: recipe.id });
+
+  if (!updated) throw new Error("Recipe not found.");
+  await writeEditedParts(db, input.id, input);
+}
+
+/** Create a recipe the user typed in by hand — no import, no AI required. */
+export async function createRecipeManual(
+  ownerEmail: string,
+  input: Omit<RecipeEditInput, "id" | "ownerEmail">,
+): Promise<string> {
+  const db = await getDb();
+  const [created] = await db
+    .insert(recipe)
+    .values({ ownerEmail, sourceType: "text", ...normalizeEditedFields(input) })
+    .returning({ id: recipe.id });
+  await writeEditedParts(db, created.id, input);
+  return created.id;
 }
 
 function cleanOptional(value: string | null | undefined): string | null {
