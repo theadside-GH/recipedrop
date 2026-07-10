@@ -14,7 +14,7 @@ loadEnvConfig(process.cwd());
 async function main() {
   const { eq, isNotNull } = await import("drizzle-orm");
   const { getDb, schema } = await import("../src/lib/db");
-  const { sourceKeyFor } = await import("../src/lib/source-key");
+  const { resolveSourceKey } = await import("../src/lib/import/resolve-source");
 
   const db = await getDb();
   const rows = await db
@@ -26,7 +26,9 @@ async function main() {
   let keyed = 0;
   let unkeyable = 0;
   for (const row of rows) {
-    const key = sourceKeyFor(row.sourceUrl);
+    // Resolves per-share short links (tiktok.com/t/...) to the canonical
+    // video URL, so the same video shared by different people groups.
+    const key = await resolveSourceKey(row.sourceUrl);
     if (key) {
       await db.update(schema.recipe).set({ sourceKey: key }).where(eq(schema.recipe.id, row.id));
       keyed += 1;

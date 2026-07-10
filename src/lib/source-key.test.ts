@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sourceKeyFor } from "./source-key";
+import { isShortShareLink, sourceKeyFor } from "./source-key";
 
 describe("sourceKeyFor", () => {
   it("returns null for empty or non-URL values", () => {
@@ -42,5 +42,28 @@ describe("sourceKeyFor", () => {
     expect(sourceKeyFor("https://example.com/r?b=2&a=1")).toBe(
       sourceKeyFor("https://example.com/r?a=1&b=2"),
     );
+  });
+
+  it("maps youtu.be share links onto the watch URL", () => {
+    expect(sourceKeyFor("https://youtu.be/abc123?si=SHARE")).toBe(
+      sourceKeyFor("https://www.youtube.com/watch?v=abc123"),
+    );
+  });
+
+  it("treats instagram /reels/ and /reel/ as the same post", () => {
+    expect(sourceKeyFor("https://www.instagram.com/reels/XYZ/")).toBe(
+      sourceKeyFor("https://www.instagram.com/reel/XYZ"),
+    );
+  });
+});
+
+describe("isShortShareLink", () => {
+  it("flags per-share tiktok stubs but not canonical video URLs", () => {
+    expect(isShortShareLink("https://www.tiktok.com/t/ZTkUEAsaB")).toBe(true);
+    expect(isShortShareLink("https://vm.tiktok.com/ZMabc/")).toBe(true);
+    expect(isShortShareLink("https://vt.tiktok.com/ZSabc/")).toBe(true);
+    expect(isShortShareLink("https://www.tiktok.com/@cook/video/7123")).toBe(false);
+    expect(isShortShareLink("https://example.com/t/whatever")).toBe(false);
+    expect(isShortShareLink("not a url")).toBe(false);
   });
 });

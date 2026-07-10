@@ -22,11 +22,36 @@ export function sourceKeyFor(sourceUrl: string | null | undefined): string | nul
   if (url.protocol !== "http:" && url.protocol !== "https:") return null;
 
   const host = url.hostname.toLowerCase().replace(/^(www|m)\./, "");
+  // youtu.be/ID is the share form of youtube.com/watch?v=ID — same video.
+  if (host === "youtu.be") {
+    const id = url.pathname.split("/").filter(Boolean)[0];
+    if (id) return `youtube.com/watch?v=${id}`;
+  }
   for (const key of [...url.searchParams.keys()]) {
     if (TRACKING_PARAMS.test(key.toLowerCase())) url.searchParams.delete(key);
   }
   url.searchParams.sort();
-  const path = url.pathname.replace(/\/+$/, "");
+  let path = url.pathname.replace(/\/+$/, "");
+  // Instagram serves the same post under /reel/ and /reels/.
+  if (host === "instagram.com") path = path.replace(/^\/reels\//, "/reel/");
   const query = url.searchParams.toString();
   return `${host}${path}${query ? `?${query}` : ""}`;
+}
+
+/**
+ * Hosts whose links are per-share redirect stubs, not content URLs — two
+ * people sharing the same video get different short codes, so keys computed
+ * from them never group. These need resolveSourceKey (network) instead.
+ */
+export function isShortShareLink(sourceUrl: string | null | undefined): boolean {
+  const raw = sourceUrl?.trim();
+  if (!raw) return false;
+  try {
+    const url = new URL(raw);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    if (host === "vm.tiktok.com" || host === "vt.tiktok.com") return true;
+    return host === "tiktok.com" && url.pathname.startsWith("/t/");
+  } catch {
+    return false;
+  }
 }

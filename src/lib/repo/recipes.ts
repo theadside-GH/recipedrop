@@ -95,7 +95,13 @@ async function upsertTag(
 export async function createRecipeFromExtraction(
   ownerEmail: string,
   ex: RecipeExtraction,
-  opts: { sourceType: SourceType; sourceUrl?: string | null; imagePath?: string | null },
+  opts: {
+    sourceType: SourceType;
+    sourceUrl?: string | null;
+    /** Precomputed (short-link-resolved) key; computed from sourceUrl if omitted. */
+    sourceKey?: string | null;
+    imagePath?: string | null;
+  },
 ): Promise<string> {
   const db = await getDb();
   const totalMinutes =
@@ -109,7 +115,7 @@ export async function createRecipeFromExtraction(
       description: ex.description,
       sourceType: opts.sourceType,
       sourceUrl: opts.sourceUrl ?? null,
-      sourceKey: sourceKeyFor(opts.sourceUrl),
+      sourceKey: opts.sourceKey ?? sourceKeyFor(opts.sourceUrl),
       sourceAuthor: ex.sourceAuthor,
       imagePath: opts.imagePath ?? ex.imageUrl ?? null,
       prepMinutes: ex.prepMinutes,
@@ -479,12 +485,14 @@ export interface DuplicateRecipe {
 export async function findDuplicateRecipeBySource(input: {
   ownerEmail: string;
   sourceUrl: string;
+  /** Precomputed (short-link-resolved) key; computed from sourceUrl if omitted. */
+  sourceKey?: string | null;
 }): Promise<DuplicateRecipe | null> {
   const db = await getDb();
   // Match on the normalized key so re-sharing the same page with different
   // tracking params still counts as a duplicate; fall back to the exact URL
   // for rows whose key can't be computed.
-  const key = sourceKeyFor(input.sourceUrl);
+  const key = input.sourceKey ?? sourceKeyFor(input.sourceUrl);
   const [bySource] = await db
     .select({ id: recipe.id, title: recipe.title })
     .from(recipe)
@@ -503,6 +511,7 @@ export async function findDuplicateRecipeBySource(input: {
 export async function findDuplicateRecipe(input: {
   ownerEmail: string;
   sourceUrl?: string | null;
+  sourceKey?: string | null;
   title: string;
 }): Promise<DuplicateRecipe | null> {
   const db = await getDb();
@@ -511,6 +520,7 @@ export async function findDuplicateRecipe(input: {
     const bySource = await findDuplicateRecipeBySource({
       ownerEmail: input.ownerEmail,
       sourceUrl,
+      sourceKey: input.sourceKey,
     });
     if (bySource) return bySource;
   }
@@ -875,7 +885,9 @@ export async function saveDropForOwner(
       description: source.recipe.description,
       sourceType: source.recipe.sourceType,
       sourceUrl: source.recipe.sourceUrl,
-      sourceKey: sourceKeyFor(source.recipe.sourceUrl),
+      // Reuse the original's key — it may be short-link-resolved, which a
+      // plain recompute from the URL would lose.
+      sourceKey: source.recipe.sourceKey ?? sourceKeyFor(source.recipe.sourceUrl),
       sourceAuthor: source.recipe.sourceAuthor,
       imagePath: source.recipe.imagePath,
       prepMinutes: source.recipe.prepMinutes,

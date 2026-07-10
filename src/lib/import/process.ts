@@ -7,6 +7,7 @@ import { extractRecipe, type ImageInput } from "@/lib/ai/extract";
 import { findStandInImage } from "@/lib/ai/image-search";
 import { recordAiUse } from "@/lib/entitlements";
 import { pickWorkingImage } from "@/lib/import/images";
+import { resolveSourceKey } from "@/lib/import/resolve-source";
 import type { RecipeExtraction } from "@/lib/ai/schema";
 import {
   createRecipeFromExtraction,
@@ -43,10 +44,13 @@ export async function processJob(ownerEmail: string, jobId: string): Promise<Imp
 
   await updateJob(jobId, { status: "processing", error: null });
   try {
+    const sourceKey =
+      job.sourceType === "text" ? null : await resolveSourceKey(job.rawInput);
     if (job.sourceType !== "text") {
       const duplicate = await findDuplicateRecipeBySource({
         ownerEmail: job.ownerEmail,
         sourceUrl: job.rawInput,
+        sourceKey,
       });
       if (duplicate) {
         return updateJob(jobId, {
@@ -91,6 +95,7 @@ export async function processJob(ownerEmail: string, jobId: string): Promise<Imp
     const duplicate = await findDuplicateRecipe({
       ownerEmail: job.ownerEmail,
       sourceUrl: job.sourceType === "text" ? null : job.rawInput,
+      sourceKey,
       title: extraction.title,
     });
     if (duplicate) {
@@ -106,6 +111,7 @@ export async function processJob(ownerEmail: string, jobId: string): Promise<Imp
     const recipeId = await createRecipeFromExtraction(job.ownerEmail, extraction, {
       sourceType: job.sourceType,
       sourceUrl: job.sourceType === "text" ? null : job.rawInput,
+      sourceKey,
     });
     return updateJob(jobId, { status: "done", recipeId, error: null });
   } catch (err) {
