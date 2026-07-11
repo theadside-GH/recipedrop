@@ -25,7 +25,41 @@ export const env = {
 
   /** Stripe secret key — presence turns on paid-tier limit enforcement. */
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
+
+  /**
+   * Comma/space-separated emails allowed to use the app. When set, sign-in
+   * stays open (Supabase handles it) but anyone not on the list lands on an
+   * "invite only" page — protecting the shared AI key from strangers who find
+   * the URL. Unset = open to everyone (the pre-launch default).
+   */
+  inviteEmails: process.env.INVITE_EMAILS ?? "",
+
+  /**
+   * Public base URL for absolute links in social previews (og:image etc.).
+   * Falls back to the Vercel production domain when deployed there.
+   */
+  siteUrl:
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : ""),
 } as const;
+
+/** Lowercased invite list; empty = invites not enforced. */
+export function inviteList(): string[] {
+  return env.inviteEmails
+    .split(/[\s,;]+/)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+/** True when the invite list is on and this email isn't on it. */
+export function isUninvited(email: string | null | undefined): boolean {
+  const list = inviteList();
+  if (list.length === 0 || !email) return false;
+  const lower = email.toLowerCase();
+  return lower !== env.ownerEmail.toLowerCase() && !list.includes(lower);
+}
 
 export const features = {
   get usePostgres() {

@@ -49,17 +49,28 @@ DATABASE_URL=
 PGLITE_DIR=./.pglite
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+INVITE_EMAILS=
+NEXT_PUBLIC_SITE_URL=
 ```
 
 For local testing, only `ANTHROPIC_API_KEY` is needed for imports. For a hosted
 web app, set all values except `PGLITE_DIR`.
+
+The app is multi-user: anyone can sign in with a magic link or Google, and each
+account only ever sees its own recipes. `OWNER_EMAIL` is used for local
+single-user mode (no Supabase configured). To keep a hosted deployment
+friends-and-family only, set `INVITE_EMAILS` to a comma-separated list of
+allowed addresses — everyone else can browse public pages but lands on an
+"invite only" screen (and can't spend the AI quota). Leave it empty for open
+sign-ups. `NEXT_PUBLIC_SITE_URL` sets the absolute base for social link
+previews; on Vercel it defaults to the production domain automatically.
 
 ## Deploy Checklist
 
 1. Create a Supabase project.
 2. Copy the Supabase Postgres connection string into `DATABASE_URL`.
 3. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-4. Set `OWNER_EMAIL` to the only email allowed to sign in.
+4. Optionally set `INVITE_EMAILS` to limit who can use the app.
 5. Set `ANTHROPIC_API_KEY`.
 6. Check that the required hosted environment variables are present:
 

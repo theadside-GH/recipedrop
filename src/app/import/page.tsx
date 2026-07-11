@@ -8,6 +8,8 @@ import type { JobView } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Import recipes" };
+
 export default async function ImportPage() {
   const recentJobs = await getRecentImportViews();
   const usage = features.aiEnabled ? await getAiUsageSafe() : null;
@@ -61,15 +63,25 @@ async function getRecentImportViews(): Promise<JobView[]> {
   try {
     const owner = await getOwnerEmail();
     const jobs = await listRecentJobs(owner, 30);
-    return jobs.map((job) => ({
-      id: job.id,
-      label: job.label,
-      rawInput: job.rawInput,
-      sourceType: job.sourceType,
-      status: job.status,
-      error: job.error,
-      recipeId: job.recipeId,
-    }));
+    return jobs.map((job) => {
+      // Imports only run while the tab that started them is open. A job still
+      // "pending"/"processing" minutes later is dead — surface it as failed so
+      // the Retry button appears instead of an eternal "Waiting" row.
+      const stale =
+        (job.status === "pending" || job.status === "processing") &&
+        Date.now() - job.updatedAt.getTime() > 5 * 60 * 1000;
+      return {
+        id: job.id,
+        label: job.label,
+        rawInput: job.rawInput,
+        sourceType: job.sourceType,
+        status: stale ? ("failed" as const) : job.status,
+        error: stale
+          ? "This import was interrupted (the page may have closed). Press Retry."
+          : job.error,
+        recipeId: job.recipeId,
+      };
+    });
   } catch {
     return [];
   }

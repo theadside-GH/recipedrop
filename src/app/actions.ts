@@ -89,7 +89,9 @@ function toView(j: ImportJobRow): JobView {
 
 function failedJob(label: string, error: string, sourceType: ImportJobRow["sourceType"] = "text"): JobView {
   return {
-    id: randomUUID(),
+    // "local-" ids never reached the database — the UI hides Retry for them,
+    // since there is no job row to re-run.
+    id: `local-${randomUUID()}`,
     label,
     rawInput: label,
     sourceType,

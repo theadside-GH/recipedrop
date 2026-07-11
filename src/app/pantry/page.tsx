@@ -12,6 +12,8 @@ import { AddItemForm, RemovableItemChips } from "./pantry-controls";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Pantry" };
+
 export default async function PantryPage() {
   const owner = await getOwnerEmail();
   const [items, suggestions, counts] = await Promise.all([
@@ -33,7 +35,7 @@ export default async function PantryPage() {
           </p>
         </div>
         <Link href="/plans" className={buttonVariants({ variant: "secondary" })}>
-          Meal plans
+          Shopping lists
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>

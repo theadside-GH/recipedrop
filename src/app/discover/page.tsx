@@ -13,6 +13,8 @@ import { ShareOnboardingCard } from "./share-onboarding-card";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Discover drops" };
+
 const MEALS = ["breakfast", "lunch", "dinner", "snack", "dessert", "side", "drink"];
 
 export default async function DiscoverPage({
@@ -72,12 +74,14 @@ export default async function DiscoverPage({
                 Browse all drops
               </Button>
             </Link>
-            <Link href="/profile">
-              <Button variant="secondary">
-                <Compass className="h-4 w-4" />
-                Public settings
-              </Button>
-            </Link>
+            {viewer && (
+              <Link href="/profile">
+                <Button variant="secondary">
+                  <Compass className="h-4 w-4" />
+                  Public settings
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 

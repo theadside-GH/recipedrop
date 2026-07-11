@@ -9,6 +9,8 @@ import {
   Sparkles,
 } from "lucide-react";
 
+export const metadata = { title: "About" };
+
 const FAQS = [
   {
     question: "What can RecipeDrop import?",

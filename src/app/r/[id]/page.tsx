@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Pencil } from "lucide-react";
@@ -12,13 +14,54 @@ import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
+// One fetch shared between generateMetadata and the page render.
+const loadRecipe = cache(getRecipeFull);
+
+/**
+ * Real link previews: a shared recipe unfurls in chats with the dish name,
+ * description, and photo instead of the generic site card.
+ */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const data = await loadRecipe(id);
+  if (!data || !data.recipe.isPublic || data.recipe.isHidden) return {};
+  const { recipe } = data;
+  const cook = data.dropper?.handle
+    ? `@${data.dropper.handle}`
+    : data.dropper?.displayName;
+  const description =
+    recipe.description ??
+    `A recipe${cook ? ` dropped by ${cook}` : ""} on RecipeDrop.`;
+  const images = recipe.imagePath ? [`/api/og-image/${recipe.id}`] : undefined;
+  return {
+    title: recipe.title,
+    description,
+    openGraph: {
+      title: recipe.title,
+      description,
+      type: "article",
+      images,
+    },
+    twitter: {
+      card: images ? "summary_large_image" : "summary",
+      title: recipe.title,
+      description,
+      images,
+    },
+  };
+}
+
 export default async function PublicRecipePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [data, viewer] = await Promise.all([getRecipeFull(id), getViewerEmail()]);
+  const [data, viewer] = await Promise.all([loadRecipe(id), getViewerEmail()]);
   if (!data || !data.recipe.isPublic) notFound();
   const isOwner = data.recipe.ownerEmail === viewer;
   // Moderation-hidden drops stay reachable for their owner only.

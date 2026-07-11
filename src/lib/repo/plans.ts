@@ -171,43 +171,46 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
   const previous = await getLatestShoppingList(ownerEmail, mealPlanId);
   const customItems = previous?.items.filter((item) => item.isCustom) ?? [];
 
-  // Replace any prior list for this plan.
-  await db.delete(shoppingList).where(eq(shoppingList.mealPlanId, mealPlanId));
-  const [list] = await db.insert(shoppingList).values({ mealPlanId }).returning();
+  // Transaction: replace-the-list is delete + inserts — a crash in between
+  // must never leave the plan with no list at all.
+  return db.transaction(async (tx) => {
+    await tx.delete(shoppingList).where(eq(shoppingList.mealPlanId, mealPlanId));
+    const [list] = await tx.insert(shoppingList).values({ mealPlanId }).returning();
 
-  if (aggregated.length) {
-    await db.insert(shoppingListItem).values(
-      aggregated.map((a, i) => ({
-        shoppingListId: list.id,
-        canonicalName: a.canonicalName,
-        aisle: a.aisle,
-        displayText: a.displayText,
-        totalQuantity: a.totalQuantity,
-        baseUnit: a.baseUnit,
-        unitCategory: a.unitCategory,
-        isSummable: a.isSummable,
-        sortOrder: i,
-      })),
-    );
-  }
-  if (customItems.length) {
-    await db.insert(shoppingListItem).values(
-      customItems.map((item, i) => ({
-        shoppingListId: list.id,
-        canonicalName: item.canonicalName,
-        aisle: item.aisle,
-        displayText: item.displayText,
-        totalQuantity: item.totalQuantity,
-        baseUnit: item.baseUnit,
-        unitCategory: item.unitCategory,
-        isSummable: item.isSummable,
-        isChecked: item.isChecked,
-        isCustom: true,
-        sortOrder: aggregated.length + i,
-      })),
-    );
-  }
-  return list.id;
+    if (aggregated.length) {
+      await tx.insert(shoppingListItem).values(
+        aggregated.map((a, i) => ({
+          shoppingListId: list.id,
+          canonicalName: a.canonicalName,
+          aisle: a.aisle,
+          displayText: a.displayText,
+          totalQuantity: a.totalQuantity,
+          baseUnit: a.baseUnit,
+          unitCategory: a.unitCategory,
+          isSummable: a.isSummable,
+          sortOrder: i,
+        })),
+      );
+    }
+    if (customItems.length) {
+      await tx.insert(shoppingListItem).values(
+        customItems.map((item, i) => ({
+          shoppingListId: list.id,
+          canonicalName: item.canonicalName,
+          aisle: item.aisle,
+          displayText: item.displayText,
+          totalQuantity: item.totalQuantity,
+          baseUnit: item.baseUnit,
+          unitCategory: item.unitCategory,
+          isSummable: item.isSummable,
+          isChecked: item.isChecked,
+          isCustom: true,
+          sortOrder: aggregated.length + i,
+        })),
+      );
+    }
+    return list.id;
+  });
 }
 
 /**

@@ -11,6 +11,8 @@ import { PlanAutopilot } from "./plan-autopilot";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Shopping lists" };
+
 export default async function PlansPage() {
   const owner = await getOwnerEmail();
   const [plans, recipes, pantryItems] = await Promise.all([

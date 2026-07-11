@@ -8,6 +8,8 @@ import { CreateCollection } from "./create-collection";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Collections" };
+
 export default async function CollectionsPage() {
   const owner = await getOwnerEmail();
   const collections = await listCollections(owner);

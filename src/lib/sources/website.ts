@@ -1,4 +1,5 @@
 import "server-only";
+import { safeFetch } from "@/lib/net/safe-fetch";
 import type { SourceContent } from "./types";
 
 const UA =
@@ -10,9 +11,10 @@ const CRAWLER_UA =
   "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
 
 async function fetchHtml(url: string, ua = UA): Promise<string> {
-  const res = await fetch(url, {
+  // safeFetch: imported URLs are user-supplied — never let one reach an
+  // internal host (localhost, cloud metadata, LAN).
+  const res = await safeFetch(url, {
     headers: { "user-agent": ua, accept: "text/html,application/xhtml+xml" },
-    redirect: "follow",
   });
   if (!res.ok) throw new Error(`Could not fetch the page (HTTP ${res.status}).`);
   return res.text();

@@ -4,6 +4,8 @@ import { ProfileForm } from "./profile-form";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Profile" };
+
 export default async function ProfilePage() {
   const currentUser = await getCurrentUserProfileSeed();
   const profile = await getOrCreateProfile(currentUser.email, {

@@ -1,5 +1,6 @@
 import "server-only";
 import sharp from "sharp";
+import { safeFetch } from "@/lib/net/safe-fetch";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -38,9 +39,9 @@ export async function photoLooksReal(jpeg: Buffer): Promise<boolean> {
  */
 export async function imageUrlToDataUrl(url: string): Promise<string | null> {
   try {
-    const res = await fetch(url, {
+    // Candidate URLs come from arbitrary imported pages — validate every hop.
+    const res = await safeFetch(url, {
       headers: { "user-agent": UA, accept: "image/*,*/*;q=0.8" },
-      redirect: "follow",
       signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) return null;

@@ -1,4 +1,4 @@
-import { env, features } from "@/lib/env";
+import { env, features, isUninvited } from "@/lib/env";
 
 /**
  * The signed-in user's email, or null for anonymous visitors on public pages.
@@ -25,6 +25,11 @@ export async function getViewerEmail(): Promise<string | null> {
 export async function getOwnerEmail(): Promise<string> {
   const email = await getViewerEmail();
   if (!email) throw new Error("Please sign in to do that.");
+  // Backstop for the middleware invite gate: server actions triggered from
+  // public pages must not spend quota for uninvited accounts either.
+  if (isUninvited(email)) {
+    throw new Error("RecipeDrop is invite-only right now — ask the person who shared it to add you.");
+  }
   return email;
 }
 

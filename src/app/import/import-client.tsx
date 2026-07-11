@@ -177,11 +177,12 @@ export function ImportClient({
   }
 
   async function retryFailed() {
-    if (!failedJobs.length || busy) return;
+    const retryable = failedJobs.filter((job) => !job.id.startsWith("local-"));
+    if (!retryable.length || busy) return;
     setBusy(true);
     setImportError(null);
     try {
-      await runJobs(failedJobs);
+      await runJobs(retryable);
     } finally {
       setBusy(false);
     }
@@ -270,7 +271,7 @@ export function ImportClient({
             value={single}
             onChange={(e) => setSingle(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleStart("single", single)}
-            placeholder="Paste a recipe link (website or YouTube)…"
+            placeholder="Paste a recipe link — TikTok, Instagram, YouTube, or any website…"
             disabled={!aiEnabled}
           />
           <p className="text-center text-xs text-muted">or paste the full recipe text below</p>
@@ -510,7 +511,7 @@ function JobRow({ job, onRetry }: { job: JobView; onRetry: () => void }) {
           </Button>
         </Link>
       )}
-      {job.status === "failed" && (
+      {job.status === "failed" && !job.id.startsWith("local-") && (
         <Button size="sm" variant="ghost" onClick={onRetry}>
           <RotateCw className="h-4 w-4" /> Retry
         </Button>

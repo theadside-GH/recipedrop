@@ -10,6 +10,21 @@ import { FollowCookButton } from "@/components/social-buttons";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ handle: string }>;
+}) {
+  const { handle } = await params;
+  const profile = await getCookProfileByHandle(handle);
+  if (!profile) return {};
+  const title = `${profile.displayName} (@${profile.handle})`;
+  const description =
+    profile.bio ??
+    `${profile.dropCount} recipe drop${profile.dropCount === 1 ? "" : "s"} on RecipeDrop.`;
+  return { title, description, openGraph: { title, description, type: "profile" } };
+}
+
 /** A cook's public page: who they are and every drop they've shared. */
 export default async function CookPage({
   params,

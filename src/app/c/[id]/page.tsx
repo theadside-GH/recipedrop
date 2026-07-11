@@ -10,6 +10,16 @@ import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const data = await getCollectionFull(id);
+  if (!data || !data.collection.isPublic) return {};
+  const title = data.collection.name;
+  const description =
+    data.collection.description ?? "A shared recipe collection on RecipeDrop.";
+  return { title, description, openGraph: { title, description } };
+}
+
 /** Public, shareable view of a collection. Shows only recipes that are public. */
 export default async function PublicCollectionPage({
   params,

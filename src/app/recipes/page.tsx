@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Your Recipes" };
+
 export default async function LibraryPage({
   searchParams,
 }: {
@@ -73,6 +75,32 @@ export default async function LibraryPage({
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* Same actions for phones — the header row above is desktop-only. */}
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:hidden">
+        <Link href="/import" className="shrink-0">
+          <Button size="sm">
+            <PlusCircle className="h-4 w-4" /> Import
+          </Button>
+        </Link>
+        <Link href="/recipes/new" className="shrink-0">
+          <Button variant="secondary" size="sm">
+            <PenLine className="h-4 w-4" /> New recipe
+          </Button>
+        </Link>
+        <Link href="/collections" className="shrink-0">
+          <Button variant="secondary" size="sm">
+            <BookMarked className="h-4 w-4" /> Collections
+          </Button>
+        </Link>
+        {recipes.length > 1 && (
+          <Link href="/recipes/surprise" prefetch={false} className="shrink-0">
+            <Button variant="secondary" size="sm">
+              <Dices className="h-4 w-4" /> Surprise me
+            </Button>
+          </Link>
+        )}
       </div>
 
       <LibraryFilters />

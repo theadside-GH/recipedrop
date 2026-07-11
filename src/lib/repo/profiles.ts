@@ -25,13 +25,41 @@ function defaultName(email: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+// Handles that would collide with routes or read as official.
+const RESERVED_HANDLES = new Set([
+  "admin",
+  "administrator",
+  "recipedrop",
+  "official",
+  "support",
+  "help",
+  "about",
+  "login",
+  "discover",
+  "recipes",
+  "import",
+  "plans",
+  "pantry",
+  "profile",
+  "collections",
+  "api",
+]);
+
 function cleanHandle(value: string | null | undefined): string | null {
   const cleaned = value
     ?.toLowerCase()
     .replace(/[^a-z0-9_]/g, "")
     .slice(0, 24)
     .trim();
+  if (cleaned && RESERVED_HANDLES.has(cleaned)) {
+    throw new Error("That username is reserved — pick another.");
+  }
   return cleaned || null;
+}
+
+/** Postgres 23505: unique constraint (someone else owns that handle). */
+function isUniqueViolation(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: string }).code === "23505";
 }
 
 function cleanOptional(value: string | null | undefined): string | null {
@@ -82,21 +110,28 @@ export async function updateProfile(email: string, input: ProfileInput) {
   if (handleChanged && existing.handle && existing.handleChangedAt) {
     throw new Error("Username can only be changed once.");
   }
-  const [updated] = await db
-    .update(userProfile)
-    .set({
-      displayName: input.displayName.trim() || defaultName(email),
-      handle: nextHandle,
-      handleChangedAt:
-        handleChanged && existing.handle && !existing.handleChangedAt
-          ? new Date()
-          : existing.handleChangedAt,
-      avatarUrl: cleanOptional(input.avatarUrl),
-      bio: cleanOptional(input.bio),
-      publicFeedOptIn: input.publicFeedOptIn,
-      updatedAt: new Date(),
-    })
-    .where(eq(userProfile.email, email))
-    .returning();
-  return updated;
+  try {
+    const [updated] = await db
+      .update(userProfile)
+      .set({
+        displayName: input.displayName.trim() || defaultName(email),
+        handle: nextHandle,
+        handleChangedAt:
+          handleChanged && existing.handle && !existing.handleChangedAt
+            ? new Date()
+            : existing.handleChangedAt,
+        avatarUrl: cleanOptional(input.avatarUrl),
+        bio: cleanOptional(input.bio),
+        publicFeedOptIn: input.publicFeedOptIn,
+        updatedAt: new Date(),
+      })
+      .where(eq(userProfile.email, email))
+      .returning();
+    return updated;
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new Error("That username is already taken — try another.");
+    }
+    throw err;
+  }
 }

@@ -231,23 +231,29 @@ export async function replaceRecipeFromExtraction(input: {
   const totalMinutes =
     ex.totalMinutes ?? ((ex.prepMinutes ?? 0) + (ex.cookMinutes ?? 0) || null);
 
-  await db
-    .update(recipe)
-    .set({
-      title: ex.title.trim() || existing.title,
-      description: ex.description ?? existing.description,
-      sourceAuthor: ex.sourceAuthor ?? existing.sourceAuthor,
-      imagePath: input.imagePath ?? ex.imageUrl ?? existing.imagePath,
-      prepMinutes: ex.prepMinutes,
-      cookMinutes: ex.cookMinutes,
-      totalMinutes,
-      servingsDefault: ex.servings && ex.servings > 0 ? Math.round(ex.servings) : existing.servingsDefault,
-      mealType: ex.mealType,
-      difficulty: ex.difficulty,
-    })
-    .where(eq(recipe.id, input.id));
+  // Transaction: replaceRecipeParts deletes then re-inserts ingredients and
+  // steps — a crash in between must never leave a gutted recipe behind.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(recipe)
+      .set({
+        title: ex.title.trim() || existing.title,
+        description: ex.description ?? existing.description,
+        sourceAuthor: ex.sourceAuthor ?? existing.sourceAuthor,
+        // Only ever store verified/snapshotted images (input.imagePath) — the
+        // extraction's raw URL may be a signed social-CDN link that expires.
+        imagePath: input.imagePath ?? existing.imagePath,
+        prepMinutes: ex.prepMinutes,
+        cookMinutes: ex.cookMinutes,
+        totalMinutes,
+        servingsDefault: ex.servings && ex.servings > 0 ? Math.round(ex.servings) : existing.servingsDefault,
+        mealType: ex.mealType,
+        difficulty: ex.difficulty,
+      })
+      .where(eq(recipe.id, input.id));
 
-  await replaceRecipeParts(db, input.id, ex);
+    await replaceRecipeParts(tx as unknown as DB, input.id, ex);
+  });
 }
 
 export async function setRecipeImage(input: {
@@ -711,14 +717,18 @@ async function writeEditedParts(
 
 export async function updateRecipe(input: RecipeEditInput): Promise<void> {
   const db = await getDb();
-  const [updated] = await db
-    .update(recipe)
-    .set(normalizeEditedFields(input))
-    .where(and(eq(recipe.id, input.id), eq(recipe.ownerEmail, input.ownerEmail)))
-    .returning({ id: recipe.id });
+  // Transaction: writeEditedParts deletes then re-inserts ingredients/steps —
+  // a failure in between must roll the whole edit back.
+  await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(recipe)
+      .set(normalizeEditedFields(input))
+      .where(and(eq(recipe.id, input.id), eq(recipe.ownerEmail, input.ownerEmail)))
+      .returning({ id: recipe.id });
 
-  if (!updated) throw new Error("Recipe not found.");
-  await writeEditedParts(db, input.id, input);
+    if (!updated) throw new Error("Recipe not found.");
+    await writeEditedParts(tx as unknown as DB, input.id, input);
+  });
 }
 
 /** Create a recipe the user typed in by hand — no import, no AI required. */
@@ -727,12 +737,14 @@ export async function createRecipeManual(
   input: Omit<RecipeEditInput, "id" | "ownerEmail">,
 ): Promise<string> {
   const db = await getDb();
-  const [created] = await db
-    .insert(recipe)
-    .values({ ownerEmail, sourceType: "text", ...normalizeEditedFields(input) })
-    .returning({ id: recipe.id });
-  await writeEditedParts(db, created.id, input);
-  return created.id;
+  return db.transaction(async (tx) => {
+    const [created] = await tx
+      .insert(recipe)
+      .values({ ownerEmail, sourceType: "text", ...normalizeEditedFields(input) })
+      .returning({ id: recipe.id });
+    await writeEditedParts(tx as unknown as DB, created.id, input);
+    return created.id;
+  });
 }
 
 function cleanOptional(value: string | null | undefined): string | null {
