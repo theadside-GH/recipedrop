@@ -16,6 +16,24 @@ import {
   getKnownCanonicalNames,
 } from "@/lib/repo/recipes";
 
+/**
+ * What to try next when a source had nothing extractable — phrased for what
+ * the user actually pasted. Only social videos should hear about "captions".
+ */
+function extractionAdvice(sourceType: ImportJobRow["sourceType"], rawInput: string | null): string {
+  const social = /tiktok\.com|instagram\.com|facebook\.com|fb\.watch/i.test(rawInput ?? "");
+  if (sourceType === "youtube" || social) {
+    return (
+      "The recipe details are probably in the video itself rather than the caption — " +
+      'copy the full recipe text (or type what you see in the video) into the "Paste text" tab.'
+    );
+  }
+  if (sourceType === "text") {
+    return "That text doesn't look like a full recipe — paste the ingredients and the steps together, or write it in by hand via New recipe.";
+  }
+  return "That page doesn't seem to contain a readable recipe — if it's behind a popup or login, copy the recipe text from the page and paste it instead.";
+}
+
 async function loadSource(job: ImportJobRow): Promise<SourceContent> {
   switch (job.sourceType) {
     case "url":
@@ -76,8 +94,7 @@ export async function processJob(ownerEmail: string, jobId: string): Promise<Imp
     if (partial && !hasPartialRecipeDetails(extraction)) {
       throw new Error(
         `DishCovered read the source but ${describeExtractionGaps(extraction)}. ` +
-          "The recipe details are probably in the video itself rather than the caption — " +
-          'copy the full recipe text (or type what you see in the video) into the "Paste text" tab.',
+          extractionAdvice(job.sourceType, job.rawInput),
       );
     }
     // Verify the image actually loads before saving it; fall back through the

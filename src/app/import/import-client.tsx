@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea, Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
+  aiRemainingAction,
   startImport,
   runImportJob,
   importPhotos,
@@ -67,6 +68,9 @@ export function ImportClient({
   aiRemaining?: number | null;
 }) {
   const [tab, setTab] = useState<Tab>("link");
+  // Live copy of the daily allowance — refreshed from the server after every
+  // run so the hints don't keep advertising the page-load number.
+  const [aiLeft, setAiLeft] = useState(aiRemaining);
   const [single, setSingle] = useState("");
   const [bulk, setBulk] = useState("");
   const [jobs, setJobs] = useState<JobView[]>(initialJobs);
@@ -85,6 +89,14 @@ export function ImportClient({
 
   function updateJob(updated: JobView) {
     setJobs((prev) => prev.map((j) => (j.id === updated.id ? updated : j)));
+  }
+
+  async function refreshQuota() {
+    try {
+      setAiLeft(await aiRemainingAction());
+    } catch {
+      // keep the last known number
+    }
   }
 
   async function runJobs(toRun: JobView[]): Promise<JobView[]> {
@@ -120,6 +132,7 @@ export function ImportClient({
         results.push(failed);
       }
     });
+    void refreshQuota();
     return results;
   }
 
@@ -134,7 +147,11 @@ export function ImportClient({
       if (mode === "single") setSingle("");
       else setBulk("");
       const results = await runJobs(created);
-      const imported = results.find((job) => job.status === "done" && job.recipeId);
+      // Partial ("needs review") imports keep the attached photo too — they
+      // have a real recipeId and are exactly the imports that lack an image.
+      const imported = results.find(
+        (job) => job.recipeId && (job.status === "done" || isPartialImport(job)),
+      );
       if (mode === "single" && attachedImage && imported?.recipeId) {
         await setRecipeImageAction(imported.recipeId, attachedImage);
         setSingleImagePath("");
@@ -342,13 +359,13 @@ export function ImportClient({
             value={bulk}
             onChange={(e) => setBulk(e.target.value)}
             placeholder={
-              `Paste a batch of links and/or recipes — one per line or separated by blank lines${aiRemaining != null ? ` (you have ${aiRemaining} AI import${aiRemaining === 1 ? "" : "s"} left today)` : ""}.` +
+              `Paste a batch of links and/or recipes — one per line or separated by blank lines${aiLeft != null ? ` (you have ${aiLeft} AI use${aiLeft === 1 ? "" : "s"} left today)` : ""}.` +
               "\n\nhttps://example.com/recipe-1\nhttps://youtube.com/watch?v=...\n..."
             }
             className="min-h-48"
             disabled={!aiEnabled}
           />
-          <BulkQuotaHint bulk={bulk} aiRemaining={aiRemaining} />
+          <BulkQuotaHint bulk={bulk} aiRemaining={aiLeft} />
           <Button
             onClick={() => handleStart("bulk", bulk)}
             disabled={!aiEnabled || busy || !bulk.trim()}
@@ -446,38 +463,57 @@ export function ImportClient({
 
 /**
  * Live item count vs the user's remaining daily AI allowance, so a big paste
- * warns *before* it burns the quota and fails halfway.
+ * warns *before* it burns the quota and fails halfway. Mirrors the server's
+ * accounting: a prose paste with no links also spends one use on AI
+ * segmentation before the per-item imports.
  */
 function BulkQuotaHint({ bulk, aiRemaining }: { bulk: string; aiRemaining: number | null }) {
   if (!bulk.trim()) {
     return aiRemaining != null && aiRemaining <= 3 ? (
       <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-        Heads up: only {aiRemaining === 0 ? "no" : aiRemaining} AI import
+        Heads up: only {aiRemaining === 0 ? "no" : aiRemaining} AI use
         {aiRemaining === 1 ? "" : "s"} left today — the allowance resets daily.
       </p>
     ) : null;
   }
-  const count = splitBulkInput(bulk).length;
+  const items = dedupeBulkPreview(splitBulkInput(bulk));
+  const count = items.length;
+  const hasLinks = items.some((item) => item.type === "url" || item.type === "youtube");
+  const segmentExtra = !hasLinks && bulk.trim().length > 120 ? 1 : 0;
+  const needed = count + segmentExtra;
   const overCap = count > MAX_BULK_ITEMS;
-  const overQuota = aiRemaining != null && count > aiRemaining;
+  const overQuota = aiRemaining != null && needed > aiRemaining;
   if (!overCap && !overQuota) {
     return (
       <p className="text-xs text-muted">
-        {count} item{count === 1 ? "" : "s"} detected
+        {count} item{count === 1 ? "" : "s"} detected — uses {needed} AI use
+        {needed === 1 ? "" : "s"}
+        {segmentExtra ? " (1 to split the paste)" : ""}
         {aiRemaining != null
-          ? ` · ${aiRemaining} AI import${aiRemaining === 1 ? "" : "s"} left today`
+          ? ` of your ${aiRemaining} left today`
           : ""}
       </p>
     );
   }
   return (
     <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-      That looks like {count} items
+      That looks like {count} item{count === 1 ? "" : "s"}
       {overQuota
-        ? `, but you have ${aiRemaining} AI import${aiRemaining === 1 ? "" : "s"} left today — anything past that will fail. Import your top ${aiRemaining} now and the rest tomorrow.`
+        ? ` needing ${needed} AI use${needed === 1 ? "" : "s"}${segmentExtra ? " (1 to split the paste)" : ""}, but you have ${aiRemaining} left today — anything past that will fail. Import the most important ones now and the rest tomorrow.`
         : ` — one paste imports at most ${MAX_BULK_ITEMS}, so split it into batches.`}
     </p>
   );
+}
+
+/** Mirror of the server's duplicate-line dedupe so the count matches reality. */
+function dedupeBulkPreview<T extends { type: string; value: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter((item) => {
+    const key = `${item.type}:${item.value.trim().toLowerCase()}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 /** Duplicate-skip rows, as opposed to partial imports that need finishing. */

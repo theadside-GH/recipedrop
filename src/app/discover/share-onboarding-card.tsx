@@ -21,6 +21,13 @@ export function ShareOnboardingCard() {
     () => window.matchMedia("(display-mode: standalone)").matches,
     () => true,
   );
+  // iOS has no Web Share Target: the share sheet will never list DishCovered
+  // there, so iPhone users get the copy-the-link flow instead of a dead end.
+  const isIos = useSyncExternalStore(
+    noopSubscribe,
+    () => /iPad|iPhone|iPod/.test(window.navigator.userAgent),
+    () => false,
+  );
 
   if (installed || dismissed === "1") return null;
 
@@ -43,11 +50,11 @@ export function ShareOnboardingCard() {
         <Zap className="h-3.5 w-3.5" /> The fast way
       </p>
       <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
-        Save recipes in two taps
+        {isIos ? "Save recipes in seconds" : "Save recipes in two taps"}
       </h2>
       <p className="mt-1 max-w-lg text-sm text-muted">
-        See a recipe video? Share it to DishCovered and it lands here as a clean,
-        step-by-step recipe — no typing, no screenshots.
+        See a recipe video? Get it into DishCovered as a clean, step-by-step recipe — no
+        typing, no screenshots.
       </p>
 
       <div className="mt-5 grid gap-3 sm:grid-cols-2">
@@ -60,8 +67,15 @@ export function ShareOnboardingCard() {
               <Smartphone className="h-4 w-4 text-brand" /> Put it on your phone
             </p>
             <p className="mt-1 text-muted">
-              iPhone: open this site in Safari → Share → <strong>Add to Home Screen</strong>.
-              Android: menu → <strong>Install app</strong>.
+              {isIos ? (
+                <>
+                  Open this site in Safari → Share → <strong>Add to Home Screen</strong>.
+                </>
+              ) : (
+                <>
+                  Open this site in Chrome → menu → <strong>Install app</strong>.
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -71,12 +85,25 @@ export function ShareOnboardingCard() {
           </span>
           <div className="text-sm">
             <p className="flex items-center gap-1.5 font-semibold">
-              <Share className="h-4 w-4 text-brand" /> Share any recipe video
+              <Share className="h-4 w-4 text-brand" />
+              {isIos ? "Copy any recipe video's link" : "Share any recipe video"}
             </p>
             <p className="mt-1 text-muted">
-              In TikTok, Instagram, or YouTube tap Share → <strong>DishCovered</strong>.
-              <Sparkles className="mx-1 inline h-3.5 w-3.5 text-brand" />
-              Done — it&apos;s in Your Recipes.
+              {isIos ? (
+                <>
+                  In TikTok, Instagram, or YouTube tap Share → <strong>Copy link</strong>, then
+                  open DishCovered and paste it into <strong>Import</strong>.
+                  <Sparkles className="mx-1 inline h-3.5 w-3.5 text-brand" />
+                  Done — it&apos;s in Your Recipes. (iPhones don&apos;t allow direct
+                  share-to-app for web apps.)
+                </>
+              ) : (
+                <>
+                  In TikTok, Instagram, or YouTube tap Share → <strong>DishCovered</strong>.
+                  <Sparkles className="mx-1 inline h-3.5 w-3.5 text-brand" />
+                  Done — it&apos;s in Your Recipes.
+                </>
+              )}
             </p>
           </div>
         </div>

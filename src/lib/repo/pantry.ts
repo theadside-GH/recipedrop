@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { pantryItem, recipe, recipeIngredient } from "@/lib/db/schema";
 import { ingredientMatchKey } from "@/lib/shopping/normalize";

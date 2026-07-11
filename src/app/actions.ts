@@ -490,6 +490,18 @@ export async function deleteCollectionAction(id: string): Promise<void> {
   revalidatePath("/collections");
 }
 
+/** Fresh remaining AI allowance, so the import page can update as jobs run. */
+export async function aiRemainingAction(): Promise<number | null> {
+  try {
+    const owner = await getOwnerEmail();
+    const { getAiUsage } = await import("@/lib/entitlements");
+    const usage = await getAiUsage(owner);
+    return Math.max(0, usage.limit - usage.used);
+  } catch {
+    return null;
+  }
+}
+
 // ---- Recipe journal ----------------------------------------------------------
 
 export async function addRecipeNoteAction(
