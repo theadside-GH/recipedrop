@@ -1,7 +1,6 @@
-const CACHE_NAME = "dishcovered-shell-v1";
+const CACHE_NAME = "dishcovered-shell-v2";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
-  "/icon.svg",
   "/icon-192.png",
   "/icon-512.png",
   "/icon-maskable-512.png",

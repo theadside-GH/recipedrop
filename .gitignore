@@ -51,3 +51,6 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# Logo source (public/ holds the derived, optimized assets)
+/DISHCOVERED.png

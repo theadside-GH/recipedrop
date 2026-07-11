@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  ChefHat,
   Archive,
   BookOpen,
   Info,
@@ -64,9 +63,8 @@ export function SiteNav({ signedIn = true }: { signedIn?: boolean }) {
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link href="/discover" className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-[0_2px_8px_-2px_rgb(240_97_47/0.5)]">
-              <ChefHat className="h-5 w-5" />
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon-192.png" alt="" className="h-9 w-9 rounded-full border border-border bg-white object-cover shadow-sm" />
             <span className="font-display text-xl font-semibold tracking-tight">DishCovered</span>
           </Link>
           <div className="flex items-center gap-2">

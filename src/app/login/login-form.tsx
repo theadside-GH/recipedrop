@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { ChefHat, Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { safeRedirectPath } from "@/lib/auth-redirect";
@@ -58,10 +58,9 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
 
   return (
     <div className="mx-auto flex min-h-[70vh] max-w-sm flex-col items-center justify-center text-center">
-      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground">
-        <ChefHat className="h-7 w-7" />
-      </span>
-      <h1 className="mt-4 text-2xl font-bold">Welcome to DishCovered</h1>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo-full.webp" alt="DishCovered — From REEL to REAL" className="w-64 max-w-full" />
+      <h1 className="mt-5 text-2xl font-bold">Welcome to DishCovered</h1>
       <p className="mt-1 font-display text-lg text-brand">What did you Dishcover this week?</p>
       <p className="mt-1 text-muted">
         Save recipes from TikTok, Instagram, YouTube, websites, photos, or pasted text,
