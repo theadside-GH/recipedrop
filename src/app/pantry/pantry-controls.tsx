@@ -1,16 +1,20 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { Loader2, Plus, WandSparkles, X } from "lucide-react";
+import { HelpCircle, Loader2, Plus, WandSparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
+  checkPantryNameAction,
   setLeftoverItemAction,
   setPantryItemAction,
-  suggestPantryNameAction,
 } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 
 type PantryKind = "pantry" | "leftover";
+
+type EntryPrompt =
+  | { type: "typo"; typed: string; suggested: string }
+  | { type: "unknown"; typed: string };
 
 function actionFor(kind: PantryKind) {
   return kind === "pantry" ? setPantryItemAction : setLeftoverItemAction;
@@ -19,21 +23,20 @@ function actionFor(kind: PantryKind) {
 /**
  * Free-text entry so anything bought or on hand can go in the pantry — the
  * common-items grid and shopping-list check-offs only cover so much.
- * Items match shopping lists by exact name, so likely typos get a
- * "did you mean" prompt before saving.
+ * Items match shopping lists by exact name, so nothing unrecognized saves
+ * silently: likely typos get a "did you mean" prompt, and names the app has
+ * never seen need an explicit "add anyway".
  */
 export function AddItemForm({ kind, placeholder }: { kind: PantryKind; placeholder: string }) {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [suggestion, setSuggestion] = useState<{ typed: string; suggested: string } | null>(
-    null,
-  );
+  const [prompt, setPrompt] = useState<EntryPrompt | null>(null);
   const [isPending, startTransition] = useTransition();
 
   async function addItem(finalName: string) {
     await actionFor(kind)({ canonicalName: finalName, aisle: null, checked: true });
     setName("");
-    setSuggestion(null);
+    setPrompt(null);
     router.refresh();
   }
 
@@ -42,12 +45,16 @@ export function AddItemForm({ kind, placeholder }: { kind: PantryKind; placehold
     const cleaned = name.trim().toLowerCase();
     if (!cleaned) return;
     startTransition(async () => {
-      const suggested = await suggestPantryNameAction(cleaned);
-      if (suggested && suggested !== cleaned) {
-        setSuggestion({ typed: cleaned, suggested });
+      const check = await checkPantryNameAction(cleaned);
+      if (check.known) {
+        await addItem(cleaned);
         return;
       }
-      await addItem(cleaned);
+      if (check.suggestion && check.suggestion !== cleaned) {
+        setPrompt({ type: "typo", typed: cleaned, suggested: check.suggestion });
+      } else {
+        setPrompt({ type: "unknown", typed: cleaned });
+      }
     });
   }
 
@@ -64,7 +71,7 @@ export function AddItemForm({ kind, placeholder }: { kind: PantryKind; placehold
           value={name}
           onChange={(event) => {
             setName(event.target.value);
-            setSuggestion(null);
+            setPrompt(null);
           }}
           placeholder={placeholder}
           aria-label={placeholder}
@@ -75,23 +82,45 @@ export function AddItemForm({ kind, placeholder }: { kind: PantryKind; placehold
           Add
         </Button>
       </form>
-      {suggestion && (
+      {prompt?.type === "typo" && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand/25 bg-brand-soft p-3 text-sm">
           <WandSparkles className="h-4 w-4 shrink-0 text-brand" />
           <span>
-            Did you mean <strong className="capitalize">{suggestion.suggested}</strong>?
+            Did you mean <strong className="capitalize">{prompt.suggested}</strong>?
           </span>
           <span className="flex gap-2">
-            <Button size="sm" onClick={() => accept(suggestion.suggested)} disabled={isPending}>
-              Yes, add {suggestion.suggested}
+            <Button size="sm" onClick={() => accept(prompt.suggested)} disabled={isPending}>
+              Yes, add {prompt.suggested}
             </Button>
             <Button
               size="sm"
               variant="secondary"
-              onClick={() => accept(suggestion.typed)}
+              onClick={() => accept(prompt.typed)}
               disabled={isPending}
             >
-              Keep “{suggestion.typed}”
+              Keep “{prompt.typed}”
+            </Button>
+          </span>
+        </div>
+      )}
+      {prompt?.type === "unknown" && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand/25 bg-brand-soft p-3 text-sm">
+          <HelpCircle className="h-4 w-4 shrink-0 text-brand" />
+          <span>
+            “<strong className="capitalize">{prompt.typed}</strong>” doesn’t look like an
+            ingredient we know. Fix the spelling, or add it as is.
+          </span>
+          <span className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => accept(prompt.typed)}
+              disabled={isPending}
+            >
+              Add “{prompt.typed}” anyway
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setPrompt(null)} disabled={isPending}>
+              Never mind
             </Button>
           </span>
         </div>

@@ -15,6 +15,7 @@ import {
   createRecipeManual,
   deleteRecipe,
   getKnownCanonicalNames,
+  isKnownIngredientName,
   listIngredientNames,
   listRecipes,
   saveDropForOwner,
@@ -553,26 +554,40 @@ export async function setPantryItemAction(input: {
   revalidatePath("/pantry");
 }
 
+export interface PantryNameCheck {
+  /** The exact name is already a known ingredient, pantry item, or staple. */
+  known: boolean;
+  /** Closest known name when the input looks like a typo of it. */
+  suggestion: string | null;
+}
+
 /**
- * Likely-typo check for hand-typed pantry items: the closest ingredient name
- * the app already knows, or null when the input looks fine.
+ * Sanity check for hand-typed pantry items: is the name one the app already
+ * knows, and if not, what's the closest likely-typo match? Unknown names get
+ * an "add anyway?" confirm in the UI instead of saving silently.
  */
-export async function suggestPantryNameAction(name: string): Promise<string | null> {
+export async function checkPantryNameAction(name: string): Promise<PantryNameCheck> {
   const owner = await getOwnerEmail();
   const cleaned = name.trim().toLowerCase();
-  if (!cleaned) return null;
+  if (!cleaned) return { known: false, suggestion: null };
   try {
-    const [known, pantry] = await Promise.all([
-      getKnownCanonicalNames(),
-      listPantryItems(owner),
-    ]);
-    const { closestKnownName } = await import("@/lib/shopping/spelling");
-    return closestKnownName(cleaned, [
-      ...known,
+    const [{ COMMON_ITEMS }, { closestKnownName }, recent, pantry, isCanonical] =
+      await Promise.all([
+        import("@/lib/shopping/common-items"),
+        import("@/lib/shopping/spelling"),
+        getKnownCanonicalNames(),
+        listPantryItems(owner),
+        isKnownIngredientName(name),
+      ]);
+    const vocabulary = [
+      ...COMMON_ITEMS,
+      ...recent,
       ...pantry.map((item) => item.canonicalName),
-    ]);
+    ];
+    const known = isCanonical || vocabulary.some((v) => v.trim().toLowerCase() === cleaned);
+    return { known, suggestion: known ? null : closestKnownName(cleaned, vocabulary) };
   } catch {
-    return null; // suggestion is best-effort — never block the add
+    return { known: true, suggestion: null }; // check is best-effort — never block the add
   }
 }
 

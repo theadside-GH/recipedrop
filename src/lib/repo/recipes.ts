@@ -47,6 +47,19 @@ export async function getKnownCanonicalNames(): Promise<string[]> {
   return rows.map((r) => r.name);
 }
 
+/** Whether this exact name is already a canonical ingredient (any age). */
+export async function isKnownIngredientName(name: string): Promise<boolean> {
+  const cleaned = name.trim().toLowerCase();
+  if (!cleaned) return false;
+  const db = await getDb();
+  const [row] = await db
+    .select({ id: canonicalIngredient.id })
+    .from(canonicalIngredient)
+    .where(eq(canonicalIngredient.name, cleaned))
+    .limit(1);
+  return !!row;
+}
+
 async function resolveCanonical(
   db: Awaited<ReturnType<typeof getDb>>,
   rawName: string,
@@ -511,12 +524,7 @@ export async function dropperCountForRecipe(r: {
   return Number(row?.n ?? 1);
 }
 
-export async function listPublicRecipes(
-  sort: "newest" | "popular" = "newest",
-  limit = 12,
-  filters: PublicRecipeFilters = {},
-): Promise<PublicRecipeRow[]> {
-  const db = await getDb();
+function publicDropConditions(db: DB, filters: PublicRecipeFilters): SQL[] {
   const conds = [
     eq(recipe.isPublic, true),
     eq(recipe.isHidden, false),
@@ -525,6 +533,30 @@ export async function listPublicRecipes(
   ];
   if (filters.mealType) conds.push(eq(recipe.mealType, filters.mealType as never));
   if (filters.q?.trim()) conds.push(recipeSearchCondition(db, filters.q));
+  return conds;
+}
+
+/**
+ * True total of unique public drops — the browse grid is row-limited, so its
+ * length understates the total once the feed outgrows the limit.
+ */
+export async function countPublicRecipes(filters: PublicRecipeFilters = {}): Promise<number> {
+  const db = await getDb();
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(recipe)
+    .innerJoin(userProfile, eq(userProfile.email, recipe.ownerEmail))
+    .where(and(...publicDropConditions(db, filters)));
+  return row?.n ?? 0;
+}
+
+export async function listPublicRecipes(
+  sort: "newest" | "popular" = "newest",
+  limit = 12,
+  filters: PublicRecipeFilters = {},
+): Promise<PublicRecipeRow[]> {
+  const db = await getDb();
+  const conds = publicDropConditions(db, filters);
   const rows = await db
     .select({
       recipe,

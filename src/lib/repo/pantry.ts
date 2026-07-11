@@ -93,6 +93,7 @@ export async function listPantryRecipeSuggestions(
       recipeId: recipeIngredient.recipeId,
       canonicalName: recipeIngredient.canonicalName,
       rawText: recipeIngredient.rawText,
+      optional: recipeIngredient.optional,
     })
     .from(recipeIngredient)
     .where(
@@ -105,6 +106,9 @@ export async function listPantryRecipeSuggestions(
   const availableSet = new Set(available.map(cleanName).filter(Boolean));
   const byRecipe = new Map<string, Set<string>>();
   for (const ingredient of ingredients) {
+    // Optional ingredients don't count for or against a match — a garnish
+    // you're missing shouldn't drag a cookable recipe down the list.
+    if (ingredient.optional) continue;
     const name = cleanName(ingredient.canonicalName ?? ingredient.rawText);
     if (!name) continue;
     if (!byRecipe.has(ingredient.recipeId)) byRecipe.set(ingredient.recipeId, new Set());
@@ -124,7 +128,15 @@ export async function listPantryRecipeSuggestions(
         missingNames,
       };
     })
-    .filter((item) => item.matchCount > 0 && item.totalCount > 0)
+    // A single shared staple isn't a real suggestion: only surface recipes
+    // where the pantry covers a meaningful share (≥ a third) of the required
+    // ingredients, or where just a couple of items are missing.
+    .filter(
+      (item) =>
+        item.matchCount > 0 &&
+        item.totalCount > 0 &&
+        (item.matchCount / item.totalCount >= 1 / 3 || item.missingNames.length <= 2),
+    )
     .sort((a, b) => {
       const aScore = a.matchCount / a.totalCount;
       const bScore = b.matchCount / b.totalCount;

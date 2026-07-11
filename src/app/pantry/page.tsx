@@ -70,11 +70,15 @@ export default async function PantryPage() {
             Recipe ideas from what you have
           </h2>
         </div>
+        <p className="max-w-2xl text-sm text-muted">
+          Saved recipes your pantry mostly covers. Anything you&apos;d still have to buy is
+          called out on each card.
+        </p>
 
         {suggestions.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border bg-surface p-6 text-sm text-muted">
-            No matches yet. Add a few pantry or leftover items from a meal-plan shopping list and
-            RecipeDrop will suggest saved recipes that use them.
+            No close matches yet. Add more of what you have — pantry items, leftovers, or
+            check-offs from a shopping list — and recipes you can mostly make will show up here.
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
@@ -146,16 +150,29 @@ function SuggestionCard({
         </div>
         <div className="min-w-0 p-4">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={percent >= 60 ? "fresh" : "brand"}>{percent}% match</Badge>
+            {suggestion.missingNames.length === 0 ? (
+              <Badge variant="fresh">You have everything</Badge>
+            ) : (
+              <Badge className="bg-amber-100 text-amber-800">
+                Missing {suggestion.missingNames.length}{" "}
+                {suggestion.missingNames.length === 1 ? "ingredient" : "ingredients"}
+              </Badge>
+            )}
             <span className="text-xs text-muted">
-              {suggestion.matchCount}/{suggestion.totalCount} ingredients
+              you have {suggestion.matchCount} of {suggestion.totalCount} ({percent}%)
             </span>
           </div>
           <h3 className="mt-2 line-clamp-2 font-semibold leading-snug">
             {suggestion.recipe.title}
           </h3>
-          <IngredientLine label="Uses" names={suggestion.matchedNames} />
-          <IngredientLine label="Missing" names={suggestion.missingNames} muted />
+          <IngredientLine label="Uses" names={suggestion.matchedNames} muted />
+          {suggestion.missingNames.length > 0 && (
+            <IngredientLine
+              label="Still need"
+              names={suggestion.missingNames}
+              className="text-amber-800"
+            />
+          )}
         </div>
       </div>
     </Link>
@@ -166,10 +183,12 @@ function IngredientLine({
   label,
   names,
   muted = false,
+  className,
 }: {
   label: string;
   names: string[];
   muted?: boolean;
+  className?: string;
 }) {
   const visible = names.slice(0, 4);
   if (visible.length === 0) return null;
@@ -178,6 +197,7 @@ function IngredientLine({
       className={cn(
         "mt-2 line-clamp-2 text-xs capitalize",
         muted ? "text-muted" : "text-foreground",
+        className,
       )}
     >
       <span className="font-semibold">{label}:</span> {visible.join(", ")}

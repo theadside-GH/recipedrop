@@ -5,51 +5,8 @@ import { Archive, Check, Loader2, PlusCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { setPantryItemAction } from "@/app/actions";
 import { Button } from "@/components/ui/button";
+import { COMMON_ITEMS } from "@/lib/shopping/common-items";
 import { cn } from "@/lib/utils";
-
-const COMMON_ITEMS = [
-  "salt",
-  "black pepper",
-  "olive oil",
-  "vegetable oil",
-  "butter",
-  "eggs",
-  "milk",
-  "flour",
-  "sugar",
-  "brown sugar",
-  "baking powder",
-  "baking soda",
-  "vanilla",
-  "rice",
-  "pasta",
-  "noodles",
-  "breadcrumbs",
-  "oats",
-  "canned tomatoes",
-  "tomato paste",
-  "chicken stock",
-  "vegetable stock",
-  "soy sauce",
-  "vinegar",
-  "honey",
-  "maple syrup",
-  "hot sauce",
-  "mayonnaise",
-  "mustard",
-  "ketchup",
-  "garlic powder",
-  "onion powder",
-  "paprika",
-  "cumin",
-  "oregano",
-  "cinnamon",
-  "chili flakes",
-  "cornstarch",
-  "peanut butter",
-  "beans",
-  "lentils",
-];
 
 export function CommonItemsPicker({ selectedItems }: { selectedItems: string[] }) {
   const router = useRouter();

@@ -6,7 +6,12 @@ import { SaveDropToggle } from "@/components/save-drop-toggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getViewerEmail } from "@/lib/auth";
-import { listPublicRecipes, savedCopyIdsFor, type PublicRecipeRow } from "@/lib/repo/recipes";
+import {
+  countPublicRecipes,
+  listPublicRecipes,
+  savedCopyIdsFor,
+  type PublicRecipeRow,
+} from "@/lib/repo/recipes";
 import { cookedCountsFor, listFollowedRecipes } from "@/lib/repo/social";
 import { cn } from "@/lib/utils";
 import { ShareOnboardingCard } from "./share-onboarding-card";
@@ -30,7 +35,7 @@ export default async function DiscoverPage({
   const allSort = sp.sort === "popular" ? ("popular" as const) : ("newest" as const);
   const viewer = (await getViewerEmail()) ?? "";
 
-  const [newest, popular, followed] =
+  const [newest, popular, followed, publicTotal] =
     filtering || viewAll
       ? [
           await listPublicRecipes(viewAll ? allSort : "newest", viewAll ? 300 : 24, {
@@ -39,11 +44,13 @@ export default async function DiscoverPage({
           }),
           [],
           [],
+          await countPublicRecipes({ q, mealType: meal }),
         ]
       : await Promise.all([
           listPublicRecipes("newest", 12),
           listPublicRecipes("popular", 8),
           viewer ? listFollowedRecipes(viewer, 8) : Promise.resolve([]),
+          Promise.resolve(0),
         ]);
 
   const allRows = [...newest, ...popular, ...followed];
@@ -114,10 +121,17 @@ export default async function DiscoverPage({
         <PublicSection
           title={
             viewAll
-              ? `All drops (${newest.length})`
+              ? `All public drops (${publicTotal})`
               : q
-                ? `Results for "${q}"`
-                : `${capitalize(meal)} drops`
+                ? `Results for "${q}" (${publicTotal})`
+                : `${capitalize(meal)} drops (${publicTotal})`
+          }
+          description={
+            viewAll
+              ? `Every publicly shared drop.${
+                  newest.length < publicTotal ? ` Showing the newest ${newest.length}.` : ""
+                } When several cooks drop the same link, it appears once — the card credits the first dropper and counts everyone. Private recipes stay in Your Recipes.`
+              : undefined
           }
           icon={viewAll ? LayoutGrid : Search}
           recipes={newest}
@@ -250,6 +264,7 @@ function SortChip({
 
 function PublicSection({
   title,
+  description,
   icon: Icon,
   recipes,
   viewer,
@@ -259,6 +274,7 @@ function PublicSection({
   action,
 }: {
   title: string;
+  description?: string;
   icon: React.ComponentType<{ className?: string }>;
   recipes: PublicRecipeRow[];
   viewer: string;
@@ -276,6 +292,7 @@ function PublicSection({
         </h2>
         {action}
       </div>
+      {description && <p className="max-w-2xl text-sm text-muted">{description}</p>}
       {recipes.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-surface p-6 text-sm text-muted">
           {empty}
