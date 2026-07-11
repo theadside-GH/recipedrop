@@ -14,6 +14,7 @@ import { detectSourceType } from "@/lib/sources/detect";
 import {
   createRecipeManual,
   deleteRecipe,
+  earlierPublicSharer,
   getKnownCanonicalNames,
   isKnownIngredientName,
   listIngredientNames,
@@ -201,12 +202,24 @@ export async function unsaveDropAction(recipeId: string): Promise<void> {
   revalidatePath("/discover");
 }
 
-export async function setRecipePublicAction(id: string, isPublic: boolean): Promise<void> {
+export async function setRecipePublicAction(
+  id: string,
+  isPublic: boolean,
+): Promise<{ notice: string | null }> {
   const owner = await getOwnerEmail();
   await setRecipePublic({ ownerEmail: owner, id, isPublic });
   revalidatePath("/recipes");
   revalidatePath("/discover");
   revalidatePath(`/r/${id}`);
+  if (!isPublic) return { notice: null };
+  const earlier = await earlierPublicSharer(owner, id);
+  if (!earlier) return { notice: null };
+  const who = earlier.handle ? `@${earlier.handle}` : earlier.displayName;
+  return {
+    notice:
+      `It's public — but ${who} shared this same link first, so theirs is the one that ` +
+      "shows in Discover. Yours still works via your profile and its direct link.",
+  };
 }
 
 export async function setRecipeImageAction(id: string, imagePath: string): Promise<void> {

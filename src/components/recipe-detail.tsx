@@ -23,7 +23,7 @@ import { RecipeImage } from "@/components/recipe-image";
 import { PrintButton } from "@/components/print-button";
 import { RecipePublicToggle } from "@/components/recipe-public-toggle";
 import { ShareLinkButton } from "@/components/share-link-button";
-import { cn, formatMinutes, tidyNumber } from "@/lib/utils";
+import { cn, formatMinutes, formatQuantity } from "@/lib/utils";
 import { pluralize } from "@/lib/shopping/units";
 import { convertedAmount, type UnitSystem } from "@/lib/unit-display";
 import { useLocalSetting } from "@/lib/use-local-setting";
@@ -194,7 +194,12 @@ export function RecipeDetail({
       {/* Actions */}
       <div className="flex flex-wrap gap-3 print:hidden">
         {actionsSlot}
-        <Link href={`/recipes/${recipe.id}/cook`}>
+        {/* Carry the chosen servings into cook mode so its amounts match. */}
+        <Link
+          href={`/recipes/${recipe.id}/cook${
+            servings !== recipe.servingsDefault ? `?servings=${servings}` : ""
+          }`}
+        >
           <Button size="lg" variant={readOnly ? "secondary" : "primary"}>
             <ChefHat className="h-5 w-5" /> {readOnly ? "Make this recipe" : "Start cooking"}
           </Button>
@@ -415,8 +420,9 @@ function scaledAmount(ing: RecipeIngredient, factor: number, system: UnitSystem)
     const converted = convertedAmount(ing.quantity * factor, ing.unit, system);
     if (converted) return converted;
   }
-  const qty = tidyNumber(ing.quantity * factor);
+  const scaled = ing.quantity * factor;
+  const qty = formatQuantity(scaled);
   if (!ing.unit) return `${qty}×`;
-  const unit = ing.unitCategory === "count" ? pluralize(ing.unit, qty) : ing.unit;
+  const unit = ing.unitCategory === "count" ? pluralize(ing.unit, scaled) : ing.unit;
   return `${qty} ${unit}`;
 }

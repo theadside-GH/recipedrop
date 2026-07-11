@@ -20,3 +20,27 @@ export function formatMinutes(total: number | null | undefined): string {
 export function tidyNumber(n: number): number {
   return Math.round(n * 100) / 100;
 }
+
+const COOKING_FRACTIONS: [number, string][] = [
+  [1 / 8, "⅛"],
+  [1 / 4, "¼"],
+  [1 / 3, "⅓"],
+  [1 / 2, "½"],
+  [2 / 3, "⅔"],
+  [3 / 4, "¾"],
+];
+
+/**
+ * Recipe-style quantity: 0.5 → "½", 1.5 → "1½", 0.33 → "⅓". Scaling servings
+ * must read like a cookbook, not a calculator ("0.5× egg"). Falls back to
+ * tidy decimals for amounts that aren't close to a kitchen fraction.
+ */
+export function formatQuantity(value: number): string {
+  const whole = Math.floor(value + 1e-9);
+  const frac = value - whole;
+  if (frac <= 0.01) return String(whole);
+  for (const [v, glyph] of COOKING_FRACTIONS) {
+    if (Math.abs(frac - v) < 0.05) return whole > 0 ? `${whole}${glyph}` : glyph;
+  }
+  return String(tidyNumber(value));
+}

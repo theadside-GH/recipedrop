@@ -413,6 +413,43 @@ export async function setRecipePublic(input: {
   if (!updated) throw new Error("Recipe not found.");
 }
 
+/**
+ * When another cook already publicly shares the same source link and theirs
+ * came first, this recipe won't appear in the Discover feed (the earliest
+ * share wins) — return who, so the publish toggle can say so instead of
+ * letting the user hunt for their invisible dish.
+ */
+export async function earlierPublicSharer(
+  ownerEmail: string,
+  id: string,
+): Promise<{ handle: string | null; displayName: string } | null> {
+  const db = await getDb();
+  const [own] = await db
+    .select({ sourceKey: recipe.sourceKey, createdAt: recipe.createdAt, id: recipe.id })
+    .from(recipe)
+    .where(and(eq(recipe.id, id), eq(recipe.ownerEmail, ownerEmail)))
+    .limit(1);
+  if (!own?.sourceKey) return null;
+  const [earlier] = await db
+    .select({ handle: userProfile.handle, displayName: userProfile.displayName })
+    .from(recipe)
+    .innerJoin(userProfile, eq(userProfile.email, recipe.ownerEmail))
+    .where(
+      and(
+        eq(recipe.sourceKey, own.sourceKey),
+        eq(recipe.isPublic, true),
+        eq(recipe.isHidden, false),
+        eq(userProfile.publicFeedOptIn, true),
+        or(
+          lt(recipe.createdAt, own.createdAt),
+          and(eq(recipe.createdAt, own.createdAt), lt(recipe.id, own.id)),
+        ),
+      ),
+    )
+    .limit(1);
+  return earlier ?? null;
+}
+
 export interface PublicRecipeRow {
   recipe: typeof recipe.$inferSelect;
   displayName: string;
@@ -711,6 +748,19 @@ async function writeEditedParts(
   recipeId: string,
   input: Pick<RecipeEditInput, "ingredients" | "steps" | "tags">,
 ): Promise<void> {
+  // The edit form only round-trips step text, so carry existing durations
+  // (cook-mode timers) over to any step whose text is unchanged — editing a
+  // title must not wipe every timer on the recipe.
+  const existingSteps = await db
+    .select({ instruction: step.instruction, durationMinutes: step.durationMinutes })
+    .from(step)
+    .where(eq(step.recipeId, recipeId));
+  const durationByText = new Map(
+    existingSteps
+      .filter((s) => s.durationMinutes != null)
+      .map((s) => [s.instruction.trim(), s.durationMinutes]),
+  );
+
   await db.delete(recipeIngredient).where(eq(recipeIngredient.recipeId, recipeId));
   await db.delete(step).where(eq(step.recipeId, recipeId));
   await db.delete(recipeTag).where(eq(recipeTag.recipeId, recipeId));
@@ -741,7 +791,7 @@ async function writeEditedParts(
         recipeId,
         stepNumber: i + 1,
         instruction,
-        durationMinutes: null,
+        durationMinutes: durationByText.get(instruction) ?? null,
       })),
     );
   }

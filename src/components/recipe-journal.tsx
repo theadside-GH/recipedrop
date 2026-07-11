@@ -59,6 +59,7 @@ export function RecipeJournal({
 
   function remove(noteId: string) {
     if (noteId.startsWith("tmp-")) return; // let the refresh catch up first
+    if (!confirm("Delete this entry? There's no undo.")) return;
     startTransition(async () => {
       await deleteRecipeNoteAction(recipeId, noteId);
       setEntries((current) => current.filter((entry) => entry.id !== noteId));
