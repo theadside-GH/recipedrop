@@ -81,7 +81,11 @@ export default async function PublicCollectionPage({
               bylineAvatar={data.owner?.avatarUrl}
               bottomRightSlot={
                 isOwner ? undefined : (
-                  <SaveDropToggle recipeId={r.id} initialSaved={savedCopies.has(r.id)} />
+                  <SaveDropToggle
+                    recipeId={r.id}
+                    initialSaved={savedCopies.has(r.id)}
+                    signedIn={!!viewer}
+                  />
                 )
               }
             />

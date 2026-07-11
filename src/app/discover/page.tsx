@@ -299,6 +299,7 @@ function PublicSection({
                   <SaveDropToggle
                     recipeId={row.recipe.id}
                     initialSaved={savedCopies.has(row.recipe.id)}
+                    signedIn={!!viewer}
                   />
                 )
               }

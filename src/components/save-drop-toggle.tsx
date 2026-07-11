@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { BookMarked } from "lucide-react";
 import { saveDropAction, unsaveDropAction } from "@/app/actions";
 import { cn } from "@/lib/utils";
@@ -8,21 +9,30 @@ import { cn } from "@/lib/utils";
 /**
  * Recipe-book save toggle for public drop cards: tap to save the drop into
  * Your Recipes, tap again to take it back out. Fills instantly (optimistic)
- * and rolls back if the server disagrees.
+ * and rolls back if the server disagrees. Signed-out viewers are sent to
+ * sign in and come back to the same page.
  */
 export function SaveDropToggle({
   recipeId,
   initialSaved,
+  signedIn = true,
   className,
 }: {
   recipeId: string;
   initialSaved: boolean;
+  signedIn?: boolean;
   className?: string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [saved, setSaved] = useState(initialSaved);
   const [, startTransition] = useTransition();
 
   function toggle() {
+    if (!signedIn) {
+      router.push(`/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
     const next = !saved;
     setSaved(next);
     startTransition(async () => {

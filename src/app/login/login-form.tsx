@@ -81,7 +81,8 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
         <div className="mt-6 w-full space-y-3">
           {denied && (
             <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-              Sign-in failed. Use the owner email and request a fresh magic link.
+              That sign-in link didn&apos;t work — it may have expired or already been used.
+              Enter your email below and we&apos;ll send you a fresh one.
             </p>
           )}
           <div className="grid gap-2">

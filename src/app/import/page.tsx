@@ -40,7 +40,11 @@ export default async function ImportPage() {
           See the README for setup.
         </div>
       )}
-      <ImportClient aiEnabled={features.aiEnabled} initialJobs={recentJobs} />
+      <ImportClient
+        aiEnabled={features.aiEnabled}
+        initialJobs={recentJobs}
+        aiRemaining={usage ? Math.max(0, usage.limit - usage.used) : null}
+      />
     </div>
   );
 }

@@ -41,7 +41,9 @@ export default async function RecipePage({
         <ArrowLeft className="h-4 w-4" /> All recipes
       </Link>
       <RecipeDetail
-        recipe={data.recipe}
+        // On a saved copy, savedFromEmail is another cook's address — keep it
+        // out of the client payload.
+        recipe={{ ...data.recipe, savedFromEmail: null }}
         ingredients={data.ingredients}
         steps={data.steps}
         tags={data.tags}

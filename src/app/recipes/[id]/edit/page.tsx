@@ -26,7 +26,8 @@ export default async function EditRecipePage({
         <ArrowLeft className="h-4 w-4" /> Back to recipe
       </Link>
       <RecipeEditForm
-        recipe={data.recipe}
+        // savedFromEmail is another cook's address — not needed by the form.
+        recipe={{ ...data.recipe, savedFromEmail: null }}
         ingredients={data.ingredients.map((ingredient) => ingredient.rawText)}
         steps={data.steps.map((item) => item.instruction)}
         tags={data.tags}

@@ -30,8 +30,12 @@ import {
 } from "@/app/actions";
 import type { ImageInput } from "@/lib/ai/extract";
 import { imageFileToDataUrl } from "@/lib/client-image";
+import { splitBulkInput } from "@/lib/sources/detect";
 
 type Tab = "link" | "bulk" | "photo";
+
+/** Server-side cap on one bulk paste (see lib/repo/imports.ts MAX_BULK_ITEMS). */
+const MAX_BULK_ITEMS = 20;
 
 const SOURCE_LABEL: Record<string, string> = {
   url: "Website",
@@ -55,9 +59,12 @@ async function pool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>
 export function ImportClient({
   aiEnabled,
   initialJobs = [],
+  aiRemaining = null,
 }: {
   aiEnabled: boolean;
   initialJobs?: JobView[];
+  /** AI imports left in the user's daily allowance; null = unknown/unmetered. */
+  aiRemaining?: number | null;
 }) {
   const [tab, setTab] = useState<Tab>("link");
   const [single, setSingle] = useState("");
@@ -205,8 +212,18 @@ export function ImportClient({
     try {
       const images: ImageInput[] = [];
       for (const file of Array.from(files).slice(0, 5)) {
-        const data = await fileToBase64(file);
-        images.push({ mediaType: mediaTypeOf(file), data });
+        // Downscale + re-encode as JPEG client-side: full-size phone photos
+        // blow past the 4 MB server-action body limit, and odd formats (HEIC)
+        // either convert here or fail with a clear message instead of a 500.
+        let dataUrl: string;
+        try {
+          dataUrl = await imageFileToDataUrl(file, { maxSize: 1400, quality: 0.78 });
+        } catch {
+          throw new Error(
+            `Couldn't read "${file.name}" — that photo format isn't supported by your browser. Try a JPG or PNG, or take a screenshot of it.`,
+          );
+        }
+        images.push({ mediaType: "image/jpeg", data: dataUrl.split(",")[1] ?? "" });
       }
       const { recipeId } = await importPhotos(images);
       setJobs((prev) => [
@@ -323,10 +340,14 @@ export function ImportClient({
           <Textarea
             value={bulk}
             onChange={(e) => setBulk(e.target.value)}
-            placeholder={"Paste up to ~20 links and/or recipes at once — one per line or separated by blank lines.\n\nhttps://example.com/recipe-1\nhttps://youtube.com/watch?v=...\n..."}
+            placeholder={
+              `Paste a batch of links and/or recipes — one per line or separated by blank lines${aiRemaining != null ? ` (you have ${aiRemaining} AI import${aiRemaining === 1 ? "" : "s"} left today)` : ""}.` +
+              "\n\nhttps://example.com/recipe-1\nhttps://youtube.com/watch?v=...\n..."
+            }
             className="min-h-48"
             disabled={!aiEnabled}
           />
+          <BulkQuotaHint bulk={bulk} aiRemaining={aiRemaining} />
           <Button
             onClick={() => handleStart("bulk", bulk)}
             disabled={!aiEnabled || busy || !bulk.trim()}
@@ -419,6 +440,42 @@ export function ImportClient({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Live item count vs the user's remaining daily AI allowance, so a big paste
+ * warns *before* it burns the quota and fails halfway.
+ */
+function BulkQuotaHint({ bulk, aiRemaining }: { bulk: string; aiRemaining: number | null }) {
+  if (!bulk.trim()) {
+    return aiRemaining != null && aiRemaining <= 3 ? (
+      <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+        Heads up: only {aiRemaining === 0 ? "no" : aiRemaining} AI import
+        {aiRemaining === 1 ? "" : "s"} left today — the allowance resets daily.
+      </p>
+    ) : null;
+  }
+  const count = splitBulkInput(bulk).length;
+  const overCap = count > MAX_BULK_ITEMS;
+  const overQuota = aiRemaining != null && count > aiRemaining;
+  if (!overCap && !overQuota) {
+    return (
+      <p className="text-xs text-muted">
+        {count} item{count === 1 ? "" : "s"} detected
+        {aiRemaining != null
+          ? ` · ${aiRemaining} AI import${aiRemaining === 1 ? "" : "s"} left today`
+          : ""}
+      </p>
+    );
+  }
+  return (
+    <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+      That looks like {count} items
+      {overQuota
+        ? `, but you have ${aiRemaining} AI import${aiRemaining === 1 ? "" : "s"} left today — anything past that will fail. Import your top ${aiRemaining} now and the rest tomorrow.`
+        : ` — one paste imports at most ${MAX_BULK_ITEMS}, so split it into batches.`}
+    </p>
   );
 }
 
@@ -522,20 +579,3 @@ function TabButton({
   );
 }
 
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result.split(",")[1] ?? "");
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
-function mediaTypeOf(file: File): ImageInput["mediaType"] {
-  const t = file.type;
-  if (t === "image/png" || t === "image/webp" || t === "image/gif") return t;
-  return "image/jpeg";
-}

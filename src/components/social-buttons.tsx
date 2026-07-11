@@ -1,26 +1,41 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { ChefHat, Loader2, UserCheck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { markCookedAction, setFollowAction, setFollowByHandleAction } from "@/app/actions";
 import { cn } from "@/lib/utils";
+
+/** Send a signed-out tap to /login and back to the page they were on. */
+function useSignInGate(signedIn: boolean) {
+  const router = useRouter();
+  const pathname = usePathname();
+  return () => {
+    if (signedIn) return false;
+    router.push(`/login?next=${encodeURIComponent(pathname)}`);
+    return true;
+  };
+}
 
 /** Follow the cook behind a public drop. Keyed by recipeId — no emails client-side. */
 export function FollowButton({
   recipeId,
   initialFollowing,
   cookName,
+  signedIn = true,
 }: {
   recipeId: string;
   initialFollowing: boolean;
   cookName?: string | null;
+  signedIn?: boolean;
 }) {
   const [following, setFollowing] = useState(initialFollowing);
   const [pending, startTransition] = useTransition();
+  const gate = useSignInGate(signedIn);
 
   function toggle() {
-    if (pending) return;
+    if (pending || gate()) return;
     startTransition(async () => {
       try {
         const result = await setFollowAction(recipeId, !following);
@@ -50,17 +65,20 @@ export function MadeThisButton({
   recipeId,
   initialCooked,
   initialCount,
+  signedIn = true,
 }: {
   recipeId: string;
   initialCooked: boolean;
   initialCount: number;
+  signedIn?: boolean;
 }) {
   const [cooked, setCooked] = useState(initialCooked);
   const [count, setCount] = useState(initialCount);
   const [pending, startTransition] = useTransition();
+  const gate = useSignInGate(signedIn);
 
   function mark() {
-    if (pending || cooked) return;
+    if (pending || cooked || gate()) return;
     startTransition(async () => {
       try {
         const result = await markCookedAction(recipeId);

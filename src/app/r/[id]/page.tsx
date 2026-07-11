@@ -39,9 +39,10 @@ export default async function PublicRecipePage({
         <ArrowLeft className="h-4 w-4" /> Discover recipes
       </Link>
       <RecipeDetail
-        // RecipeDetail is a client component: blank the owner's email so it
-        // never ships in the page payload of a public drop.
-        recipe={{ ...data.recipe, ownerEmail: "" }}
+        // RecipeDetail is a client component: blank the owner's email (and the
+        // original dropper's, on saved copies) so no address ever ships in the
+        // page payload of a public drop.
+        recipe={{ ...data.recipe, ownerEmail: "", savedFromEmail: null }}
         ingredients={data.ingredients}
         steps={data.steps}
         tags={data.tags}
@@ -64,16 +65,18 @@ export default async function PublicRecipePage({
             </>
           ) : (
             <>
-              <SaveDropButton recipeId={data.recipe.id} />
+              <SaveDropButton recipeId={data.recipe.id} signedIn={!!viewer} />
               <MadeThisButton
                 recipeId={data.recipe.id}
                 initialCooked={cookedState.viewerCooked}
                 initialCount={cookedState.cookedCount}
+                signedIn={!!viewer}
               />
               <FollowButton
                 recipeId={data.recipe.id}
                 initialFollowing={following}
                 cookName={cookName}
+                signedIn={!!viewer}
               />
             </>
           )
