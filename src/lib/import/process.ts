@@ -75,7 +75,7 @@ export async function processJob(ownerEmail: string, jobId: string): Promise<Imp
     const partial = !hasUsefulRecipeDetails(extraction);
     if (partial && !hasPartialRecipeDetails(extraction)) {
       throw new Error(
-        `RecipeDrop read the source but ${describeExtractionGaps(extraction)}. ` +
+        `DishCovered read the source but ${describeExtractionGaps(extraction)}. ` +
           "The recipe details are probably in the video itself rather than the caption — " +
           'copy the full recipe text (or type what you see in the video) into the "Paste text" tab.',
       );
@@ -198,7 +198,7 @@ export async function processPhotoImport(
   const extraction = await extractRecipe({ images, knownCanonical: known });
   if (!hasUsefulRecipeDetails(extraction)) {
     throw new Error(
-      `RecipeDrop read the image${images.length === 1 ? "" : "s"} but ` +
+      `DishCovered read the image${images.length === 1 ? "" : "s"} but ` +
         `${describeExtractionGaps(extraction)}. Try a sharper photo, or include the page with the missing part.`,
     );
   }

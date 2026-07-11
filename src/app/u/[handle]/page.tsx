@@ -21,11 +21,11 @@ export async function generateMetadata({
   const title = `${profile.displayName} (@${profile.handle})`;
   const description =
     profile.bio ??
-    `${profile.dropCount} recipe drop${profile.dropCount === 1 ? "" : "s"} on RecipeDrop.`;
+    `${profile.dropCount} dishcover${profile.dropCount === 1 ? "y" : "ies"} on DishCovered.`;
   return { title, description, openGraph: { title, description, type: "profile" } };
 }
 
-/** A cook's public page: who they are and every drop they've shared. */
+/** A dishcoverer's public page: who they are and every dish they've shared. */
 export default async function CookPage({
   params,
 }: {
@@ -77,7 +77,7 @@ export default async function CookPage({
           <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted">
             <span className="inline-flex items-center gap-1.5">
               <BookOpen className="h-4 w-4" />
-              {profile.dropCount} drop{profile.dropCount === 1 ? "" : "s"}
+              {profile.dropCount} dishcover{profile.dropCount === 1 ? "y" : "ies"}
             </span>
             <span className="inline-flex items-center gap-1.5">
               <Users className="h-4 w-4" />
@@ -100,7 +100,7 @@ export default async function CookPage({
 
       {recipes.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-surface p-6 text-sm text-muted">
-          No public drops yet.
+          No dishcoveries yet.
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

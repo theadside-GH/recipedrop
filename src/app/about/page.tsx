@@ -13,7 +13,7 @@ export const metadata = { title: "About" };
 
 const FAQS = [
   {
-    question: "What can RecipeDrop import?",
+    question: "What can DishCovered import?",
     answer:
       "Regular recipe websites, TikTok, Instagram, Facebook, YouTube, pasted captions, pasted recipe text, and photos or screenshots of recipes. You can also attach your own recipe photo.",
     icon: Link2,
@@ -21,7 +21,7 @@ const FAQS = [
   {
     question: "Why do some social posts need extra help?",
     answer:
-      "TikTok, Instagram, and Facebook sometimes hide captions, comments, or linked recipe details from normal web access. RecipeDrop uses what the page exposes, then turns that into a clean recipe.",
+      "TikTok, Instagram, and Facebook sometimes hide captions, comments, or linked recipe details from normal web access. DishCovered uses what the page exposes, then turns that into a clean recipe.",
     icon: MessageSquareText,
   },
   {
@@ -39,19 +39,19 @@ const FAQS = [
   {
     question: "How do I install it on Android?",
     answer:
-      "Open RecipeDrop in Chrome, tap the three-dot menu, then choose Install app or Add to Home screen. In-app browsers inside TikTok or Instagram usually cannot install it.",
+      "Open DishCovered in Chrome, tap the three-dot menu, then choose Install app or Add to Home screen. In-app browsers inside TikTok or Instagram usually cannot install it.",
     icon: Smartphone,
   },
   {
     question: "How does sharing from my phone work?",
     answer:
-      "After installing, use the normal Android share sheet from TikTok, Instagram, YouTube, Chrome, or another app and choose RecipeDrop.",
+      "After installing, use the normal Android share sheet from TikTok, Instagram, YouTube, Chrome, or another app and choose DishCovered.",
     icon: Share2,
   },
   {
     question: "What about iPhone?",
     answer:
-      "iPhones don't offer the share-to-app shortcut, so copy the video's link, open RecipeDrop, and paste it into Import — same result, one extra step. You can still add RecipeDrop to your Home Screen: open it in Safari, tap Share, then Add to Home Screen.",
+      "iPhones don't offer the share-to-app shortcut, so copy the video's link, open DishCovered, and paste it into Import — same result, one extra step. You can still add DishCovered to your Home Screen: open it in Safari, tap Share, then Add to Home Screen.",
     icon: Smartphone,
   },
   {
@@ -78,9 +78,9 @@ export default function AboutPage() {
   return (
     <div className="space-y-8">
       <section className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight">About RecipeDrop</h1>
+        <h1 className="text-3xl font-bold tracking-tight">About DishCovered</h1>
         <p className="max-w-3xl text-muted">
-          RecipeDrop turns messy recipe sources into a clean personal recipe library, then helps
+          DishCovered turns messy recipe sources into a clean personal recipe library, then helps
           you plan meals, print recipes, and build shopping lists from what you saved.
         </p>
       </section>

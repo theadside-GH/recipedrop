@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { reportDropAction } from "@/app/actions";
 
 /**
- * Minimal moderation entry point on public drops: expands to an optional
+ * Minimal moderation entry point on public dishcoveries: expands to an optional
  * reason box, writes a content_report row for the operator to review.
  */
 export function ReportDropButton({ recipeId }: { recipeId: string }) {
@@ -19,7 +19,7 @@ export function ReportDropButton({ recipeId }: { recipeId: string }) {
   if (sent) {
     return (
       <p className="text-sm text-muted">
-        Thanks — this drop was reported and will get a look.
+        Thanks — this recipe was reported and will get a look.
       </p>
     );
   }
@@ -32,7 +32,7 @@ export function ReportDropButton({ recipeId }: { recipeId: string }) {
         className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-foreground"
       >
         <Flag className="h-3.5 w-3.5" />
-        Report this drop
+        Report this recipe
       </button>
     );
   }
@@ -51,7 +51,7 @@ export function ReportDropButton({ recipeId }: { recipeId: string }) {
 
   return (
     <div className="max-w-md space-y-2 rounded-2xl border border-border bg-surface p-4">
-      <p className="text-sm font-medium">Report this drop</p>
+      <p className="text-sm font-medium">Report this recipe</p>
       <textarea
         value={reason}
         onChange={(event) => setReason(event.target.value)}

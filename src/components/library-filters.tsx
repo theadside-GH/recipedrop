@@ -19,8 +19,8 @@ const SORTS = [
 ];
 const ORIGINS = [
   { label: "All recipes", value: "" },
-  { label: "Dropped by you", value: "own" },
-  { label: "Saved from cooks", value: "saved" },
+  { label: "Added by you", value: "own" },
+  { label: "Saved from others", value: "saved" },
 ];
 
 export function LibraryFilters() {

@@ -1,7 +1,7 @@
 {
-  "name": "RecipeDrop",
-  "short_name": "RecipeDrop",
-  "description": "Import recipes from anywhere, plan your week, and get one smart shopping list.",
+  "name": "DishCovered",
+  "short_name": "DishCovered",
+  "description": "Discover your next favorite dish. Import recipes from anywhere, plan your week, and get one smart shopping list.",
   "id": "/",
   "start_url": "/",
   "scope": "/",

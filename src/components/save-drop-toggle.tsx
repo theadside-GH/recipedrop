@@ -7,7 +7,7 @@ import { saveDropAction, unsaveDropAction } from "@/app/actions";
 import { cn } from "@/lib/utils";
 
 /**
- * Recipe-book save toggle for public drop cards: tap to save the drop into
+ * Recipe-book save toggle for dishcovery cards: tap to save the dish into
  * Your Recipes, tap again to take it back out. Fills instantly (optimistic)
  * and rolls back if the server disagrees. Signed-out viewers are sent to
  * sign in and come back to the same page.

@@ -135,7 +135,7 @@ export default async function LibraryPage({
 function DeploymentIssue() {
   return (
     <div className="mx-auto max-w-xl rounded-lg border border-border bg-surface p-6">
-      <h1 className="text-xl font-semibold">RecipeDrop needs one deployment setting fixed</h1>
+      <h1 className="text-xl font-semibold">DishCovered needs one deployment setting fixed</h1>
       <p className="mt-2 text-sm text-muted">
         The app is online, but it cannot reach its recipe database from this Vercel project.
       </p>
@@ -158,7 +158,7 @@ function EmptyState({ hasAny }: { hasAny: boolean }) {
       </h2>
       <p className="mt-1 max-w-sm text-sm text-muted">
         {hasAny
-          ? "Import your first recipe from a link, a photo, pasted text, or a YouTube video - RecipeDrop will turn it into clean, step-by-step instructions."
+          ? "Import your first recipe from a link, a photo, pasted text, or a YouTube video - DishCovered will turn it into clean, step-by-step instructions."
           : "Try clearing a filter or searching for something else."}
       </p>
       {hasAny && (

@@ -49,9 +49,9 @@ export function RecipeDetail({
   readOnly?: boolean;
   dropperName?: string | null;
   dropperAvatar?: string | null;
-  /** Handle for linking the dropper credit to their public cook page. */
+  /** Handle for linking the dishcoverer credit to their public cook page. */
   dropperHandle?: string | null;
-  /** People who dropped this dish; credited next to the dropper when > 1. */
+  /** Cooks who have this dish; credited next to the dishcoverer when > 1. */
   dropperCount?: number;
   /** Extra actions (e.g. "Save to Your Recipes" on public pages). */
   actionsSlot?: React.ReactNode;
@@ -151,7 +151,7 @@ export function RecipeDetail({
               )}
               <span>
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  Dropper
+                  Dishcovered by
                 </span>{" "}
                 {dropperHandle ? (
                   <Link
@@ -262,7 +262,7 @@ export function RecipeDetail({
       {couldUseHelp && recipe.sourceUrl && !readOnly && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 print:hidden">
           This one looks like it may be missing a photo or details. Use <strong>Improve</strong>{" "}
-          or <strong>Fix image</strong> to have RecipeDrop try the source again.
+          or <strong>Fix image</strong> to have DishCovered try the source again.
         </div>
       )}
       {repairMessage && (

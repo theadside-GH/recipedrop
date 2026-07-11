@@ -17,10 +17,10 @@ export default function NotInvitedPage() {
       <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand-soft text-brand">
         <ChefHat className="h-7 w-7" />
       </span>
-      <h1 className="mt-4 text-2xl font-bold">RecipeDrop is invite-only right now</h1>
+      <h1 className="mt-4 text-2xl font-bold">DishCovered is invite-only right now</h1>
       <p className="mt-2 text-muted">
         You&apos;re signed in, but this kitchen is friends-and-family for the moment. Ask
-        the person who shared RecipeDrop with you to add your email — then everything
+        the person who shared DishCovered with you to add your email — then everything
         just works.
       </p>
       <p className="mt-2 text-sm text-muted">

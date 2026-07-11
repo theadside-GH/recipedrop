@@ -1,4 +1,4 @@
-const CACHE_NAME = "recipedrop-shell-v2";
+const CACHE_NAME = "dishcovered-shell-v1";
 const CORE_ASSETS = [
   "/manifest.webmanifest",
   "/icon.svg",

@@ -46,7 +46,7 @@ export function ShareOnboardingCard() {
         Save recipes in two taps
       </h2>
       <p className="mt-1 max-w-lg text-sm text-muted">
-        See a recipe video? Share it to RecipeDrop and it lands here as a clean,
+        See a recipe video? Share it to DishCovered and it lands here as a clean,
         step-by-step recipe — no typing, no screenshots.
       </p>
 
@@ -74,7 +74,7 @@ export function ShareOnboardingCard() {
               <Share className="h-4 w-4 text-brand" /> Share any recipe video
             </p>
             <p className="mt-1 text-muted">
-              In TikTok, Instagram, or YouTube tap Share → <strong>RecipeDrop</strong>.
+              In TikTok, Instagram, or YouTube tap Share → <strong>DishCovered</strong>.
               <Sparkles className="mx-1 inline h-3.5 w-3.5 text-brand" />
               Done — it&apos;s in Your Recipes.
             </p>

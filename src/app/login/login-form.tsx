@@ -61,7 +61,8 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
       <span className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-brand-foreground">
         <ChefHat className="h-7 w-7" />
       </span>
-      <h1 className="mt-4 text-2xl font-bold">Welcome to RecipeDrop</h1>
+      <h1 className="mt-4 text-2xl font-bold">Welcome to DishCovered</h1>
+      <p className="mt-1 font-display text-lg text-brand">What did you Dishcover this week?</p>
       <p className="mt-1 text-muted">
         Save recipes from TikTok, Instagram, YouTube, websites, photos, or pasted text,
         then get clean instructions and shopping lists.

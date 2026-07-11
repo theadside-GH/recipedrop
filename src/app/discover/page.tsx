@@ -18,7 +18,7 @@ import { ShareOnboardingCard } from "./share-onboarding-card";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Discover drops" };
+export const metadata = { title: "Discover" };
 
 const MEALS = ["breakfast", "lunch", "dinner", "snack", "dessert", "side", "drink"];
 
@@ -68,9 +68,9 @@ export default async function DiscoverPage({
         />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-xl">
-            <h1 className="text-3xl sm:text-4xl">Discover drops</h1>
+            <h1 className="text-3xl sm:text-4xl">Discover your next favorite dish</h1>
             <p className="mt-2 text-muted">
-              Public recipes from people who choose to share their drops. Tap the little
+              Dishcoveries — public recipes shared by fellow dishcoverers. Tap the little
               recipe book on a photo to save it to Your Recipes — tap again to un-save.
             </p>
           </div>
@@ -78,7 +78,7 @@ export default async function DiscoverPage({
             <Link href="/discover?view=all">
               <Button variant={viewAll ? "primary" : "secondary"}>
                 <LayoutGrid className="h-4 w-4" />
-                Browse all drops
+                Browse all dishcoveries
               </Button>
             </Link>
             {viewer && (
@@ -98,7 +98,7 @@ export default async function DiscoverPage({
           <input
             name="q"
             defaultValue={q}
-            placeholder="Search public drops - dish, ingredient, or tag..."
+            placeholder="Search dishcoveries - dish, ingredient, or tag..."
             className="h-12 w-full rounded-full border border-border bg-card pl-11 pr-4 text-sm focus:border-brand focus-visible:outline-none"
           />
         </form>
@@ -121,16 +121,16 @@ export default async function DiscoverPage({
         <PublicSection
           title={
             viewAll
-              ? `All public drops (${publicTotal})`
+              ? `All dishcoveries (${publicTotal})`
               : q
                 ? `Results for "${q}" (${publicTotal})`
-                : `${capitalize(meal)} drops (${publicTotal})`
+                : `${capitalize(meal)} dishcoveries (${publicTotal})`
           }
           description={
             viewAll
-              ? `Every publicly shared drop.${
+              ? `Every publicly shared dish.${
                   newest.length < publicTotal ? ` Showing the newest ${newest.length}.` : ""
-                } When several cooks drop the same link, it appears once — the card credits the first dropper and counts everyone. Private recipes stay in Your Recipes.`
+                } When several dishcoverers share the same link, it appears once — the card credits whoever Dishcovered it first and counts everyone. Private recipes stay in Your Recipes.`
               : undefined
           }
           icon={viewAll ? LayoutGrid : Search}
@@ -140,14 +140,14 @@ export default async function DiscoverPage({
           savedCopies={savedCopies}
           empty={
             viewAll
-              ? "No public drops yet."
-              : "No public drops match. Try another dish, ingredient, or tag."
+              ? "No dishcoveries yet."
+              : "No dishcoveries match. Try another dish, ingredient, or tag."
           }
           action={
             viewAll ? (
               <div className="flex gap-2">
                 <SortChip label="Newest" icon={Sparkles} active={allSort === "newest"} href="/discover?view=all" />
-                <SortChip label="Most dropped" icon={Flame} active={allSort === "popular"} href="/discover?view=all&sort=popular" />
+                <SortChip label="Popular" icon={Flame} active={allSort === "popular"} href="/discover?view=all&sort=popular" />
               </div>
             ) : undefined
           }
@@ -156,7 +156,7 @@ export default async function DiscoverPage({
         <>
           {followed.length > 0 && (
             <PublicSection
-              title="From cooks you follow"
+              title="From dishcoverers you follow"
               icon={Users}
               recipes={followed}
               viewer={viewer}
@@ -167,37 +167,37 @@ export default async function DiscoverPage({
           )}
 
           <PublicSection
-            title="Newest drops"
+            title="Newest dishcoveries"
             icon={Sparkles}
             recipes={newest}
             viewer={viewer}
             cookedCounts={cookedCounts}
             savedCopies={savedCopies}
-            empty="No public drops yet."
+            empty="No dishcoveries yet."
             action={
               <Link
                 href="/discover?view=all"
                 className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
               >
-                See all drops <ArrowRight className="h-3.5 w-3.5" />
+                See all dishcoveries <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             }
           />
 
           <PublicSection
-            title="Most dropped"
+            title="Popular dishcoveries"
             icon={Flame}
             recipes={popular}
             viewer={viewer}
             cookedCounts={cookedCounts}
             savedCopies={savedCopies}
-            empty="Most-dropped recipes will appear here once public sharing grows."
+            empty="Popular dishcoveries will appear here once sharing grows."
             action={
               <Link
                 href="/discover?view=all&sort=popular"
                 className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
               >
-                See all by most dropped <ArrowRight className="h-3.5 w-3.5" />
+                See all by popularity <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             }
           />
@@ -312,7 +312,7 @@ function PublicSection({
               dropperCount={row.dropperCount}
               topRightSlot={
                 row.recipe.ownerEmail === viewer ? (
-                  <Badge variant="solid">Your drop</Badge>
+                  <Badge variant="solid">Your dishcovery</Badge>
                 ) : undefined
               }
               bottomRightSlot={

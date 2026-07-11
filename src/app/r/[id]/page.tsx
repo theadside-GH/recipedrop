@@ -35,7 +35,7 @@ export async function generateMetadata({
     : data.dropper?.displayName;
   const description =
     recipe.description ??
-    `A recipe${cook ? ` dropped by ${cook}` : ""} on RecipeDrop.`;
+    `A recipe${cook ? ` Dishcovered by ${cook}` : ""} on DishCovered.`;
   const images = recipe.imagePath ? [`/api/og-image/${recipe.id}`] : undefined;
   return {
     title: recipe.title,
@@ -103,7 +103,7 @@ export default async function PublicRecipePage({
                 </Button>
               </Link>
               <span className="flex items-center rounded-full border border-border bg-surface px-4 py-2 text-sm text-muted">
-                This is the public view of your drop — it already lives in Your Recipes.
+                This is the public view of your dishcovery — it already lives in Your Recipes.
               </span>
             </>
           ) : (

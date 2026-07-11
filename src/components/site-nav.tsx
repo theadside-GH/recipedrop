@@ -67,7 +67,7 @@ export function SiteNav({ signedIn = true }: { signedIn?: boolean }) {
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-brand-foreground shadow-[0_2px_8px_-2px_rgb(240_97_47/0.5)]">
               <ChefHat className="h-5 w-5" />
             </span>
-            <span className="font-display text-xl font-semibold tracking-tight">RecipeDrop</span>
+            <span className="font-display text-xl font-semibold tracking-tight">DishCovered</span>
           </Link>
           <div className="flex items-center gap-2">
             <nav className="hidden items-center gap-1 sm:flex">

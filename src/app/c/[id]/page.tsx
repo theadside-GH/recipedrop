@@ -16,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!data || !data.collection.isPublic) return {};
   const title = data.collection.name;
   const description =
-    data.collection.description ?? "A shared recipe collection on RecipeDrop.";
+    data.collection.description ?? "A shared recipe collection on DishCovered.";
   return { title, description, openGraph: { title, description } };
 }
 

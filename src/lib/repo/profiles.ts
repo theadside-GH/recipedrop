@@ -17,7 +17,7 @@ export interface ProfileSeed {
 }
 
 function defaultName(email: string) {
-  const local = email.split("@")[0] || "RecipeDrop user";
+  const local = email.split("@")[0] || "DishCovered user";
   return local
     .replace(/[._-]+/g, " ")
     .replace(/\s+/g, " ")
@@ -30,6 +30,7 @@ const RESERVED_HANDLES = new Set([
   "admin",
   "administrator",
   "recipedrop",
+  "dishcovered",
   "official",
   "support",
   "help",

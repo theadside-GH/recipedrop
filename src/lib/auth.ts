@@ -28,7 +28,7 @@ export async function getOwnerEmail(): Promise<string> {
   // Backstop for the middleware invite gate: server actions triggered from
   // public pages must not spend quota for uninvited accounts either.
   if (isUninvited(email)) {
-    throw new Error("RecipeDrop is invite-only right now — ask the person who shared it to add you.");
+    throw new Error("DishCovered is invite-only right now — ask the person who shared it to add you.");
   }
   return email;
 }

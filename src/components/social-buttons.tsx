@@ -18,7 +18,7 @@ function useSignInGate(signedIn: boolean) {
   };
 }
 
-/** Follow the cook behind a public drop. Keyed by recipeId — no emails client-side. */
+/** Follow the dishcoverer behind a public dish. Keyed by recipeId — no emails client-side. */
 export function FollowButton({
   recipeId,
   initialFollowing,

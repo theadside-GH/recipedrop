@@ -34,7 +34,7 @@ async function checkDatabase() {
 
 async function main() {
   if (missing.length > 0 || placeholderOwner) {
-    console.error("RecipeDrop is not ready for hosted deployment yet.");
+    console.error("DishCovered is not ready for hosted deployment yet.");
     if (missing.length > 0) {
       console.error(`Missing: ${missing.join(", ")}`);
     }
@@ -46,7 +46,7 @@ async function main() {
   } else {
     await checkDatabase();
     if (!process.exitCode) {
-      console.log("RecipeDrop deployment environment looks ready.");
+      console.log("DishCovered deployment environment looks ready.");
     }
   }
 }

@@ -16,20 +16,20 @@ export const metadata: Metadata = {
   // dev fallback so metadata never hard-fails.
   metadataBase: new URL(env.siteUrl || "http://localhost:3000"),
   title: {
-    default: "RecipeDrop — your recipes, sorted",
-    template: "%s — RecipeDrop",
+    default: "DishCovered — what did you Dishcover this week?",
+    template: "%s — DishCovered",
   },
   description:
-    "Import recipes from anywhere, plan your week, and get one smart shopping list.",
+    "Discover your next favorite dish. Import recipes from anywhere, plan your week, and get one smart shopping list.",
   openGraph: {
-    siteName: "RecipeDrop",
+    siteName: "DishCovered",
     type: "website",
-    title: "RecipeDrop — your recipes, sorted",
+    title: "DishCovered — what did you Dishcover this week?",
     description:
       "Import recipes from TikTok, Instagram, YouTube, or any website — then cook, plan, and shop from one place.",
   },
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, title: "RecipeDrop", statusBarStyle: "default" },
+  appleWebApp: { capable: true, title: "DishCovered", statusBarStyle: "default" },
   icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
   other: {
     "mobile-web-app-capable": "yes",

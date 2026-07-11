@@ -74,7 +74,7 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
             Signed in as <strong className="font-medium text-foreground">{email}</strong>
           </p>
           <p className="mt-1 text-sm text-muted">
-            Control how your public recipe drops appear. Recipes stay private unless you mark them public.
+            Control how your public dishcoveries appear. Recipes stay private unless you mark them public.
           </p>
         </div>
         <Button type="button" variant="secondary" onClick={signOut} disabled={signingOut}>
@@ -117,7 +117,7 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
           required
         />
         <p className="text-xs text-muted">
-          Shown on your public profile. Once you have a handle, drops are credited to it instead.
+          Shown on your public profile. Once you have a handle, dishcoveries are credited to it instead.
         </p>
       </label>
 

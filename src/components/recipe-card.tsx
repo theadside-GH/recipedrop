@@ -26,13 +26,13 @@ export function RecipeCard({
   /** Link target for the byline (the cook's public page). */
   bylineHref?: string;
   href?: string;
-  /** Overlay action rendered in the top-right corner (e.g. "Your drop"). */
+  /** Overlay action rendered in the top-right corner (e.g. "Your dishcovery"). */
   topRightSlot?: React.ReactNode;
   /** Overlay action on the photo's bottom-right corner (e.g. save toggle). */
   bottomRightSlot?: React.ReactNode;
   /** "I made this" count shown on public cards when > 0. */
   cookedCount?: number;
-  /** People who dropped this dish; shown on public cards when > 1. */
+  /** Cooks who have this dish (imported or saved); shown on public cards when > 1. */
   dropperCount?: number;
 }) {
   const quick = (recipe.totalMinutes ?? 999) <= 30;
@@ -46,7 +46,7 @@ export function RecipeCard({
           {byline.replace(/^@/, "").slice(0, 1).toUpperCase()}
         </span>
       )}
-      <span className="truncate">Dropped by {byline}</span>
+      <span className="truncate">Dishcovered by {byline}</span>
     </>
   );
   return (
@@ -106,9 +106,9 @@ export function RecipeCard({
               </span>
             )}
             {(dropperCount ?? 0) > 1 && (
-              <span className="inline-flex items-center gap-1" title="People who dropped this">
+              <span className="inline-flex items-center gap-1" title="Cooks who have this dish, imported or saved">
                 <Bookmark className="h-3.5 w-3.5" />
-                {dropperCount}&times; dropped
+                {dropperCount} cooks have this
               </span>
             )}
             {quick && <Badge variant="fresh">Quick</Badge>}

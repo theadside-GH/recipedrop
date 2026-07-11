@@ -67,10 +67,10 @@ export function InstallAppPrompt() {
           <Smartphone className="h-5 w-5" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">Install RecipeDrop on this phone</p>
+          <p className="text-sm font-semibold">Install DishCovered on this phone</p>
           {manual ? (
             <ol className="mt-1 list-decimal space-y-1 pl-4 text-xs leading-5 text-muted">
-              <li>Open RecipeDrop in Chrome, not inside TikTok or Instagram.</li>
+              <li>Open DishCovered in Chrome, not inside TikTok or Instagram.</li>
               <li>Tap Chrome&apos;s three-dot menu.</li>
               <li>Choose Install app or Add to Home screen.</li>
             </ol>

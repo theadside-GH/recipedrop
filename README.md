@@ -1,6 +1,6 @@
-# RecipeDrop
+# DishCovered
 
-RecipeDrop is a personal recipe inbox. Share or paste a recipe from a website,
+DishCovered is a personal recipe inbox. Share or paste a recipe from a website,
 YouTube, TikTok, Instagram, text, or photos, and it turns that source into a
 structured recipe with ingredients, steps, times, tags, and shopping-list data.
 
@@ -9,7 +9,7 @@ Then plan your week, set servings, and generate one consolidated grocery list.
 ## Features
 
 - **Share-to-app import**: install the PWA on your phone, then share compatible
-  links or captions into RecipeDrop.
+  links or captions into DishCovered.
 - **Universal import**: websites, pasted text, photos/screenshots, YouTube, and
   social captions.
 - **Bulk import**: paste a batch of links or recipes and process each item with
@@ -105,7 +105,7 @@ https://YOUR-VERCEL-DOMAIN/api/health
 ```
 
 11. Open the site on your phone, sign in, add it to your home screen, then test
-    sharing a YouTube/TikTok/recipe link into RecipeDrop.
+    sharing a YouTube/TikTok/recipe link into DishCovered.
 
 ## Scripts
 
