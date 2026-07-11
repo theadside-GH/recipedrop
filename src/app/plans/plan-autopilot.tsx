@@ -25,7 +25,13 @@ export function PlanAutopilot({ hasPantryItems }: { hasPantryItems: boolean }) {
     startTransition(async () => {
       const result = await autopilotPlanAction({ nights, quickMeals, usePantry });
       if (result.ok) {
-        router.push(`/plans/${result.planId}`);
+        // Landing page explains any shortfall — never deliver 3 dinners
+        // against a "Plan 7" click without saying so.
+        const short =
+          result.planned < result.requested
+            ? `?planned=${result.planned}&asked=${result.requested}`
+            : "";
+        router.push(`/plans/${result.planId}${short}`);
       } else {
         setError(result.message);
       }

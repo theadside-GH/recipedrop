@@ -8,6 +8,8 @@
  * "chicken breast" are different groceries and must never suggest each other.
  */
 
+import { ingredientMatchKey } from "./normalize";
+
 /** Classic Levenshtein edit distance, capped — we only care about tiny edits. */
 function editDistance(a: string, b: string, max: number): number {
   if (Math.abs(a.length - b.length) > max) return max + 1;
@@ -40,12 +42,16 @@ function allowedDistance(length: number): number {
 export function closestKnownName(input: string, known: string[]): string | null {
   const typed = input.trim().toLowerCase();
   if (typed.length < 3) return null;
+  const typedKey = ingredientMatchKey(typed);
   const max = allowedDistance(typed.length);
   let best: string | null = null;
   let bestDistance = max + 1;
   for (const candidate of known) {
     const name = candidate.trim().toLowerCase();
-    if (name === typed) return null; // already a known ingredient — no prompt
+    // Same singular-normalized key = the same ingredient ("egg"/"eggs") — the
+    // matcher treats them as equal everywhere, so prompting would only steer
+    // the user between spellings that already both work.
+    if (ingredientMatchKey(name) === typedKey) return null;
     const distance = editDistance(typed, name, max);
     if (distance < bestDistance) {
       bestDistance = distance;

@@ -104,7 +104,11 @@ export function ShoppingListView({
   const visibleItems = hideChecked ? items.filter((item) => !checked[item.id]) : items;
   const groups = useMemo(() => groupByAisle(visibleItems), [visibleItems]);
   const checkedCount = Object.values(checked).filter(Boolean).length;
-  const remainingCount = items.length - checkedCount;
+  // "To buy" excludes what you already have — flagging Pantry/Left over must
+  // visibly shrink the shop, not just feed the suggestion engine.
+  const remainingCount = items.filter(
+    (item) => !checked[item.id] && !pantry[item.id] && !leftovers[item.id],
+  ).length;
   const pantryCount = Object.values(pantry).filter(Boolean).length;
   const leftoverCount = Object.values(leftovers).filter(Boolean).length;
 
@@ -123,7 +127,7 @@ export function ShoppingListView({
           <h2 className="text-xl font-semibold">Shopping list</h2>
           <span className="text-sm text-muted">
             {checkedCount}/{items.length} in cart
-            {remainingCount > 0 ? ` - ${remainingCount} left` : ""}
+            {remainingCount > 0 ? ` - ${remainingCount} to buy` : ""}
             {pantryCount > 0 ? ` - ${pantryCount} pantry` : ""}
             {leftoverCount > 0 ? ` - ${leftoverCount} left over` : ""}
           </span>
@@ -163,7 +167,10 @@ export function ShoppingListView({
               <ul className="space-y-1.5">
                 {groupItems.map((item) => {
                   const isChecked = checked[item.id];
-                  const purchaseText = formatPurchaseAmount(item);
+                  const haveIt = pantry[item.id] || leftovers[item.id];
+                  const purchaseText = haveIt
+                    ? "you have this — skip buying"
+                    : formatPurchaseAmount(item);
                   const showRecipeAmount = purchaseText !== item.displayText;
                   const reviewNote = reviewText(item);
                   return (

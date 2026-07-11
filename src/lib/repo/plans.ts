@@ -15,6 +15,7 @@ import {
   type PlannedIngredient,
 } from "@/lib/shopping/aggregate";
 import { guessAisle } from "@/lib/shopping/aisle";
+import { ingredientMatchKey } from "@/lib/shopping/normalize";
 
 /** Subquery of plan ids the owner may touch — used to scope item-level writes. */
 function ownedPlanIds(db: DB, ownerEmail: string) {
@@ -34,7 +35,7 @@ export async function createPlan(ownerEmail: string, name: string) {
   const db = await getDb();
   const [row] = await db
     .insert(mealPlan)
-    .values({ ownerEmail, name: name.trim() || "My meal plan" })
+    .values({ ownerEmail, name: name.trim() || "This week" })
     .returning();
   return row;
 }
@@ -54,7 +55,25 @@ export async function listPlans(ownerEmail: string) {
     .where(eq(mealPlan.ownerEmail, ownerEmail))
     .groupBy(mealPlan.id)
     .orderBy(desc(mealPlan.createdAt));
-  return plans;
+  if (plans.length === 0) return [];
+
+  // Typed-in shopping items so a from-scratch list doesn't read "0 recipes".
+  const customCounts = await db
+    .select({
+      mealPlanId: shoppingList.mealPlanId,
+      n: sql<number>`count(*)::int`,
+    })
+    .from(shoppingListItem)
+    .innerJoin(shoppingList, eq(shoppingList.id, shoppingListItem.shoppingListId))
+    .where(
+      and(
+        inArray(shoppingList.mealPlanId, plans.map((p) => p.id)),
+        eq(shoppingListItem.isCustom, true),
+      ),
+    )
+    .groupBy(shoppingList.mealPlanId);
+  const customByPlan = new Map(customCounts.map((c) => [c.mealPlanId, c.n]));
+  return plans.map((p) => ({ ...p, customItemCount: customByPlan.get(p.id) ?? 0 }));
 }
 
 export async function getPlanFull(ownerEmail: string, id: string) {
@@ -147,6 +166,7 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
     .where(eq(mealPlanItem.mealPlanId, mealPlanId));
 
   const lines: PlannedIngredient[] = [];
+  const optionalLines: { name: string; recipeTitle: string }[] = [];
   for (const it of items) {
     const ings = await db
       .select()
@@ -154,6 +174,12 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
       .where(eq(recipeIngredient.recipeId, it.recipeId));
     for (const ing of ings) {
       const name = ing.canonicalName ?? ing.rawText;
+      // Optional ingredients must not masquerade as required buys — they get
+      // their own clearly-labeled lines below instead of joining the totals.
+      if (ing.optional) {
+        optionalLines.push({ name, recipeTitle: it.title });
+        continue;
+      }
       lines.push({
         canonicalName: name,
         quantity: scaleQuantity(ing.quantity, it.servingsDefault, it.plannedServings),
@@ -166,6 +192,17 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
   }
 
   const aggregated = aggregateIngredients(lines);
+
+  // Optional extras: only ingredients no recipe requires outright, one line
+  // each, labeled so the shopper knows they're skippable.
+  const requiredKeys = new Set(aggregated.map((a) => ingredientMatchKey(a.canonicalName)));
+  const seenOptional = new Set<string>();
+  const optionalExtras = optionalLines.filter((o) => {
+    const k = ingredientMatchKey(o.name);
+    if (requiredKeys.has(k) || seenOptional.has(k)) return false;
+    seenOptional.add(k);
+    return true;
+  });
 
   // Items the user typed in themselves carry over to the fresh snapshot.
   const previous = await getLatestShoppingList(ownerEmail, mealPlanId);
@@ -192,6 +229,21 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
         })),
       );
     }
+    if (optionalExtras.length) {
+      await tx.insert(shoppingListItem).values(
+        optionalExtras.map((o, i) => ({
+          shoppingListId: list.id,
+          canonicalName: o.name,
+          aisle: guessAisle(o.name),
+          displayText: `optional — for ${o.recipeTitle}`,
+          totalQuantity: null,
+          baseUnit: null,
+          unitCategory: "unknown" as const,
+          isSummable: false,
+          sortOrder: aggregated.length + i,
+        })),
+      );
+    }
     if (customItems.length) {
       await tx.insert(shoppingListItem).values(
         customItems.map((item, i) => ({
@@ -205,7 +257,7 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
           isSummable: item.isSummable,
           isChecked: item.isChecked,
           isCustom: true,
-          sortOrder: aggregated.length + i,
+          sortOrder: aggregated.length + optionalExtras.length + i,
         })),
       );
     }
@@ -234,7 +286,12 @@ export async function addCustomShoppingItem(
     existing = await getLatestShoppingList(ownerEmail, mealPlanId);
     if (!existing) throw new Error("Could not start a shopping list.");
   }
-  if (existing.items.some((item) => item.canonicalName === cleaned)) return;
+  // Singular-normalized dedupe: "tomatoes" shouldn't add a second line when
+  // "tomato" is already there. Throw so the UI can say so — a silent return
+  // reads as the add having done nothing.
+  const key = ingredientMatchKey(cleaned);
+  const duplicate = existing.items.find((item) => ingredientMatchKey(item.canonicalName) === key);
+  if (duplicate) throw new Error(`“${duplicate.canonicalName}” is already on this list.`);
 
   const maxOrder = existing.items.reduce((max, item) => Math.max(max, item.sortOrder), -1);
   await db.insert(shoppingListItem).values({

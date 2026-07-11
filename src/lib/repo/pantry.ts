@@ -2,6 +2,7 @@ import "server-only";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { pantryItem, recipe, recipeIngredient } from "@/lib/db/schema";
+import { ingredientMatchKey } from "@/lib/shopping/normalize";
 
 export interface PantryToggleInput {
   ownerEmail: string;
@@ -34,11 +35,14 @@ async function upsertPantryFlag(
   const db = await getDb();
   const name = cleanName(input.canonicalName);
   if (!name) return;
-  const existing = await db
+  // Match existing rows on the singular-normalized key so "eggs" updates an
+  // existing "egg" row instead of creating a duplicate chip.
+  const rows = await db
     .select()
     .from(pantryItem)
-    .where(and(eq(pantryItem.ownerEmail, input.ownerEmail), eq(pantryItem.canonicalName, name)))
-    .limit(1);
+    .where(eq(pantryItem.ownerEmail, input.ownerEmail));
+  const key = ingredientMatchKey(name);
+  const existing = rows.filter((row) => ingredientMatchKey(row.canonicalName) === key);
 
   if (existing[0]) {
     await db
@@ -103,13 +107,15 @@ export async function listPantryRecipeSuggestions(
       ),
     );
 
-  const availableSet = new Set(available.map(cleanName).filter(Boolean));
+  // Match on the singular-normalized key so pantry "eggs" still counts for a
+  // recipe's canonical "egg". Keys double as the display names on the cards.
+  const availableSet = new Set(available.map(ingredientMatchKey).filter(Boolean));
   const byRecipe = new Map<string, Set<string>>();
   for (const ingredient of ingredients) {
     // Optional ingredients don't count for or against a match — a garnish
     // you're missing shouldn't drag a cookable recipe down the list.
     if (ingredient.optional) continue;
-    const name = cleanName(ingredient.canonicalName ?? ingredient.rawText);
+    const name = ingredientMatchKey(ingredient.canonicalName ?? ingredient.rawText);
     if (!name) continue;
     if (!byRecipe.has(ingredient.recipeId)) byRecipe.set(ingredient.recipeId, new Set());
     byRecipe.get(ingredient.recipeId)!.add(name);

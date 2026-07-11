@@ -40,4 +40,50 @@ describe("formatPurchaseAmount", () => {
       }),
     ).toBe("200 g + 2");
   });
+
+  it("says check-pantry for true staples", () => {
+    expect(
+      formatPurchaseAmount({
+        canonicalName: "black pepper",
+        displayText: "5 g",
+        totalQuantity: 5,
+        baseUnit: "g",
+        unitCategory: "mass",
+        isSummable: true,
+      }),
+    ).toBe("check pantry");
+    expect(
+      formatPurchaseAmount({
+        canonicalName: "kosher salt",
+        displayText: "10 g",
+        totalQuantity: 10,
+        baseUnit: "g",
+        unitCategory: "mass",
+        isSummable: true,
+      }),
+    ).toBe("check pantry");
+  });
+
+  it("never hides amounts for groceries that merely contain a staple word", () => {
+    expect(
+      formatPurchaseAmount({
+        canonicalName: "red pepper",
+        displayText: "300 g",
+        totalQuantity: 300,
+        baseUnit: "g",
+        unitCategory: "mass",
+        isSummable: true,
+      }),
+    ).toBe("buy about 300 g");
+    expect(
+      formatPurchaseAmount({
+        canonicalName: "coconut water",
+        displayText: "500 ml",
+        totalQuantity: 500,
+        baseUnit: "ml",
+        unitCategory: "volume",
+        isSummable: true,
+      }),
+    ).toBe("buy about 500 ml");
+  });
 });

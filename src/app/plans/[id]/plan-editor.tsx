@@ -229,36 +229,50 @@ export function PlanEditor({
  */
 function AddCustomItem({ planId, onAdded }: { planId: string; onAdded: () => void }) {
   const [name, setName] = useState("");
+  const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const cleaned = name.trim();
     if (!cleaned) return;
+    setError(null);
     startTransition(async () => {
-      await addShoppingItemAction(planId, cleaned);
-      setName("");
-      onAdded();
+      try {
+        await addShoppingItemAction(planId, cleaned);
+        setName("");
+        onAdded();
+      } catch (err) {
+        // e.g. the item is already on the list — say so instead of silently
+        // clearing the field.
+        setError(err instanceof Error ? err.message : "That didn't add. Try again.");
+      }
     });
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3"
-    >
-      <Plus className="ml-1 h-5 w-5 shrink-0 text-brand" />
-      <input
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        placeholder="Add anything to the list — paper towels, coffee, batteries..."
-        aria-label="Add your own shopping item"
-        className="h-10 w-full min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm focus:border-brand focus-visible:outline-none"
-      />
-      <Button type="submit" variant="secondary" disabled={isPending || !name.trim()}>
-        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
-      </Button>
-    </form>
+    <div className="space-y-2">
+      <form
+        onSubmit={submit}
+        className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3"
+      >
+        <Plus className="ml-1 h-5 w-5 shrink-0 text-brand" />
+        <input
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            setError(null);
+          }}
+          placeholder="Add anything to the list — paper towels, coffee, batteries..."
+          aria-label="Add your own shopping item"
+          className="h-10 w-full min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm focus:border-brand focus-visible:outline-none"
+        />
+        <Button type="submit" variant="secondary" disabled={isPending || !name.trim()}>
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+        </Button>
+      </form>
+      {error && <p className="px-2 text-sm text-muted">{error}</p>}
+    </div>
   );
 }
 

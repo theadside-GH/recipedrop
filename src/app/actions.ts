@@ -370,7 +370,9 @@ export interface AutopilotInput {
   usePantry: boolean;
 }
 
-export type AutopilotResult = { ok: true; planId: string } | { ok: false; message: string };
+export type AutopilotResult =
+  | { ok: true; planId: string; planned: number; requested: number }
+  | { ok: false; message: string };
 
 /** AI-plan the week from the user's own library, then build the shopping list. */
 export async function autopilotPlanAction(input: AutopilotInput): Promise<AutopilotResult> {
@@ -426,7 +428,8 @@ export async function autopilotPlanAction(input: AutopilotInput): Promise<Autopi
     }
     await generateShoppingList(owner, plan.id);
     revalidatePath("/plans");
-    return { ok: true, planId: plan.id };
+    // planned < nights when the library was too small — the plan page says so.
+    return { ok: true, planId: plan.id, planned: picks.length, requested: nights };
   } catch (error) {
     console.error("Autopilot failed", error);
     return {
@@ -589,20 +592,26 @@ export async function checkPantryNameAction(name: string): Promise<PantryNameChe
   const cleaned = name.trim().toLowerCase();
   if (!cleaned) return { known: false, suggestion: null };
   try {
-    const [{ COMMON_ITEMS }, { closestKnownName }, recent, pantry, isCanonical] =
+    const [{ COMMON_ITEMS }, { closestKnownName }, { ingredientMatchKey }, recent, pantry] =
       await Promise.all([
         import("@/lib/shopping/common-items"),
         import("@/lib/shopping/spelling"),
+        import("@/lib/shopping/normalize"),
         getKnownCanonicalNames(),
         listPantryItems(owner),
-        isKnownIngredientName(name),
       ]);
+    const key = ingredientMatchKey(cleaned);
+    // Canonical lookup tries the singular-normalized key too, so "eggs" is
+    // known whenever the canonical "egg" exists.
+    const isCanonical =
+      (await isKnownIngredientName(cleaned)) ||
+      (key !== cleaned && (await isKnownIngredientName(key)));
     const vocabulary = [
       ...COMMON_ITEMS,
       ...recent,
       ...pantry.map((item) => item.canonicalName),
     ];
-    const known = isCanonical || vocabulary.some((v) => v.trim().toLowerCase() === cleaned);
+    const known = isCanonical || vocabulary.some((v) => ingredientMatchKey(v) === key);
     return { known, suggestion: known ? null : closestKnownName(cleaned, vocabulary) };
   } catch {
     return { known: true, suggestion: null }; // check is best-effort — never block the add

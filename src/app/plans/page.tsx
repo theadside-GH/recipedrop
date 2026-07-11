@@ -13,6 +13,14 @@ export const dynamic = "force-dynamic";
 
 export const metadata = { title: "Shopping lists" };
 
+/** "3 recipes · 4 items you added", "5 items you added", "2 recipes", or "Empty". */
+function planSummary(recipes: number, customItems: number): string {
+  const parts: string[] = [];
+  if (recipes > 0) parts.push(`${recipes} recipe${recipes === 1 ? "" : "s"}`);
+  if (customItems > 0) parts.push(`${customItems} item${customItems === 1 ? "" : "s"} you added`);
+  return parts.length > 0 ? parts.join(" · ") : "Empty";
+}
+
 export default async function PlansPage() {
   const owner = await getOwnerEmail();
   const [plans, recipes, pantryItems] = await Promise.all([
@@ -57,9 +65,7 @@ export default async function PlansPage() {
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{p.name}</p>
-                  <p className="text-sm text-muted">
-                    {p.itemCount} recipe{p.itemCount === 1 ? "" : "s"}
-                  </p>
+                  <p className="text-sm text-muted">{planSummary(p.itemCount, p.customItemCount)}</p>
                 </div>
                 <ChevronRight className="h-5 w-5 shrink-0 text-muted" />
               </Link>

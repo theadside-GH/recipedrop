@@ -10,15 +10,30 @@ export interface PurchaseAmountInput {
   isSummable: boolean;
 }
 
-const PANTRY_WORDS = [
-  "salt",
-  "pepper",
+/**
+ * Staples nobody buys per-recipe — matched precisely, never by substring:
+ * "red peppers" and "coconut water" are real groceries whose names merely
+ * contain a staple word, and their amounts must stay visible.
+ */
+const STAPLE_EXACT = [
   "water",
-  "spice",
-  "seasoning",
-  "baking powder",
-  "baking soda",
+  "pepper",
+  "black pepper",
+  "white pepper",
+  "ground pepper",
+  "cracked pepper",
+  "cayenne pepper",
+  "peppercorn",
+  "peppercorns",
 ];
+const STAPLE_SUFFIXES = ["salt", "spice", "seasoning", "baking powder", "baking soda"];
+
+function isPantryStaple(name: string): boolean {
+  return (
+    STAPLE_EXACT.includes(name) ||
+    STAPLE_SUFFIXES.some((s) => name === s || name.endsWith(` ${s}`))
+  );
+}
 
 const MEAT_WORDS = [
   "beef",
@@ -62,7 +77,6 @@ function formatCount(name: string, quantity: number, baseUnit: string | null): s
 }
 
 function formatMass(name: string, grams: number): string {
-  if (hasAny(name, PANTRY_WORDS) && grams < 100) return "check pantry";
   if (hasAny(name, BAG_WORDS)) {
     if (grams <= 1000) return `buy 1 bag ${name}`;
     return `buy about ${roundUp(grams / 1000, 0.5)} kg ${name}`;
@@ -76,7 +90,6 @@ function formatMass(name: string, grams: number): string {
 }
 
 function formatVolume(name: string, ml: number): string {
-  if (hasAny(name, PANTRY_WORDS) && ml < 60) return "check pantry";
   if (hasAny(name, BOTTLE_WORDS)) return `buy 1 bottle ${name}`;
   if (name.includes("milk") || name.includes("cream") || name.includes("stock")) {
     if (ml <= 500) return `buy about ${roundUp(ml, 50)} ml`;
@@ -90,7 +103,7 @@ function formatVolume(name: string, ml: number): string {
 export function formatPurchaseAmount(item: PurchaseAmountInput): string {
   const name = item.canonicalName.toLowerCase();
   if (!item.isSummable || item.totalQuantity == null) return item.displayText;
-  if (hasAny(name, PANTRY_WORDS) && item.unitCategory !== "count") return "check pantry";
+  if (isPantryStaple(name) && item.unitCategory !== "count") return "check pantry";
 
   switch (item.unitCategory) {
     case "count":
