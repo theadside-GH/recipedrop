@@ -110,12 +110,15 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
       </div>
 
       <label className="space-y-2 block">
-        <span className="text-sm font-medium">Display name</span>
+        <span className="text-sm font-medium">Name</span>
         <Input
           value={form.displayName}
           onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))}
           required
         />
+        <p className="text-xs text-muted">
+          Shown on your public profile. Once you have a handle, drops are credited to it instead.
+        </p>
       </label>
 
       <label className="space-y-2 block">
@@ -128,10 +131,10 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
         />
         <p className="text-xs text-muted">
           {handleLocked
-            ? "Username is locked. You already used your one username change."
+            ? "Your handle is locked. You already used your one handle change."
             : profile.handle
-              ? "You can change your username one more time. After that it locks."
-              : "Choose carefully. After you change a saved username once, it locks."}
+              ? "You can change your handle one more time. After that it locks."
+              : "Choose carefully. After you change a saved handle once, it locks."}
         </p>
       </label>
 

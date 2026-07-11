@@ -52,7 +52,7 @@ function cleanHandle(value: string | null | undefined): string | null {
     .slice(0, 24)
     .trim();
   if (cleaned && RESERVED_HANDLES.has(cleaned)) {
-    throw new Error("That username is reserved — pick another.");
+    throw new Error("That handle is reserved — pick another.");
   }
   return cleaned || null;
 }
@@ -108,7 +108,7 @@ export async function updateProfile(email: string, input: ProfileInput) {
   const nextHandle = cleanHandle(input.handle);
   const handleChanged = (existing.handle ?? null) !== nextHandle;
   if (handleChanged && existing.handle && existing.handleChangedAt) {
-    throw new Error("Username can only be changed once.");
+    throw new Error("Your handle can only be changed once.");
   }
   try {
     const [updated] = await db
@@ -130,7 +130,7 @@ export async function updateProfile(email: string, input: ProfileInput) {
     return updated;
   } catch (err) {
     if (isUniqueViolation(err)) {
-      throw new Error("That username is already taken — try another.");
+      throw new Error("That handle is already taken — try another.");
     }
     throw err;
   }

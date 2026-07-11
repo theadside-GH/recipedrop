@@ -57,7 +57,7 @@ const FAQS = [
   {
     question: "Who can use this app?",
     answer:
-      "Anyone with an invite. Sign in with Google or an emailed magic link — no password to remember. Your profile can have a photo, display name, and a public-sharing setting that is off until you turn it on.",
+      "Anyone with an invite. Sign in with Google or an emailed magic link — no password to remember. Your profile can have a photo, name, handle, and a public-sharing setting that is off until you turn it on.",
     icon: LockKeyhole,
   },
   {
