@@ -264,6 +264,9 @@ export const shoppingListItem = pgTable(
     unitCategory: unitCategoryEnum("unit_category").notNull().default("unknown"),
     isSummable: boolean("is_summable").notNull().default(true),
     isChecked: boolean("is_checked").notNull().default(false),
+    // Typed in by the user rather than generated from recipes — survives
+    // regeneration and can be removed individually.
+    isCustom: boolean("is_custom").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
   },
   (t) => [index("shopping_list_item_list_idx").on(t.shoppingListId)],

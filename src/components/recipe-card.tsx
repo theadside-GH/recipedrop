@@ -15,6 +15,7 @@ export function RecipeCard({
   bylineHref,
   href,
   topRightSlot,
+  bottomRightSlot,
   cookedCount,
   dropperCount,
 }: {
@@ -25,8 +26,10 @@ export function RecipeCard({
   /** Link target for the byline (the cook's public page). */
   bylineHref?: string;
   href?: string;
-  /** Overlay action rendered in the top-right corner (e.g. quick-save). */
+  /** Overlay action rendered in the top-right corner (e.g. "Your drop"). */
   topRightSlot?: React.ReactNode;
+  /** Overlay action on the photo's bottom-right corner (e.g. save toggle). */
+  bottomRightSlot?: React.ReactNode;
   /** "I made this" count shown on public cards when > 0. */
   cookedCount?: number;
   /** People who dropped this dish; shown on public cards when > 1. */
@@ -64,6 +67,9 @@ export function RecipeCard({
               {recipe.mealType}
             </Badge>
           </div>
+          {bottomRightSlot && (
+            <div className="absolute bottom-3 right-3 z-10">{bottomRightSlot}</div>
+          )}
         </div>
         <div className="p-4">
           <h3 className="line-clamp-2 font-display text-[1.06rem] font-semibold leading-snug">

@@ -26,10 +26,10 @@ export function CreatePlan() {
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && create()}
-        placeholder="Name your plan (e.g. “This week”)"
+        placeholder="Name your list (e.g. “This week”)"
       />
       <Button onClick={create} disabled={isPending}>
-        <Plus className="h-4 w-4" /> New plan
+        <Plus className="h-4 w-4" /> New list
       </Button>
     </div>
   );

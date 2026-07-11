@@ -22,6 +22,7 @@ import { getDb, type DB } from "@/lib/db";
 import {
   recipe,
   recipeIngredient,
+  recipeNote,
   step,
   tag,
   recipeTag,
@@ -269,6 +270,8 @@ export interface RecipeFilters {
   search?: string;
   tag?: string;
   favorite?: boolean;
+  /** Only recipes with at least one "cooked it" journal entry. */
+  made?: boolean;
   /** "own" = dropped by the owner; "saved" = saved from another cook's drop. */
   origin?: "own" | "saved";
   sort?: "newest" | "oldest" | "favorites" | "quickest" | "title";
@@ -312,6 +315,22 @@ export async function listRecipes(ownerEmail: string, filters: RecipeFilters = {
   if (filters.maxMinutes) conds.push(lte(recipe.totalMinutes, filters.maxMinutes));
   if (filters.search?.trim()) conds.push(recipeSearchCondition(db, filters.search));
   if (filters.favorite) conds.push(eq(recipe.isFavorite, true));
+  if (filters.made) {
+    conds.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(recipeNote)
+          .where(
+            and(
+              eq(recipeNote.recipeId, recipe.id),
+              eq(recipeNote.ownerEmail, ownerEmail),
+              eq(recipeNote.kind, "cooked"),
+            ),
+          ),
+      ),
+    );
+  }
   if (filters.origin === "own") conds.push(isNull(recipe.savedFromEmail));
   if (filters.origin === "saved") conds.push(isNotNull(recipe.savedFromEmail));
 
@@ -974,6 +993,77 @@ export async function saveDropForOwner(
     .where(eq(recipe.id, sourceRecipeId));
 
   return { id: created.id, alreadySaved: false };
+}
+
+/**
+ * Which of these public drops the viewer has already saved into their own
+ * library: source recipe id → the viewer's copy id. Matches on sourceKey when
+ * the drop has one, else on (original dropper, normalized title) — the same
+ * signals saveDropForOwner dedupes on.
+ */
+export async function savedCopyIdsFor(
+  viewerEmail: string,
+  drops: Array<{ id: string; ownerEmail: string; sourceKey: string | null; title: string }>,
+): Promise<Map<string, string>> {
+  const result = new Map<string, string>();
+  if (!viewerEmail || drops.length === 0) return result;
+  const db = await getDb();
+  const copies = await db
+    .select({
+      id: recipe.id,
+      sourceKey: recipe.sourceKey,
+      savedFromEmail: recipe.savedFromEmail,
+      title: recipe.title,
+    })
+    .from(recipe)
+    .where(and(eq(recipe.ownerEmail, viewerEmail), isNotNull(recipe.savedFromEmail)));
+  const byKey = new Map<string, string>();
+  const byDropperTitle = new Map<string, string>();
+  for (const copy of copies) {
+    if (copy.sourceKey) byKey.set(copy.sourceKey, copy.id);
+    byDropperTitle.set(`${copy.savedFromEmail}\n${normalizeTitle(copy.title)}`, copy.id);
+  }
+  for (const drop of drops) {
+    if (drop.ownerEmail === viewerEmail) continue;
+    const hit =
+      (drop.sourceKey ? byKey.get(drop.sourceKey) : undefined) ??
+      byDropperTitle.get(`${drop.ownerEmail}\n${normalizeTitle(drop.title)}`);
+    if (hit) result.set(drop.id, hit);
+  }
+  return result;
+}
+
+/**
+ * Undo saveDropForOwner: delete the viewer's saved copy of a public drop and
+ * give the original its drop-count credit back. Only rows that really were
+ * saved from another cook can be deleted this way — never an original import.
+ */
+export async function unsaveDropForOwner(
+  ownerEmail: string,
+  sourceRecipeId: string,
+): Promise<void> {
+  const source = await getRecipeFull(sourceRecipeId);
+  if (!source) throw new Error("Recipe not found.");
+  const copies = await savedCopyIdsFor(ownerEmail, [source.recipe]);
+  const copyId = copies.get(source.recipe.id);
+  if (!copyId) return;
+  const db = await getDb();
+  const deleted = await db
+    .delete(recipe)
+    .where(
+      and(
+        eq(recipe.id, copyId),
+        eq(recipe.ownerEmail, ownerEmail),
+        isNotNull(recipe.savedFromEmail),
+      ),
+    )
+    .returning({ id: recipe.id });
+  if (deleted.length > 0) {
+    await db
+      .update(recipe)
+      .set({ dropCount: sql`greatest(${recipe.dropCount} - 1, 1)` })
+      .where(eq(recipe.id, sourceRecipeId));
+  }
 }
 
 /** Canonical ingredient names per recipe (capped), for the AI weekly planner. */

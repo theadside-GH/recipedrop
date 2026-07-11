@@ -17,6 +17,7 @@ export default async function LibraryPage({
     q?: string;
     tag?: string;
     favorite?: string;
+    made?: string;
     origin?: string;
     sort?: "newest" | "oldest" | "favorites" | "quickest" | "title";
   }>;
@@ -31,6 +32,7 @@ export default async function LibraryPage({
       search: sp.q,
       tag: sp.tag,
       favorite: sp.favorite === "1",
+      made: sp.made === "1",
       origin: sp.origin === "own" || sp.origin === "saved" ? sp.origin : undefined,
       sort: sp.sort,
     });
@@ -77,7 +79,9 @@ export default async function LibraryPage({
 
       {recipes.length === 0 ? (
         <EmptyState
-          hasAny={!sp.meal && !sp.max && !sp.q && !sp.tag && !sp.favorite && !sp.origin}
+          hasAny={
+            !sp.meal && !sp.max && !sp.q && !sp.tag && !sp.favorite && !sp.made && !sp.origin
+          }
         />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

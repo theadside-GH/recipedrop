@@ -2,10 +2,10 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, CircleUserRound, Users } from "lucide-react";
 import { getViewerEmail } from "@/lib/auth";
-import { listPublicRecipesByOwner } from "@/lib/repo/recipes";
+import { listPublicRecipesByOwner, savedCopyIdsFor } from "@/lib/repo/recipes";
 import { cookedCountsFor, getCookProfileByHandle, isFollowingHandle } from "@/lib/repo/social";
 import { RecipeCard } from "@/components/recipe-card";
-import { SaveDropButton } from "@/components/save-drop-button";
+import { SaveDropToggle } from "@/components/save-drop-toggle";
 import { FollowCookButton } from "@/components/social-buttons";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,10 @@ export default async function CookPage({
     listPublicRecipesByOwner(profile.email, 60),
     viewer && !isSelf ? isFollowingHandle(viewer, profile.handle) : Promise.resolve(false),
   ]);
-  const cookedCounts = await cookedCountsFor(recipes.map((row) => row.recipe.id));
+  const [cookedCounts, savedCopies] = await Promise.all([
+    cookedCountsFor(recipes.map((row) => row.recipe.id)),
+    savedCopyIdsFor(viewer ?? "", recipes.map((row) => row.recipe)),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -94,8 +97,13 @@ export default async function CookPage({
               showFavorite={false}
               cookedCount={cookedCounts.get(row.recipe.id)}
               dropperCount={row.dropperCount}
-              topRightSlot={
-                isSelf ? undefined : <SaveDropButton compact recipeId={row.recipe.id} />
+              bottomRightSlot={
+                isSelf ? undefined : (
+                  <SaveDropToggle
+                    recipeId={row.recipe.id}
+                    initialSaved={savedCopies.has(row.recipe.id)}
+                  />
+                )
               }
             />
           ))}

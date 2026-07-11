@@ -76,6 +76,7 @@ export async function repairRecipeImageFromSource(
   recipeId: string,
 ): Promise<RepairResult> {
   const data = assertOwnedRecipe(await getRecipeFull(recipeId), ownerEmail);
+  const current = data.recipe.imagePath;
   let image: string | null = null;
   let fromSource = true;
   try {
@@ -84,14 +85,20 @@ export async function repairRecipeImageFromSource(
   } catch {
     // No source link (text/photo recipes) — go straight to the title search.
   }
+  // The source usually re-serves the photo the recipe already has — which is
+  // exactly why the user is tapping this button. Same image = no image.
+  if (image === current) image = null;
   if (!image) {
     // Metered: the title search is an AI call.
     await recordAiUse(ownerEmail, "repair");
-    image = await findStandInImage(data.recipe.title);
+    const standIn = await findStandInImage(data.recipe.title);
+    image = standIn && standIn !== current ? standIn : null;
     fromSource = false;
   }
   if (!image) {
-    throw new Error("No working image was found for this recipe. Try again later.");
+    throw new Error(
+      "No new photo turned up — the source and a web search only found what's already here. You can upload your own photo from Edit.",
+    );
   }
   await setRecipeImage({ ownerEmail, id: recipeId, imagePath: image });
   return {

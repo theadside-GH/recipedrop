@@ -2,11 +2,12 @@
 
 import type React from "react";
 import { useMemo, useState } from "react";
-import { Archive, Check, Copy, EyeOff, PackageCheck, Printer } from "lucide-react";
+import { Archive, Check, Copy, EyeOff, PackageCheck, Printer, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatPurchaseAmount } from "@/lib/shopping/purchase";
 import {
+  removeShoppingItemAction,
   setLeftoverItemAction,
   setPantryItemAction,
   toggleShoppingItemAction,
@@ -22,6 +23,8 @@ export interface ShoppingItem {
   unitCategory: "mass" | "volume" | "count" | "pinch" | "unknown";
   isChecked: boolean;
   isSummable: boolean;
+  /** Typed in by the user — removable, and not tied to any recipe. */
+  isCustom: boolean;
   inPantry: boolean;
   hasLeftover: boolean;
 }
@@ -78,6 +81,11 @@ export function ShoppingListView({
       aisle: item.aisle,
       checked: next,
     });
+    onChanged();
+  }
+
+  async function removeCustom(item: ShoppingItem) {
+    await removeShoppingItemAction(planId, item.id);
     onChanged();
   }
 
@@ -216,6 +224,17 @@ export function ShoppingListView({
                           </MiniToggle>
                         </span>
                       </div>
+                      {item.isCustom && (
+                        <button
+                          type="button"
+                          onClick={() => removeCustom(item)}
+                          aria-label={`Remove ${item.canonicalName} from the list`}
+                          title="Remove this item"
+                          className="mt-0.5 shrink-0 self-start rounded-full p-1.5 text-muted transition-colors hover:bg-red-50 hover:text-red-600 print:hidden"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      )}
                     </li>
                   );
                 })}

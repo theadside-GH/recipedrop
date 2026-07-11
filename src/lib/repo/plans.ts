@@ -167,6 +167,10 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
 
   const aggregated = aggregateIngredients(lines);
 
+  // Items the user typed in themselves carry over to the fresh snapshot.
+  const previous = await getLatestShoppingList(ownerEmail, mealPlanId);
+  const customItems = previous?.items.filter((item) => item.isCustom) ?? [];
+
   // Replace any prior list for this plan.
   await db.delete(shoppingList).where(eq(shoppingList.mealPlanId, mealPlanId));
   const [list] = await db.insert(shoppingList).values({ mealPlanId }).returning();
@@ -186,7 +190,84 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
       })),
     );
   }
+  if (customItems.length) {
+    await db.insert(shoppingListItem).values(
+      customItems.map((item, i) => ({
+        shoppingListId: list.id,
+        canonicalName: item.canonicalName,
+        aisle: item.aisle,
+        displayText: item.displayText,
+        totalQuantity: item.totalQuantity,
+        baseUnit: item.baseUnit,
+        unitCategory: item.unitCategory,
+        isSummable: item.isSummable,
+        isChecked: item.isChecked,
+        isCustom: true,
+        sortOrder: aggregated.length + i,
+      })),
+    );
+  }
   return list.id;
+}
+
+/**
+ * Add a hand-typed item to the plan's shopping list, creating the list first
+ * if the plan doesn't have one yet — this is what makes a from-scratch list
+ * (no recipes at all) possible.
+ */
+export async function addCustomShoppingItem(
+  ownerEmail: string,
+  mealPlanId: string,
+  name: string,
+): Promise<void> {
+  const cleaned = name.trim().toLowerCase();
+  if (!cleaned) throw new Error("Type an item first.");
+  const db = await getDb();
+  if (!(await planIsOwned(db, mealPlanId, ownerEmail))) throw new Error("Plan not found.");
+
+  let existing = await getLatestShoppingList(ownerEmail, mealPlanId);
+  if (!existing) {
+    await db.insert(shoppingList).values({ mealPlanId });
+    existing = await getLatestShoppingList(ownerEmail, mealPlanId);
+    if (!existing) throw new Error("Could not start a shopping list.");
+  }
+  if (existing.items.some((item) => item.canonicalName === cleaned)) return;
+
+  const maxOrder = existing.items.reduce((max, item) => Math.max(max, item.sortOrder), -1);
+  await db.insert(shoppingListItem).values({
+    shoppingListId: existing.list.id,
+    canonicalName: cleaned,
+    aisle: guessAisle(cleaned),
+    displayText: "added by you",
+    totalQuantity: null,
+    baseUnit: null,
+    unitCategory: "unknown",
+    isSummable: false,
+    isCustom: true,
+    sortOrder: maxOrder + 1,
+  });
+}
+
+/** Remove a hand-typed item. Generated items stay — regenerating rebuilds them anyway. */
+export async function removeCustomShoppingItem(
+  ownerEmail: string,
+  itemId: string,
+): Promise<void> {
+  const db = await getDb();
+  const ownedListIds = db
+    .select({ id: shoppingList.id })
+    .from(shoppingList)
+    .innerJoin(mealPlan, eq(mealPlan.id, shoppingList.mealPlanId))
+    .where(eq(mealPlan.ownerEmail, ownerEmail));
+  await db
+    .delete(shoppingListItem)
+    .where(
+      and(
+        eq(shoppingListItem.id, itemId),
+        eq(shoppingListItem.isCustom, true),
+        inArray(shoppingListItem.shoppingListId, ownedListIds),
+      ),
+    );
 }
 
 export async function getLatestShoppingList(ownerEmail: string, mealPlanId: string) {

@@ -14,12 +14,14 @@ import { detectSourceType } from "@/lib/sources/detect";
 import {
   createRecipeManual,
   deleteRecipe,
+  getKnownCanonicalNames,
   listIngredientNames,
   listRecipes,
   saveDropForOwner,
   setRecipeFavorite,
   setRecipeImage,
   setRecipePublic,
+  unsaveDropForOwner,
   updateRecipe,
   type RecipeEditInput,
 } from "@/lib/repo/recipes";
@@ -28,6 +30,8 @@ import { randomUUID } from "node:crypto";
 import {
   createPlan,
   addRecipeToPlan,
+  addCustomShoppingItem,
+  removeCustomShoppingItem,
   setPlannedServings,
   removePlanItem,
   deletePlan,
@@ -180,6 +184,14 @@ export async function saveDropAction(
   return result;
 }
 
+/** Undo a save: remove the viewer's copy of a public drop from their library. */
+export async function unsaveDropAction(recipeId: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await unsaveDropForOwner(owner, recipeId);
+  revalidatePath("/recipes");
+  revalidatePath("/discover");
+}
+
 export async function setRecipePublicAction(id: string, isPublic: boolean): Promise<void> {
   const owner = await getOwnerEmail();
   await setRecipePublic({ ownerEmail: owner, id, isPublic });
@@ -306,6 +318,18 @@ export async function deletePlanAction(planId: string): Promise<void> {
 export async function generateListAction(planId: string): Promise<void> {
   const owner = await getOwnerEmail();
   await generateShoppingList(owner, planId);
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function addShoppingItemAction(planId: string, name: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await addCustomShoppingItem(owner, planId, name);
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function removeShoppingItemAction(planId: string, itemId: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await removeCustomShoppingItem(owner, itemId);
   revalidatePath(`/plans/${planId}`);
 }
 
@@ -514,6 +538,29 @@ export async function setPantryItemAction(input: {
   });
   if (input.planId) revalidatePath(`/plans/${input.planId}`);
   revalidatePath("/pantry");
+}
+
+/**
+ * Likely-typo check for hand-typed pantry items: the closest ingredient name
+ * the app already knows, or null when the input looks fine.
+ */
+export async function suggestPantryNameAction(name: string): Promise<string | null> {
+  const owner = await getOwnerEmail();
+  const cleaned = name.trim().toLowerCase();
+  if (!cleaned) return null;
+  try {
+    const [known, pantry] = await Promise.all([
+      getKnownCanonicalNames(),
+      listPantryItems(owner),
+    ]);
+    const { closestKnownName } = await import("@/lib/shopping/spelling");
+    return closestKnownName(cleaned, [
+      ...known,
+      ...pantry.map((item) => item.canonicalName),
+    ]);
+  } catch {
+    return null; // suggestion is best-effort — never block the add
+  }
 }
 
 export async function setLeftoverItemAction(input: {

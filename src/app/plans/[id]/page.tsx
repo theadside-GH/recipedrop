@@ -31,7 +31,7 @@ export default async function PlanPage({
         href="/plans"
         className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> All plans
+        <ArrowLeft className="h-4 w-4" /> All lists
       </Link>
       <PlanEditor
         planId={id}
@@ -66,6 +66,7 @@ export default async function PlanPage({
                   unitCategory: s.unitCategory,
                   isChecked: s.isChecked,
                   isSummable: s.isSummable,
+                  isCustom: s.isCustom,
                   inPantry:
                     pantry.find((item) => item.canonicalName === s.canonicalName)?.inPantry ??
                     false,

@@ -25,8 +25,8 @@ const LINKS = [
   { href: "/import", label: "Import", icon: PlusCircle, match: (p: string) => p.startsWith("/import") },
   {
     href: "/plans",
-    label: "Meal Plans",
-    mobileLabel: "Plans",
+    label: "Shopping",
+    mobileLabel: "Shop",
     icon: ShoppingBasket,
     match: (p: string) => p.startsWith("/plans"),
   },

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Heart, Search, X } from "lucide-react";
+import { ChefHat, Heart, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const MEALS = ["breakfast", "lunch", "dinner", "snack", "dessert", "side", "drink"];
@@ -30,6 +30,7 @@ export function LibraryFilters() {
   const max = params.get("max") ?? "";
   const search = params.get("q") ?? "";
   const favorite = params.get("favorite") === "1";
+  const made = params.get("made") === "1";
   const origin = params.get("origin") ?? "";
   const sort = params.get("sort") ?? "newest";
 
@@ -42,7 +43,7 @@ export function LibraryFilters() {
     router.push(query ? `/recipes?${query}` : "/recipes");
   }
 
-  const hasFilters = meal || max || search || favorite || origin || sort !== "newest";
+  const hasFilters = meal || max || search || favorite || made || origin || sort !== "newest";
 
   return (
     <div className="space-y-3">
@@ -66,6 +67,14 @@ export function LibraryFilters() {
         <Chip active={favorite} onClick={() => setParam("favorite", favorite ? "" : "1")}>
           <Heart className={cn("h-3.5 w-3.5", favorite && "fill-current")} />
           Favorites
+        </Chip>
+        <Chip
+          active={made}
+          onClick={() => setParam("made", made ? "" : "1")}
+          title="Recipes you've logged as cooked (the “Cooked it” button on a recipe)"
+        >
+          <ChefHat className="h-3.5 w-3.5" />
+          Made it
         </Chip>
         <FilterSelect
           label="Type"
@@ -142,15 +151,18 @@ function Chip({
   active,
   onClick,
   className,
+  title,
 }: {
   children: React.ReactNode;
   active?: boolean;
   onClick?: () => void;
   className?: string;
+  title?: string;
 }) {
   return (
     <button
       onClick={onClick}
+      title={title}
       className={cn(
         "inline-flex shrink-0 items-center gap-1 rounded-full border px-4 py-2 text-sm font-medium transition-colors",
         active

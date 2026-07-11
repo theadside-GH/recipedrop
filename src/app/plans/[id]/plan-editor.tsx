@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn, formatMinutes } from "@/lib/utils";
 import {
+  addShoppingItemAction,
   addToPlanAction,
   generateListAction,
   removePlanItemAction,
@@ -202,20 +203,62 @@ export function PlanEditor({
         </Button>
       )}
 
+      <AddCustomItem planId={planId} onAdded={refresh} />
+
       {shopping && shopping.items.length > 0 && (
         <ShoppingListView planId={planId} items={shopping.items} onChanged={refresh} />
       )}
 
-      {items.length === 0 && (
+      {items.length === 0 && (!shopping || shopping.items.length === 0) && (
         <div className="flex flex-col items-center rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center">
           <Sparkles className="h-7 w-7 text-brand" />
-          <p className="mt-3 font-medium">Add a few recipes to get started</p>
+          <p className="mt-3 font-medium">Two ways to fill this list</p>
           <p className="text-sm text-muted">
-            Set how many people each one is for, then generate your shopping list.
+            Add recipes above and generate a consolidated shopping list — or skip recipes
+            and just type in what you need.
           </p>
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Free-text shopping items, independent of any recipe. This is what makes a
+ * from-scratch list possible; typed items also survive regeneration.
+ */
+function AddCustomItem({ planId, onAdded }: { planId: string; onAdded: () => void }) {
+  const [name, setName] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const cleaned = name.trim();
+    if (!cleaned) return;
+    startTransition(async () => {
+      await addShoppingItemAction(planId, cleaned);
+      setName("");
+      onAdded();
+    });
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      className="flex items-center gap-2 rounded-2xl border border-border bg-card p-3"
+    >
+      <Plus className="ml-1 h-5 w-5 shrink-0 text-brand" />
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Add anything to the list — paper towels, coffee, batteries..."
+        aria-label="Add your own shopping item"
+        className="h-10 w-full min-w-0 flex-1 rounded-xl border border-border bg-surface px-3 text-sm focus:border-brand focus-visible:outline-none"
+      />
+      <Button type="submit" variant="secondary" disabled={isPending || !name.trim()}>
+        {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add"}
+      </Button>
+    </form>
   );
 }
 

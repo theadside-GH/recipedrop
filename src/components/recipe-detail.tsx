@@ -225,10 +225,22 @@ export function RecipeDetail({
         )}
         {!readOnly && recipe.sourceUrl && (
           <>
-            <Button variant="secondary" size="lg" onClick={handleRepair} disabled={repairPending}>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={handleRepair}
+              disabled={repairPending}
+              title="Re-read the original link and rebuild missing details (ingredients, steps, photo) with AI"
+            >
               <Wrench className="h-4 w-4" /> {repairPending ? "Improving..." : "Improve"}
             </Button>
-            <Button variant="secondary" size="lg" onClick={handleImageRepair} disabled={repairPending}>
+            <Button
+              variant="secondary"
+              size="lg"
+              onClick={handleImageRepair}
+              disabled={repairPending}
+              title="Replace the photo — from the original link, or a look-alike from the web"
+            >
               <ImageIcon className="h-4 w-4" /> Fix image
             </Button>
           </>

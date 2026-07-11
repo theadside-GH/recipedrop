@@ -2,10 +2,11 @@ import Link from "next/link";
 import type React from "react";
 import { ArrowRight, Compass, Flame, LayoutGrid, Search, Sparkles, Users } from "lucide-react";
 import { RecipeCard } from "@/components/recipe-card";
-import { SaveDropButton } from "@/components/save-drop-button";
+import { SaveDropToggle } from "@/components/save-drop-toggle";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getViewerEmail } from "@/lib/auth";
-import { listPublicRecipes, type PublicRecipeRow } from "@/lib/repo/recipes";
+import { listPublicRecipes, savedCopyIdsFor, type PublicRecipeRow } from "@/lib/repo/recipes";
 import { cookedCountsFor, listFollowedRecipes } from "@/lib/repo/social";
 import { cn } from "@/lib/utils";
 import { ShareOnboardingCard } from "./share-onboarding-card";
@@ -17,27 +18,37 @@ const MEALS = ["breakfast", "lunch", "dinner", "snack", "dessert", "side", "drin
 export default async function DiscoverPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; meal?: string; view?: string }>;
+  searchParams: Promise<{ q?: string; meal?: string; view?: string; sort?: string }>;
 }) {
   const sp = await searchParams;
   const q = sp.q?.trim() ?? "";
   const meal = MEALS.includes(sp.meal ?? "") ? (sp.meal as string) : "";
   const filtering = !!(q || meal);
   const viewAll = sp.view === "all" && !filtering;
+  const allSort = sp.sort === "popular" ? ("popular" as const) : ("newest" as const);
   const viewer = (await getViewerEmail()) ?? "";
 
   const [newest, popular, followed] =
     filtering || viewAll
-      ? [await listPublicRecipes("newest", viewAll ? 300 : 24, { q, mealType: meal }), [], []]
+      ? [
+          await listPublicRecipes(viewAll ? allSort : "newest", viewAll ? 300 : 24, {
+            q,
+            mealType: meal,
+          }),
+          [],
+          [],
+        ]
       : await Promise.all([
           listPublicRecipes("newest", 12),
           listPublicRecipes("popular", 8),
           viewer ? listFollowedRecipes(viewer, 8) : Promise.resolve([]),
         ]);
 
-  const cookedCounts = await cookedCountsFor(
-    [...newest, ...popular, ...followed].map((row) => row.recipe.id),
-  );
+  const allRows = [...newest, ...popular, ...followed];
+  const [cookedCounts, savedCopies] = await Promise.all([
+    cookedCountsFor(allRows.map((row) => row.recipe.id)),
+    savedCopyIdsFor(viewer, allRows.map((row) => row.recipe)),
+  ]);
 
   return (
     <div className="space-y-8">
@@ -50,8 +61,8 @@ export default async function DiscoverPage({
           <div className="max-w-xl">
             <h1 className="text-3xl sm:text-4xl">Discover drops</h1>
             <p className="mt-2 text-muted">
-              Public recipes from people who choose to share their drops. Tap the bookmark to
-              save one straight to Your Recipes.
+              Public recipes from people who choose to share their drops. Tap the little
+              recipe book on a photo to save it to Your Recipes — tap again to un-save.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -108,10 +119,19 @@ export default async function DiscoverPage({
           recipes={newest}
           viewer={viewer}
           cookedCounts={cookedCounts}
+          savedCopies={savedCopies}
           empty={
             viewAll
               ? "No public drops yet."
               : "No public drops match. Try another dish, ingredient, or tag."
+          }
+          action={
+            viewAll ? (
+              <div className="flex gap-2">
+                <SortChip label="Newest" icon={Sparkles} active={allSort === "newest"} href="/discover?view=all" />
+                <SortChip label="Most dropped" icon={Flame} active={allSort === "popular"} href="/discover?view=all&sort=popular" />
+              </div>
+            ) : undefined
           }
         />
       ) : (
@@ -123,6 +143,7 @@ export default async function DiscoverPage({
               recipes={followed}
               viewer={viewer}
               cookedCounts={cookedCounts}
+              savedCopies={savedCopies}
               empty=""
             />
           )}
@@ -133,6 +154,7 @@ export default async function DiscoverPage({
             recipes={newest}
             viewer={viewer}
             cookedCounts={cookedCounts}
+            savedCopies={savedCopies}
             empty="No public drops yet."
             action={
               <Link
@@ -150,7 +172,16 @@ export default async function DiscoverPage({
             recipes={popular}
             viewer={viewer}
             cookedCounts={cookedCounts}
+            savedCopies={savedCopies}
             empty="Most-dropped recipes will appear here once public sharing grows."
+            action={
+              <Link
+                href="/discover?view=all&sort=popular"
+                className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+              >
+                See all by most dropped <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            }
           />
         </>
       )}
@@ -186,12 +217,40 @@ function MealChip({ label, active, href }: { label: string; active: boolean; hre
   );
 }
 
+function SortChip({
+  label,
+  icon: Icon,
+  active,
+  href,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  active: boolean;
+  href: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors",
+        active
+          ? "border-brand bg-brand text-brand-foreground"
+          : "border-border bg-card text-foreground hover:bg-surface",
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" />
+      {label}
+    </Link>
+  );
+}
+
 function PublicSection({
   title,
   icon: Icon,
   recipes,
   viewer,
   cookedCounts,
+  savedCopies,
   empty,
   action,
 }: {
@@ -200,6 +259,7 @@ function PublicSection({
   recipes: PublicRecipeRow[];
   viewer: string;
   cookedCounts: Map<string, number>;
+  savedCopies: Map<string, string>;
   empty: string;
   action?: React.ReactNode;
 }) {
@@ -230,8 +290,16 @@ function PublicSection({
               cookedCount={cookedCounts.get(row.recipe.id)}
               dropperCount={row.dropperCount}
               topRightSlot={
+                row.recipe.ownerEmail === viewer ? (
+                  <Badge variant="solid">Your drop</Badge>
+                ) : undefined
+              }
+              bottomRightSlot={
                 row.recipe.ownerEmail === viewer ? undefined : (
-                  <SaveDropButton compact recipeId={row.recipe.id} />
+                  <SaveDropToggle
+                    recipeId={row.recipe.id}
+                    initialSaved={savedCopies.has(row.recipe.id)}
+                  />
                 )
               }
             />

@@ -3,8 +3,9 @@ import Link from "next/link";
 import { ArrowLeft, BookMarked, CircleUserRound } from "lucide-react";
 import { getViewerEmail } from "@/lib/auth";
 import { getCollectionFull } from "@/lib/repo/collections";
+import { savedCopyIdsFor } from "@/lib/repo/recipes";
 import { RecipeCard } from "@/components/recipe-card";
-import { SaveDropButton } from "@/components/save-drop-button";
+import { SaveDropToggle } from "@/components/save-drop-toggle";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,7 @@ export default async function PublicCollectionPage({
   const isOwner = data.collection.ownerEmail === viewer;
   const recipes = data.recipes.filter((r) => r.isPublic && !r.isHidden);
   const byline = data.owner?.handle ? `@${data.owner.handle}` : data.owner?.displayName;
+  const savedCopies = await savedCopyIdsFor(viewer ?? "", recipes);
 
   return (
     <div className="space-y-6">
@@ -77,7 +79,11 @@ export default async function PublicCollectionPage({
               showFavorite={false}
               byline={byline ?? undefined}
               bylineAvatar={data.owner?.avatarUrl}
-              topRightSlot={isOwner ? undefined : <SaveDropButton compact recipeId={r.id} />}
+              bottomRightSlot={
+                isOwner ? undefined : (
+                  <SaveDropToggle recipeId={r.id} initialSaved={savedCopies.has(r.id)} />
+                )
+              }
             />
           ))}
         </div>

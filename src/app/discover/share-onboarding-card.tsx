@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { Share, Smartphone, X } from "lucide-react";
+import { Share, Smartphone, Sparkles, X, Zap } from "lucide-react";
 import { useLocalSetting } from "@/lib/use-local-setting";
 
 const DISMISS_KEY = "rd-share-onboarding-dismissed";
@@ -25,34 +25,62 @@ export function ShareOnboardingCard() {
   if (installed || dismissed === "1") return null;
 
   return (
-    <div className="relative rounded-2xl border border-brand/25 bg-brand-soft p-5 pr-12">
+    <div className="relative overflow-hidden rounded-3xl border border-brand/25 bg-gradient-to-br from-brand-soft via-background to-brand-soft p-6 pr-12 sm:p-7">
+      <Zap
+        aria-hidden
+        className="pointer-events-none absolute -bottom-6 -right-4 h-32 w-32 rotate-12 text-brand opacity-[0.08]"
+      />
       <button
         type="button"
         onClick={() => setDismissed("1")}
         aria-label="Dismiss"
-        className="absolute right-3 top-3 rounded-full p-1.5 text-muted transition-colors hover:bg-card hover:text-foreground"
+        className="absolute right-3 top-3 z-10 rounded-full p-1.5 text-muted transition-colors hover:bg-card hover:text-foreground"
       >
         <X className="h-4 w-4" />
       </button>
-      <p className="flex items-center gap-2 font-semibold">
-        <Smartphone className="h-5 w-5 text-brand" />
-        Save recipes in two taps
+
+      <p className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-xs font-semibold uppercase tracking-wide text-brand-foreground shadow-sm">
+        <Zap className="h-3.5 w-3.5" /> The fast way
       </p>
-      <ol className="mt-2 space-y-1.5 text-sm text-muted">
-        <li>
-          <span className="font-medium text-foreground">1. Put RecipeDrop on your phone:</span>{" "}
-          on iPhone open this site in Safari and tap Share → &quot;Add to Home Screen&quot;; on
-          Android tap the menu → &quot;Install app&quot;.
-        </li>
-        <li>
-          <span className="font-medium text-foreground">
-            2. Then, in TikTok, Instagram, or YouTube:
-          </span>{" "}
-          tap <Share className="inline h-3.5 w-3.5" /> Share on any recipe video →{" "}
-          <span className="font-medium text-foreground">RecipeDrop</span> — it turns the video
-          into a clean recipe automatically.
-        </li>
-      </ol>
+      <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+        Save recipes in two taps
+      </h2>
+      <p className="mt-1 max-w-lg text-sm text-muted">
+        See a recipe video? Share it to RecipeDrop and it lands here as a clean,
+        step-by-step recipe — no typing, no screenshots.
+      </p>
+
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="flex gap-3 rounded-2xl border border-brand/20 bg-card/80 p-4 backdrop-blur">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-brand-foreground shadow-sm">
+            1
+          </span>
+          <div className="text-sm">
+            <p className="flex items-center gap-1.5 font-semibold">
+              <Smartphone className="h-4 w-4 text-brand" /> Put it on your phone
+            </p>
+            <p className="mt-1 text-muted">
+              iPhone: open this site in Safari → Share → <strong>Add to Home Screen</strong>.
+              Android: menu → <strong>Install app</strong>.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-3 rounded-2xl border border-brand/20 bg-card/80 p-4 backdrop-blur">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-brand-foreground shadow-sm">
+            2
+          </span>
+          <div className="text-sm">
+            <p className="flex items-center gap-1.5 font-semibold">
+              <Share className="h-4 w-4 text-brand" /> Share any recipe video
+            </p>
+            <p className="mt-1 text-muted">
+              In TikTok, Instagram, or YouTube tap Share → <strong>RecipeDrop</strong>.
+              <Sparkles className="mx-1 inline h-3.5 w-3.5 text-brand" />
+              Done — it&apos;s in Your Recipes.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

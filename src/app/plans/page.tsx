@@ -23,9 +23,10 @@ export default async function PlansPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Meal plans</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Shopping lists</h1>
         <p className="mt-1 text-muted">
-          Pick recipes, set servings for each, and get one consolidated shopping list.
+          Plan meals from your recipes — or start a list from scratch — and get one
+          consolidated shopping list either way.
         </p>
       </div>
 
@@ -39,7 +40,7 @@ export default async function PlansPage() {
 
       {plans.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border bg-surface px-6 py-12 text-center text-muted">
-          No meal plans yet. Create one above to start your week.
+          No lists yet. Create one above — add recipes to it, or just type in what you need.
         </div>
       ) : (
         <div className="space-y-3">

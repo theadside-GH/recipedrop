@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Pencil } from "lucide-react";
 import { getViewerEmail } from "@/lib/auth";
 import { dropperCountForRecipe, getRecipeFull } from "@/lib/repo/recipes";
 import { getCookedState, isFollowingOwnerOfRecipe } from "@/lib/repo/social";
@@ -52,9 +52,16 @@ export default async function PublicRecipePage({
         readOnly
         actionsSlot={
           isOwner ? (
-            <Link href={`/recipes/${data.recipe.id}`}>
-              <Button size="lg">Open in Your Recipes</Button>
-            </Link>
+            <>
+              <Link href={`/recipes/${data.recipe.id}/edit`}>
+                <Button size="lg">
+                  <Pencil className="h-4 w-4" /> Edit your recipe
+                </Button>
+              </Link>
+              <span className="flex items-center rounded-full border border-border bg-surface px-4 py-2 text-sm text-muted">
+                This is the public view of your drop — it already lives in Your Recipes.
+              </span>
+            </>
           ) : (
             <>
               <SaveDropButton recipeId={data.recipe.id} />
