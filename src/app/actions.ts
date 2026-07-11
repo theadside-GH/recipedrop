@@ -56,7 +56,12 @@ import {
   setFollowByRecipe,
   type CookedState,
 } from "@/lib/repo/social";
-import { addRecipeNote, deleteRecipeNote, type RecipeNoteKind } from "@/lib/repo/notes";
+import {
+  addRecipeNote,
+  deleteRecipeNote,
+  removeLatestCooked,
+  type RecipeNoteKind,
+} from "@/lib/repo/notes";
 import {
   assertCanCreateCollection,
   assertCanCreatePlan,
@@ -497,6 +502,19 @@ export async function addRecipeNoteAction(
 export async function deleteRecipeNoteAction(recipeId: string, noteId: string): Promise<void> {
   const owner = await getOwnerEmail();
   await deleteRecipeNote(owner, noteId);
+  revalidatePath(`/recipes/${recipeId}`);
+}
+
+/**
+ * The "I made it!" toggle: on logs a dated cook (which puts the recipe in the
+ * library's Made it list), off removes only the latest log — an undo, not a
+ * history wipe.
+ */
+export async function setMadeItAction(recipeId: string, made: boolean): Promise<void> {
+  const owner = await getOwnerEmail();
+  if (made) await addRecipeNote(owner, recipeId, "cooked", null);
+  else await removeLatestCooked(owner, recipeId);
+  revalidatePath("/recipes");
   revalidatePath(`/recipes/${recipeId}`);
 }
 

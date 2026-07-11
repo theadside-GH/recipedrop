@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { BookMarked, Dices, PenLine, PlusCircle, Sparkles } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
+import { cookedCountsForOwner } from "@/lib/repo/notes";
 import { listRecipes } from "@/lib/repo/recipes";
+import { MadeItButton } from "@/components/made-it-button";
 import { RecipeCard } from "@/components/recipe-card";
 import { LibraryFilters } from "@/components/library-filters";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,7 @@ export default async function LibraryPage({
   const sp = await searchParams;
   const owner = await getOwnerEmail();
   let recipes;
+  let cookedCounts: Map<string, number>;
   try {
     recipes = await listRecipes(owner, {
       mealType: sp.meal,
@@ -38,6 +41,7 @@ export default async function LibraryPage({
       origin: sp.origin === "own" || sp.origin === "saved" ? sp.origin : undefined,
       sort: sp.sort,
     });
+    cookedCounts = await cookedCountsForOwner(owner, recipes.map((r) => r.id));
   } catch {
     return <DeploymentIssue />;
   }
@@ -114,7 +118,13 @@ export default async function LibraryPage({
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {recipes.map((r) => (
-            <RecipeCard key={r.id} recipe={r} />
+            <RecipeCard
+              key={r.id}
+              recipe={r}
+              bottomRightSlot={
+                <MadeItButton recipeId={r.id} initialCount={cookedCounts.get(r.id) ?? 0} />
+              }
+            />
           ))}
         </div>
       )}

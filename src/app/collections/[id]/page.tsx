@@ -3,6 +3,8 @@ import Link from "next/link";
 import { ArrowLeft, Globe } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { getCollectionFull } from "@/lib/repo/collections";
+import { cookedCountsForOwner } from "@/lib/repo/notes";
+import { MadeItButton } from "@/components/made-it-button";
 import { RecipeCard } from "@/components/recipe-card";
 import { ShareLinkButton } from "@/components/share-link-button";
 import {
@@ -25,6 +27,7 @@ export default async function ManageCollectionPage({
   if (!data || data.collection.ownerEmail !== owner) notFound();
 
   const privateCount = data.recipes.filter((r) => !r.isPublic).length;
+  const cookedCounts = await cookedCountsForOwner(owner, data.recipes.map((r) => r.id));
 
   return (
     <div className="space-y-5">
@@ -70,6 +73,9 @@ export default async function ManageCollectionPage({
               showFavorite={false}
               topRightSlot={
                 <RemoveFromCollectionButton collectionId={data.collection.id} recipeId={r.id} />
+              }
+              bottomRightSlot={
+                <MadeItButton recipeId={r.id} initialCount={cookedCounts.get(r.id) ?? 0} />
               }
             />
           ))}

@@ -7,6 +7,7 @@ import { listCollectionIdsForRecipe, listCollections } from "@/lib/repo/collecti
 import { listRecipeNotes } from "@/lib/repo/notes";
 import { RecipeDetail } from "@/components/recipe-detail";
 import { CollectionPicker } from "@/components/collection-picker";
+import { MadeItButton } from "@/components/made-it-button";
 import { RecipeJournal } from "@/components/recipe-journal";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export default async function RecipePage({
     listRecipeNotes(viewer, id),
   ]);
   const inCollections = new Set(memberIds);
+  const cookedCount = notes.filter((note) => note.kind === "cooked").length;
 
   return (
     <div className="space-y-5">
@@ -50,14 +52,19 @@ export default async function RecipePage({
         dropperName={data.dropper?.handle ? `@${data.dropper.handle}` : data.dropper?.displayName}
         dropperAvatar={data.dropper?.avatarUrl}
         actionsSlot={
-          <CollectionPicker
-            recipeId={id}
-            collections={collections.map((c) => ({
-              id: c.id,
-              name: c.name,
-              has: inCollections.has(c.id),
-            }))}
-          />
+          <>
+            {/* key: journal "Cooked it" entries change the count server-side —
+                remount so the toggle never shows stale state after refresh. */}
+            <MadeItButton key={`made-${cookedCount}`} recipeId={id} initialCount={cookedCount} labeled />
+            <CollectionPicker
+              recipeId={id}
+              collections={collections.map((c) => ({
+                id: c.id,
+                name: c.name,
+                has: inCollections.has(c.id),
+              }))}
+            />
+          </>
         }
       />
       <RecipeJournal

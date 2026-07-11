@@ -71,7 +71,7 @@ export function LibraryFilters() {
         <Chip
           active={made}
           onClick={() => setParam("made", made ? "" : "1")}
-          title="Recipes you've logged as cooked (the “Cooked it” button on a recipe)"
+          title="Recipes you've marked I made it (the chef-hat on a thumbnail or recipe page)"
         >
           <ChefHat className="h-3.5 w-3.5" />
           Made it

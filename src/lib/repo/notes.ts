@@ -1,5 +1,5 @@
 import "server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { recipe, recipeNote, type RecipeNote } from "@/lib/db/schema";
 
@@ -59,6 +59,60 @@ export async function addRecipeNote(
     }
     throw err;
   }
+}
+
+/**
+ * Cooked-log counts per recipe for the owner's own cards — powers the
+ * "I made it" toggle state on library thumbnails.
+ */
+export async function cookedCountsForOwner(
+  ownerEmail: string,
+  recipeIds: string[],
+): Promise<Map<string, number>> {
+  if (recipeIds.length === 0) return new Map();
+  try {
+    const db = await getDb();
+    const rows = await db
+      .select({ recipeId: recipeNote.recipeId, n: sql<number>`count(*)::int` })
+      .from(recipeNote)
+      .where(
+        and(
+          eq(recipeNote.ownerEmail, ownerEmail),
+          eq(recipeNote.kind, "cooked"),
+          inArray(recipeNote.recipeId, recipeIds),
+        ),
+      )
+      .groupBy(recipeNote.recipeId);
+    return new Map(rows.map((r) => [r.recipeId, r.n]));
+  } catch (err) {
+    if (isMissingTable(err)) {
+      console.warn("recipe_note table missing — run `npm run db:migrate` (0008).");
+      return new Map();
+    }
+    throw err;
+  }
+}
+
+/**
+ * Undo for a mis-tapped "I made it": remove only the newest cooked entry,
+ * leaving older cooks (and their notes) intact.
+ */
+export async function removeLatestCooked(ownerEmail: string, recipeId: string): Promise<void> {
+  const db = await getDb();
+  const [latest] = await db
+    .select({ id: recipeNote.id })
+    .from(recipeNote)
+    .where(
+      and(
+        eq(recipeNote.recipeId, recipeId),
+        eq(recipeNote.ownerEmail, ownerEmail),
+        eq(recipeNote.kind, "cooked"),
+      ),
+    )
+    .orderBy(desc(recipeNote.createdAt))
+    .limit(1);
+  if (!latest) return;
+  await db.delete(recipeNote).where(eq(recipeNote.id, latest.id));
 }
 
 export async function deleteRecipeNote(ownerEmail: string, noteId: string): Promise<void> {
