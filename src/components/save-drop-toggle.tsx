@@ -15,11 +15,14 @@ import { cn } from "@/lib/utils";
 export function SaveDropToggle({
   recipeId,
   initialSaved,
+  alreadyOwn = false,
   signedIn = true,
   className,
 }: {
   recipeId: string;
   initialSaved: boolean;
+  /** The viewer imported this dish themselves — nothing to save or unsave. */
+  alreadyOwn?: boolean;
   signedIn?: boolean;
   className?: string;
 }) {
@@ -27,6 +30,23 @@ export function SaveDropToggle({
   const pathname = usePathname();
   const [saved, setSaved] = useState(initialSaved);
   const [, startTransition] = useTransition();
+
+  if (alreadyOwn) {
+    // Saving would dedupe against their own import and silently no-op, so
+    // show the truth instead of a toggle that visually reverts.
+    return (
+      <span
+        title="Already in Your Recipes — you imported this yourself"
+        aria-label="Already in Your Recipes — you imported this yourself"
+        className={cn(
+          "inline-flex h-9 w-9 items-center justify-center rounded-full border border-brand/40 bg-brand-soft text-brand shadow-sm",
+          className,
+        )}
+      >
+        <BookMarked className="h-4 w-4 fill-current" />
+      </span>
+    );
+  }
 
   function toggle() {
     if (!signedIn) {

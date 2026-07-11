@@ -9,6 +9,7 @@ import { getViewerEmail } from "@/lib/auth";
 import {
   countPublicRecipes,
   listPublicRecipes,
+  ownImportIdsFor,
   savedCopyIdsFor,
   type PublicRecipeRow,
 } from "@/lib/repo/recipes";
@@ -54,9 +55,10 @@ export default async function DiscoverPage({
         ]);
 
   const allRows = [...newest, ...popular, ...followed];
-  const [cookedCounts, savedCopies] = await Promise.all([
+  const [cookedCounts, savedCopies, ownImports] = await Promise.all([
     cookedCountsFor(allRows.map((row) => row.recipe.id)),
     savedCopyIdsFor(viewer, allRows.map((row) => row.recipe)),
+    ownImportIdsFor(viewer, allRows.map((row) => row.recipe)),
   ]);
 
   return (
@@ -138,6 +140,7 @@ export default async function DiscoverPage({
           viewer={viewer}
           cookedCounts={cookedCounts}
           savedCopies={savedCopies}
+          ownImports={ownImports}
           empty={
             viewAll
               ? "No dishcoveries yet."
@@ -162,6 +165,7 @@ export default async function DiscoverPage({
               viewer={viewer}
               cookedCounts={cookedCounts}
               savedCopies={savedCopies}
+              ownImports={ownImports}
               empty=""
             />
           )}
@@ -173,6 +177,7 @@ export default async function DiscoverPage({
             viewer={viewer}
             cookedCounts={cookedCounts}
             savedCopies={savedCopies}
+            ownImports={ownImports}
             empty="No dishcoveries yet."
             action={
               <Link
@@ -191,6 +196,7 @@ export default async function DiscoverPage({
             viewer={viewer}
             cookedCounts={cookedCounts}
             savedCopies={savedCopies}
+            ownImports={ownImports}
             empty="Popular dishcoveries will appear here once sharing grows."
             action={
               <Link
@@ -270,6 +276,7 @@ function PublicSection({
   viewer,
   cookedCounts,
   savedCopies,
+  ownImports,
   empty,
   action,
 }: {
@@ -280,6 +287,7 @@ function PublicSection({
   viewer: string;
   cookedCounts: Map<string, number>;
   savedCopies: Map<string, string>;
+  ownImports: Set<string>;
   empty: string;
   action?: React.ReactNode;
 }) {
@@ -320,6 +328,7 @@ function PublicSection({
                   <SaveDropToggle
                     recipeId={row.recipe.id}
                     initialSaved={savedCopies.has(row.recipe.id)}
+                    alreadyOwn={ownImports.has(row.recipe.id)}
                     signedIn={!!viewer}
                   />
                 )

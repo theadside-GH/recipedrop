@@ -138,7 +138,7 @@ export function PlanEditor({
               <button
                 onClick={() => remove(item.id)}
                 className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-red-50 hover:text-red-500"
-                aria-label="Remove from plan"
+                aria-label="Remove from list"
               >
                 <Trash2 className="h-4 w-4" />
               </button>

@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, CircleUserRound, Users } from "lucide-react";
 import { getViewerEmail } from "@/lib/auth";
-import { listPublicRecipesByOwner, savedCopyIdsFor } from "@/lib/repo/recipes";
+import { listPublicRecipesByOwner, ownImportIdsFor, savedCopyIdsFor } from "@/lib/repo/recipes";
 import { cookedCountsFor, getCookProfileByHandle, isFollowingHandle } from "@/lib/repo/social";
 import { RecipeCard } from "@/components/recipe-card";
 import { SaveDropToggle } from "@/components/save-drop-toggle";
@@ -43,9 +43,10 @@ export default async function CookPage({
     listPublicRecipesByOwner(profile.email, 60),
     viewer && !isSelf ? isFollowingHandle(viewer, profile.handle) : Promise.resolve(false),
   ]);
-  const [cookedCounts, savedCopies] = await Promise.all([
+  const [cookedCounts, savedCopies, ownImports] = await Promise.all([
     cookedCountsFor(recipes.map((row) => row.recipe.id)),
     savedCopyIdsFor(viewer ?? "", recipes.map((row) => row.recipe)),
+    ownImportIdsFor(viewer ?? "", recipes.map((row) => row.recipe)),
   ]);
 
   return (
@@ -117,6 +118,7 @@ export default async function CookPage({
                   <SaveDropToggle
                     recipeId={row.recipe.id}
                     initialSaved={savedCopies.has(row.recipe.id)}
+                    alreadyOwn={ownImports.has(row.recipe.id)}
                     signedIn={!!viewer}
                   />
                 )

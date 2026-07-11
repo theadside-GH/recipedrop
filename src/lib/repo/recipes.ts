@@ -594,6 +594,15 @@ export async function listPublicRecipes(
 ): Promise<PublicRecipeRow[]> {
   const db = await getDb();
   const conds = publicDropConditions(db, filters);
+  // "Popular" must rank by the same number the cards display: distinct cooks
+  // holding the dish (see attachDropperCounts). Sorting by the raw dropCount
+  // column put "2 cooks" rows above "3 cooks" rows whenever the holders came
+  // from independent imports rather than saves.
+  const holdersCount = sql<number>`case
+    when ${recipe.sourceKey} is not null then
+      (select count(distinct r2.owner_email) from recipe r2 where r2.source_key = ${recipe.sourceKey})
+    else ${recipe.dropCount}
+  end`;
   const rows = await db
     .select({
       recipe,
@@ -605,7 +614,7 @@ export async function listPublicRecipes(
     .innerJoin(userProfile, eq(userProfile.email, recipe.ownerEmail))
     .where(and(...conds))
     .orderBy(
-      sort === "popular" ? desc(recipe.dropCount) : desc(recipe.createdAt),
+      sort === "popular" ? desc(holdersCount) : desc(recipe.createdAt),
       desc(recipe.createdAt),
     )
     .limit(limit);
@@ -1135,6 +1144,37 @@ export async function savedCopyIdsFor(
 }
 
 /**
+ * Which of these public dishes the viewer already has as their OWN import
+ * (not a saved copy) — matched by source link or normalized title, the same
+ * signals saveDropForOwner dedupes on. The save toggle shows these as
+ * "already in Your Recipes" instead of a tap that silently does nothing.
+ */
+export async function ownImportIdsFor(
+  viewerEmail: string,
+  drops: Array<{ id: string; ownerEmail: string; sourceKey: string | null; title: string }>,
+): Promise<Set<string>> {
+  const result = new Set<string>();
+  if (!viewerEmail || drops.length === 0) return result;
+  const db = await getDb();
+  const own = await db
+    .select({ sourceKey: recipe.sourceKey, title: recipe.title })
+    .from(recipe)
+    .where(and(eq(recipe.ownerEmail, viewerEmail), isNull(recipe.savedFromEmail)));
+  const keys = new Set(own.map((r) => r.sourceKey).filter(Boolean));
+  const titles = new Set(own.map((r) => normalizeTitle(r.title)).filter((t) => !isGenericTitle(t)));
+  for (const drop of drops) {
+    if (drop.ownerEmail === viewerEmail) continue;
+    if (
+      (drop.sourceKey && keys.has(drop.sourceKey)) ||
+      titles.has(normalizeTitle(drop.title))
+    ) {
+      result.add(drop.id);
+    }
+  }
+  return result;
+}
+
+/**
  * Undo saveDropForOwner: delete the viewer's saved copy of a public drop and
  * give the original its drop-count credit back. Only rows that really were
  * saved from another cook can be deleted this way — never an original import.
@@ -1158,13 +1198,32 @@ export async function unsaveDropForOwner(
         isNotNull(recipe.savedFromEmail),
       ),
     )
-    .returning({ id: recipe.id });
-  if (deleted.length > 0) {
-    await db
-      .update(recipe)
-      .set({ dropCount: sql`greatest(${recipe.dropCount} - 1, 1)` })
-      .where(eq(recipe.id, sourceRecipeId));
+    .returning({ id: recipe.id, savedFromEmail: recipe.savedFromEmail });
+  if (deleted.length === 0) return;
+
+  // Give the credit back to the row that received it at save time: the copy's
+  // savedFromEmail owner's recipe. The card the user clicked may be a
+  // different cook's row for the same source link — decrementing that one
+  // would leave the original permanently inflated.
+  const creditedOwner = deleted[0].savedFromEmail;
+  let targetId = sourceRecipeId;
+  if (creditedOwner && creditedOwner !== source.recipe.ownerEmail && source.recipe.sourceKey) {
+    const [credited] = await db
+      .select({ id: recipe.id })
+      .from(recipe)
+      .where(
+        and(
+          eq(recipe.ownerEmail, creditedOwner),
+          eq(recipe.sourceKey, source.recipe.sourceKey),
+        ),
+      )
+      .limit(1);
+    if (credited) targetId = credited.id;
   }
+  await db
+    .update(recipe)
+    .set({ dropCount: sql`greatest(${recipe.dropCount} - 1, 1)` })
+    .where(eq(recipe.id, targetId));
 }
 
 /** Canonical ingredient names per recipe (capped), for the AI weekly planner. */
