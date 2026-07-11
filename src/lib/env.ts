@@ -20,6 +20,10 @@ export const env = {
   supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
   supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
 
+  /** Server-only Supabase key for uploading images to Storage. When unset,
+   *  photos fall back to embedded data: URLs (heavier pages, but works). */
+  supabaseServiceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
+
   /** The single owner of this personal app. */
   ownerEmail: process.env.OWNER_EMAIL ?? "owner@local",
 
@@ -78,6 +82,10 @@ export const features = {
    */
   get billingEnabled() {
     return env.stripeSecretKey.length > 0;
+  },
+  /** Photos upload to Supabase Storage instead of embedding in the DB. */
+  get storageEnabled() {
+    return env.supabaseUrl.length > 0 && env.supabaseServiceRoleKey.length > 0;
   },
 } as const;
 

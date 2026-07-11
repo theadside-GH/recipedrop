@@ -1,6 +1,7 @@
 import "server-only";
 import sharp from "sharp";
 import { safeFetch } from "@/lib/net/safe-fetch";
+import { persistImage, uploadImageBytes } from "@/lib/storage";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -31,10 +32,11 @@ export async function photoLooksReal(jpeg: Buffer): Promise<boolean> {
 }
 
 /**
- * Download an image and re-encode it as a self-contained JPEG data: URL.
+ * Download an image, re-encode it as a resized JPEG, and keep our own copy.
  * Recipe photos are routinely hosted on signed social CDNs (TikTok/Instagram)
  * whose URLs expire within days — a stored remote URL rots even if it loads
- * at save time. Storing the resized bytes keeps the photo working forever.
+ * at save time. The snapshot uploads to Supabase Storage (small hosted URL);
+ * when storage isn't configured it falls back to an embedded data: URL.
  * Returns null (never throws) when the URL is dead, not an image, or too big.
  */
 export async function imageUrlToDataUrl(url: string): Promise<string | null> {
@@ -56,7 +58,8 @@ export async function imageUrlToDataUrl(url: string): Promise<string | null> {
       .jpeg({ quality: JPEG_QUALITY })
       .toBuffer();
     if (!(await photoLooksReal(jpeg))) return null;
-    return `data:image/jpeg;base64,${jpeg.toString("base64")}`;
+    const hosted = await uploadImageBytes(jpeg);
+    return hosted ?? `data:image/jpeg;base64,${jpeg.toString("base64")}`;
   } catch {
     return null;
   }
@@ -77,7 +80,8 @@ export async function pickWorkingImage(
   for (const candidate of candidates) {
     const url = candidate?.trim();
     if (!url || seen.has(url)) continue;
-    if (url.startsWith("data:image/")) return url;
+    // Already-embedded candidates get uploaded too (no-op without storage).
+    if (url.startsWith("data:image/")) return persistImage(url);
     if (!/^https?:\/\//i.test(url)) continue;
     seen.add(url);
     urls.push(url);

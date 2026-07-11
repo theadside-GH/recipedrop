@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { recipe } from "@/lib/db/schema";
+import { isHostedImage } from "@/lib/storage";
 
 /**
  * Serves a public recipe's photo at a stable URL so shared links can carry a
@@ -37,7 +38,11 @@ export async function GET(
     });
   }
 
-  // Remote URL: hand off to the hardened image proxy.
+  // Our own hosted photos redirect straight to the CDN; other remote URLs go
+  // through the hardened image proxy (hotlink-protected source sites).
+  if (isHostedImage(row.imagePath)) {
+    return NextResponse.redirect(row.imagePath, { headers: { "cache-control": cache } });
+  }
   if (/^https?:\/\//i.test(row.imagePath)) {
     const proxied = new URL(`/api/img?u=${encodeURIComponent(row.imagePath)}`, _request.url);
     return NextResponse.redirect(proxied, { headers: { "cache-control": cache } });

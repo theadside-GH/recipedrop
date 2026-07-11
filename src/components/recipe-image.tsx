@@ -17,10 +17,15 @@ const TONE: Record<string, { bg: string; mark: string; line: string }> = {
 /**
  * Remote recipe photos are often hotlink-protected, so we try them through our
  * image proxy first, then the raw URL, and finally a styled placeholder.
+ * Our own hosted photos (Supabase Storage) load directly — no proxy hop.
  * Data URLs and local paths are used as-is.
  */
 function candidatesFor(src: string | null): string[] {
   if (!src) return [];
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+  if (supabaseUrl && src.startsWith(`${supabaseUrl}/storage/`)) {
+    return [src];
+  }
   if (/^https?:\/\//i.test(src)) {
     return [`/api/img?u=${encodeURIComponent(src)}`, src];
   }

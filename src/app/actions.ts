@@ -26,6 +26,7 @@ import {
   type RecipeEditInput,
 } from "@/lib/repo/recipes";
 import { updateProfile, type ProfileInput } from "@/lib/repo/profiles";
+import { persistImage } from "@/lib/storage";
 import { randomUUID } from "node:crypto";
 import {
   createPlan,
@@ -204,7 +205,9 @@ export async function setRecipePublicAction(id: string, isPublic: boolean): Prom
 
 export async function setRecipeImageAction(id: string, imagePath: string): Promise<void> {
   const owner = await getOwnerEmail();
-  await setRecipeImage({ ownerEmail: owner, id, imagePath });
+  // Uploaded photos arrive as data: URLs — host them instead of embedding.
+  const hosted = (await persistImage(imagePath)) ?? imagePath;
+  await setRecipeImage({ ownerEmail: owner, id, imagePath: hosted });
   revalidatePath("/recipes");
   revalidatePath(`/recipes/${id}`);
   revalidatePath(`/recipes/${id}/edit`);
@@ -212,7 +215,7 @@ export async function setRecipeImageAction(id: string, imagePath: string): Promi
 
 export async function updateProfileAction(input: ProfileInput): Promise<void> {
   const owner = await getOwnerEmail();
-  await updateProfile(owner, input);
+  await updateProfile(owner, { ...input, avatarUrl: await persistImage(input.avatarUrl) });
   revalidatePath("/recipes");
   revalidatePath("/discover");
   revalidatePath("/profile");
@@ -223,7 +226,10 @@ export async function createRecipeAction(
   input: Omit<RecipeEditInput, "id" | "ownerEmail">,
 ): Promise<{ id: string }> {
   const owner = await getOwnerEmail();
-  const id = await createRecipeManual(owner, input);
+  const id = await createRecipeManual(owner, {
+    ...input,
+    imagePath: await persistImage(input.imagePath),
+  });
   revalidatePath("/recipes");
   return { id };
 }
@@ -233,7 +239,12 @@ export async function updateRecipeAction(
   input: Omit<RecipeEditInput, "id" | "ownerEmail">,
 ): Promise<void> {
   const owner = await getOwnerEmail();
-  await updateRecipe({ ...input, id, ownerEmail: owner });
+  await updateRecipe({
+    ...input,
+    imagePath: await persistImage(input.imagePath),
+    id,
+    ownerEmail: owner,
+  });
   revalidatePath("/recipes");
   revalidatePath(`/recipes/${id}`);
   revalidatePath(`/recipes/${id}/edit`);

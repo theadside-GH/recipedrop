@@ -49,9 +49,15 @@ DATABASE_URL=
 PGLITE_DIR=./.pglite
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
 INVITE_EMAILS=
 NEXT_PUBLIC_SITE_URL=
 ```
+
+`SUPABASE_SERVICE_ROLE_KEY` (server-only, from Project Settings → API) lets the
+app host photos in Supabase Storage (`recipe-images` bucket) instead of
+embedding them in database rows — much lighter pages. To move existing
+embedded photos into storage, run `npm run migrate:images` once.
 
 For local testing, only `ANTHROPIC_API_KEY` is needed for imports. For a hosted
 web app, set all values except `PGLITE_DIR`.

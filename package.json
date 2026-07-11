@@ -18,7 +18,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "node --conditions=react-server --import tsx scripts/seed.ts",
     "backfill:images": "node --conditions=react-server --import tsx scripts/backfill-images.ts",
-    "backfill:source-keys": "node --conditions=react-server --import tsx scripts/backfill-source-keys.ts"
+    "backfill:source-keys": "node --conditions=react-server --import tsx scripts/backfill-source-keys.ts",
+    "migrate:images": "node --conditions=react-server --import tsx scripts/migrate-images-to-storage.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.104.1",
