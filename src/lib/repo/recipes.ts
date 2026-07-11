@@ -109,63 +109,70 @@ export async function createRecipeFromExtraction(
   const totalMinutes =
     ex.totalMinutes ?? ((ex.prepMinutes ?? 0) + (ex.cookMinutes ?? 0) || null);
 
-  const [created] = await db
-    .insert(recipe)
-    .values({
-      ownerEmail,
-      title: ex.title,
-      description: ex.description,
-      sourceType: opts.sourceType,
-      sourceUrl: opts.sourceUrl ?? null,
-      sourceKey: opts.sourceKey ?? sourceKeyFor(opts.sourceUrl),
-      sourceAuthor: ex.sourceAuthor,
-      imagePath: opts.imagePath ?? ex.imageUrl ?? null,
-      prepMinutes: ex.prepMinutes,
-      cookMinutes: ex.cookMinutes,
-      totalMinutes,
-      servingsDefault: ex.servings && ex.servings > 0 ? Math.round(ex.servings) : 2,
-      mealType: ex.mealType,
-      difficulty: ex.difficulty,
-    })
-    .returning();
+  // Transaction: partial imports (e.g. a TikTok caption with ingredients but
+  // no steps) must never leave a half-written recipe behind on failure.
+  return db.transaction(async (rawTx) => {
+    const tx = rawTx as unknown as DB;
+    const [created] = await tx
+      .insert(recipe)
+      .values({
+        ownerEmail,
+        title: ex.title,
+        description: ex.description,
+        sourceType: opts.sourceType,
+        sourceUrl: opts.sourceUrl ?? null,
+        sourceKey: opts.sourceKey ?? sourceKeyFor(opts.sourceUrl),
+        sourceAuthor: ex.sourceAuthor,
+        imagePath: opts.imagePath ?? ex.imageUrl ?? null,
+        prepMinutes: ex.prepMinutes,
+        cookMinutes: ex.cookMinutes,
+        totalMinutes,
+        servingsDefault: ex.servings && ex.servings > 0 ? Math.round(ex.servings) : 2,
+        mealType: ex.mealType,
+        difficulty: ex.difficulty,
+      })
+      .returning();
 
-  // Ingredients with canonical resolution.
-  let order = 0;
-  for (const ing of ex.ingredients) {
-    const canonical = await resolveCanonical(db, ing.canonicalName);
-    await db.insert(recipeIngredient).values({
-      recipeId: created.id,
-      rawText: ing.raw,
-      canonicalIngredientId: canonical?.id ?? null,
-      canonicalName: canonical?.name ?? (ing.canonicalName.trim().toLowerCase() || null),
-      quantity: ing.quantity,
-      unit: ing.unit,
-      unitCategory: ing.unitCategory,
-      note: ing.note,
-      optional: ing.optional ?? false,
-      sortOrder: order++,
-    });
-  }
-
-  // Steps.
-  await db.insert(step).values(
-    ex.steps.map((s, i) => ({
-      recipeId: created.id,
-      stepNumber: i + 1,
-      instruction: s.instruction,
-      durationMinutes: s.durationMinutes,
-    })),
-  );
-
-  // Tags.
-  for (const t of ex.tags) {
-    const tagId = await upsertTag(db, t);
-    if (tagId) {
-      await db.insert(recipeTag).values({ recipeId: created.id, tagId }).onConflictDoNothing();
+    // Ingredients with canonical resolution.
+    let order = 0;
+    for (const ing of ex.ingredients) {
+      const canonical = await resolveCanonical(tx, ing.canonicalName);
+      await tx.insert(recipeIngredient).values({
+        recipeId: created.id,
+        rawText: ing.raw,
+        canonicalIngredientId: canonical?.id ?? null,
+        canonicalName: canonical?.name ?? (ing.canonicalName.trim().toLowerCase() || null),
+        quantity: ing.quantity,
+        unit: ing.unit,
+        unitCategory: ing.unitCategory,
+        note: ing.note,
+        optional: ing.optional ?? false,
+        sortOrder: order++,
+      });
     }
-  }
 
-  return created.id;
+    // Steps. Partial imports can have none — drizzle throws on values([]).
+    if (ex.steps.length > 0) {
+      await tx.insert(step).values(
+        ex.steps.map((s, i) => ({
+          recipeId: created.id,
+          stepNumber: i + 1,
+          instruction: s.instruction,
+          durationMinutes: s.durationMinutes,
+        })),
+      );
+    }
+
+    // Tags.
+    for (const t of ex.tags) {
+      const tagId = await upsertTag(tx, t);
+      if (tagId) {
+        await tx.insert(recipeTag).values({ recipeId: created.id, tagId }).onConflictDoNothing();
+      }
+    }
+
+    return created.id;
+  });
 }
 
 async function replaceRecipeParts(

@@ -3,24 +3,24 @@ import { NextResponse, type NextRequest } from "next/server";
 import { env, features, isUninvited } from "@/lib/env";
 import { pathWithSearch } from "@/lib/auth-redirect";
 
-// "/api/img" and "/api/og-image" are public so recipe photos render for
-// anonymous visitors and link-preview crawlers on /r, /c, /u, and /discover.
-const PUBLIC_PREFIXES = [
-  "/auth",
-  "/login",
-  "/api/health",
-  "/api/img",
-  "/api/og-image",
-  "/discover",
-  "/about",
-  "/not-invited",
-  "/r",
-  "/c",
-  "/u",
+// Only these routes require a signed-in (and invited) account. Everything
+// else — public pages (/discover, /r, /c, /u, /about), public APIs, robots,
+// and any mistyped URL — passes through, so typos land on the branded 404
+// instead of a confusing sign-in prompt.
+const PROTECTED_PREFIXES = [
+  "/recipes",
+  "/import",
+  "/plans",
+  "/pantry",
+  "/profile",
+  "/collections",
+  "/share",
 ];
 
-function isPublicPath(pathname: string) {
-  return PUBLIC_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+function isProtectedPath(pathname: string) {
+  return PROTECTED_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 export async function proxy(request: NextRequest) {
@@ -51,7 +51,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user && !isPublicPath(pathname)) {
+  if (!user && isProtectedPath(pathname)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";
@@ -61,7 +61,7 @@ export async function proxy(request: NextRequest) {
 
   // Invite list (INVITE_EMAILS): signed-in strangers can still browse public
   // pages, but the app itself — and its metered AI — stays friends-only.
-  if (user && !isPublicPath(pathname) && isUninvited(user.email)) {
+  if (user && isProtectedPath(pathname) && isUninvited(user.email)) {
     return NextResponse.redirect(new URL("/not-invited", request.url));
   }
 
@@ -74,6 +74,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.svg|icon-192.png|icon-512.png|icon-maskable-512.png|manifest.webmanifest|sw.js).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.svg|icon-192.png|icon-512.png|icon-maskable-512.png|manifest.webmanifest|robots.txt|sw.js).*)",
   ],
 };

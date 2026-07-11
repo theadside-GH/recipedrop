@@ -49,9 +49,21 @@ const FAQS = [
     icon: Share2,
   },
   {
+    question: "What about iPhone?",
+    answer:
+      "iPhones don't offer the share-to-app shortcut, so copy the video's link, open RecipeDrop, and paste it into Import — same result, one extra step. You can still add RecipeDrop to your Home Screen: open it in Safari, tap Share, then Add to Home Screen.",
+    icon: Smartphone,
+  },
+  {
     question: "Who can use this app?",
     answer:
-      "For testing, accounts use Google sign-in. Profiles can have a photo, display name, and public sharing setting.",
+      "Anyone with an invite. Sign in with Google or an emailed magic link — no password to remember. Your profile can have a photo, display name, and a public-sharing setting that is off until you turn it on.",
+    icon: LockKeyhole,
+  },
+  {
+    question: "What happens to my data?",
+    answer:
+      "Your recipes, pantry, and plans are private to your account unless you choose to make a recipe public. Photos and data are stored with Supabase, the app's database provider. Want anything exported or your account removed? Message Ralph and it's done.",
     icon: LockKeyhole,
   },
   {

@@ -47,6 +47,20 @@ export function ShareCaptureClient({
       setJob({ ...created, status: "processing" });
       const result = await runImportJob(created.id);
       if (result) setJob(result);
+    } catch (err) {
+      // Never fail silently — the user just shared a recipe and is watching.
+      setJob({
+        id: "local-share-error",
+        label: nextValue.trim().slice(0, 80) || "Shared recipe",
+        rawInput: nextValue,
+        sourceType: "text",
+        status: "failed",
+        error:
+          err instanceof Error && err.message
+            ? err.message
+            : "Import could not start — check your connection and try again.",
+        recipeId: null,
+      });
     } finally {
       setBusy(false);
     }

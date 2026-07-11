@@ -54,7 +54,9 @@ const ANON_LINKS: NavLink[] = [
 export function SiteNav({ signedIn = true }: { signedIn?: boolean }) {
   const pathname = usePathname();
   const links = signedIn ? LINKS : ANON_LINKS;
-  const loginHref = `/login?next=${encodeURIComponent(pathname)}`;
+  const loginHref = pathname.startsWith("/login")
+    ? "/login"
+    : `/login?next=${encodeURIComponent(pathname)}`;
 
   return (
     <>
