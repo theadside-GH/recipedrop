@@ -23,7 +23,7 @@ interface NavLink {
 }
 
 const LINKS: NavLink[] = [
-  { href: "/discover", label: "Discover", icon: Compass, match: (p: string) => p.startsWith("/discover") },
+  { href: "/discover", label: "Dishcover", icon: Compass, match: (p: string) => p.startsWith("/discover") },
   {
     href: "/recipes",
     label: "Your Recipes",
@@ -46,7 +46,7 @@ const LINKS: NavLink[] = [
 // Signed-out visitors only get pages that work for them, plus a Sign in
 // affordance — the full nav used to bounce every tap to /login unexplained.
 const ANON_LINKS: NavLink[] = [
-  { href: "/discover", label: "Discover", icon: Compass, match: (p: string) => p.startsWith("/discover") },
+  { href: "/discover", label: "Dishcover", icon: Compass, match: (p: string) => p.startsWith("/discover") },
   { href: "/about", label: "About", icon: Info, match: (p: string) => p.startsWith("/about") },
 ];
 

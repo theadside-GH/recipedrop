@@ -1,16 +1,17 @@
 import { cache } from "react";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { getViewerEmail } from "@/lib/auth";
-import { dropperCountForRecipe, getRecipeFull } from "@/lib/repo/recipes";
+import { dropperCountForRecipe, getRecipeFull, savedCopyIdsFor } from "@/lib/repo/recipes";
+import { listCollectionIdsForRecipe, listCollections } from "@/lib/repo/collections";
 import { getCookedState, isFollowingOwnerOfRecipe } from "@/lib/repo/social";
+import { CollectionPicker } from "@/components/collection-picker";
 import { RecipeDetail } from "@/components/recipe-detail";
 import { ReportDropButton } from "@/components/report-drop-button";
 import { SaveDropButton } from "@/components/save-drop-button";
 import { FollowButton, MadeThisButton } from "@/components/social-buttons";
-import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -64,13 +65,24 @@ export default async function PublicRecipePage({
   const [data, viewer] = await Promise.all([loadRecipe(id), getViewerEmail()]);
   if (!data || !data.recipe.isPublic) notFound();
   const isOwner = data.recipe.ownerEmail === viewer;
+  // Your own dishcovery always opens as your recipe page — same page whether
+  // you arrive from Dishcover or Your Recipes.
+  if (isOwner) redirect(`/recipes/${id}`);
   // Moderation-hidden drops stay reachable for their owner only.
-  if (data.recipe.isHidden && !isOwner) notFound();
-  const [following, cookedState, dropperCount] = await Promise.all([
-    isOwner || !viewer ? Promise.resolve(false) : isFollowingOwnerOfRecipe(viewer, id),
+  if (data.recipe.isHidden) notFound();
+  const [following, cookedState, dropperCount, collections, memberIds] = await Promise.all([
+    viewer ? isFollowingOwnerOfRecipe(viewer, id) : Promise.resolve(false),
     getCookedState(viewer ?? "", id),
     dropperCountForRecipe(data.recipe),
+    viewer ? listCollections(viewer) : Promise.resolve([]),
+    viewer
+      ? savedCopyIdsFor(viewer, [data.recipe]).then((copies) => {
+          const copyId = copies.get(id);
+          return copyId ? listCollectionIdsForRecipe(viewer, copyId) : [];
+        })
+      : Promise.resolve([]),
   ]);
+  const inCollections = new Set(memberIds);
   const cookName = data.dropper?.handle ? `@${data.dropper.handle}` : data.dropper?.displayName;
 
   return (
@@ -79,7 +91,7 @@ export default async function PublicRecipePage({
         href="/discover"
         className="inline-flex items-center gap-1 text-sm text-muted hover:text-foreground"
       >
-        <ArrowLeft className="h-4 w-4" /> Discover recipes
+        <ArrowLeft className="h-4 w-4" /> Dishcover recipes
       </Link>
       <RecipeDetail
         // RecipeDetail is a client component: blank the owner's email (and the
@@ -95,37 +107,35 @@ export default async function PublicRecipePage({
         dropperCount={dropperCount}
         readOnly
         actionsSlot={
-          isOwner ? (
-            <>
-              <Link href={`/recipes/${data.recipe.id}/edit`}>
-                <Button size="lg">
-                  <Pencil className="h-4 w-4" /> Edit your recipe
-                </Button>
-              </Link>
-              <span className="flex items-center rounded-full border border-border bg-surface px-4 py-2 text-sm text-muted">
-                This is the public view of your dishcovery — it already lives in Your Recipes.
-              </span>
-            </>
-          ) : (
-            <>
-              <SaveDropButton recipeId={data.recipe.id} signedIn={!!viewer} />
-              <MadeThisButton
+          <>
+            <SaveDropButton recipeId={data.recipe.id} signedIn={!!viewer} />
+            {viewer && (
+              <CollectionPicker
                 recipeId={data.recipe.id}
-                initialCooked={cookedState.viewerCooked}
-                initialCount={cookedState.cookedCount}
-                signedIn={!!viewer}
+                dropSource
+                collections={collections.map((c) => ({
+                  id: c.id,
+                  name: c.name,
+                  has: inCollections.has(c.id),
+                }))}
               />
-              <FollowButton
-                recipeId={data.recipe.id}
-                initialFollowing={following}
-                cookName={cookName}
-                signedIn={!!viewer}
-              />
-            </>
-          )
+            )}
+            <MadeThisButton
+              recipeId={data.recipe.id}
+              initialCooked={cookedState.viewerCooked}
+              initialCount={cookedState.cookedCount}
+              signedIn={!!viewer}
+            />
+            <FollowButton
+              recipeId={data.recipe.id}
+              initialFollowing={following}
+              cookName={cookName}
+              signedIn={!!viewer}
+            />
+          </>
         }
       />
-      {viewer && !isOwner && (
+      {viewer && (
         <div className="border-t border-border pt-4">
           <ReportDropButton recipeId={data.recipe.id} />
         </div>

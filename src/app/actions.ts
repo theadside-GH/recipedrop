@@ -480,6 +480,40 @@ export async function removeFromCollectionAction(
   revalidatePath(`/c/${collectionId}`);
 }
 
+/**
+ * Add someone else's public drop to one of your collections. Collections only
+ * hold your own recipes, so this saves the drop into Your Recipes first —
+ * saveDropForOwner dedupes, so an existing copy or own import is reused.
+ */
+export async function addDropToCollectionAction(
+  collectionId: string,
+  dropRecipeId: string,
+): Promise<void> {
+  const owner = await getOwnerEmail();
+  const { id: copyId } = await saveDropForOwner(owner, dropRecipeId);
+  await addRecipeToCollection(owner, collectionId, copyId);
+  revalidatePath("/collections");
+  revalidatePath(`/collections/${collectionId}`);
+  revalidatePath("/recipes");
+  revalidatePath("/discover");
+  revalidatePath(`/r/${dropRecipeId}`);
+}
+
+/** Undo addDropToCollectionAction: the copy leaves the collection but stays in Your Recipes. */
+export async function removeDropFromCollectionAction(
+  collectionId: string,
+  dropRecipeId: string,
+): Promise<void> {
+  const owner = await getOwnerEmail();
+  // Resolves to the existing copy without creating one — a copy must already
+  // exist for this drop to be in a collection at all.
+  const { id: copyId } = await saveDropForOwner(owner, dropRecipeId);
+  await removeRecipeFromCollection(owner, collectionId, copyId);
+  revalidatePath("/collections");
+  revalidatePath(`/collections/${collectionId}`);
+  revalidatePath(`/r/${dropRecipeId}`);
+}
+
 export async function setCollectionPublicAction(id: string, isPublic: boolean): Promise<void> {
   const owner = await getOwnerEmail();
   if (isPublic) await assertCanPublishCollection(owner);

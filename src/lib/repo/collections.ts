@@ -192,6 +192,32 @@ export async function deleteCollection(ownerEmail: string, id: string): Promise<
     .where(and(eq(collection.id, id), eq(collection.ownerEmail, ownerEmail)));
 }
 
+/** Collection ids per recipe for a whole grid of cards, in one query. */
+export async function collectionIdsByRecipe(
+  ownerEmail: string,
+  recipeIds: string[],
+): Promise<Map<string, string[]>> {
+  const result = new Map<string, string[]>();
+  if (recipeIds.length === 0) return result;
+  const db = await getDb();
+  const rows = await db
+    .select({
+      recipeId: collectionRecipe.recipeId,
+      collectionId: collectionRecipe.collectionId,
+    })
+    .from(collectionRecipe)
+    .innerJoin(collection, eq(collection.id, collectionRecipe.collectionId))
+    .where(
+      and(eq(collection.ownerEmail, ownerEmail), inArray(collectionRecipe.recipeId, recipeIds)),
+    );
+  for (const row of rows) {
+    const list = result.get(row.recipeId) ?? [];
+    list.push(row.collectionId);
+    result.set(row.recipeId, list);
+  }
+  return result;
+}
+
 /** Ids of the owner's collections that already contain the recipe (for the picker). */
 export async function listCollectionIdsForRecipe(
   ownerEmail: string,

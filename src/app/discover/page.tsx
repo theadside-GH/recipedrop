@@ -19,7 +19,7 @@ import { ShareOnboardingCard } from "./share-onboarding-card";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Discover" };
+export const metadata = { title: "Dishcover" };
 
 const MEALS = ["breakfast", "lunch", "dinner", "snack", "dessert", "side", "drink"];
 
@@ -70,7 +70,7 @@ export default async function DiscoverPage({
         />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-xl">
-            <h1 className="text-3xl sm:text-4xl">Discover your next favorite dish</h1>
+            <h1 className="text-3xl sm:text-4xl">Dishcover your next favorite dish</h1>
             <p className="mt-2 text-muted">
               Dishcoveries — public recipes shared by fellow dishcoverers. Tap the little
               recipe book on a photo to save it to Your Recipes — tap again to un-save.
@@ -311,7 +311,13 @@ function PublicSection({
             <RecipeCard
               key={row.recipe.id}
               recipe={row.recipe}
-              href={`/r/${row.recipe.id}`}
+              // Your own dishcovery opens your recipe page directly — the same
+              // page a click from Your Recipes lands on (/r redirects anyway).
+              href={
+                row.recipe.ownerEmail === viewer
+                  ? `/recipes/${row.recipe.id}`
+                  : `/r/${row.recipe.id}`
+              }
               showFavorite={false}
               byline={row.handle ? `@${row.handle}` : row.displayName}
               bylineAvatar={row.avatarUrl}

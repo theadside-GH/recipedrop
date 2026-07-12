@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { BookMarked, Dices, PenLine, PlusCircle, Sparkles } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
+import { collectionIdsByRecipe, listCollections } from "@/lib/repo/collections";
 import { cookedCountsForOwner } from "@/lib/repo/notes";
 import { listRecipes } from "@/lib/repo/recipes";
+import { CollectionQuickAdd } from "@/components/collection-picker";
 import { MadeItButton } from "@/components/made-it-button";
 import { RecipeCard } from "@/components/recipe-card";
 import { LibraryFilters } from "@/components/library-filters";
@@ -30,6 +32,8 @@ export default async function LibraryPage({
   const owner = await getOwnerEmail();
   let recipes;
   let cookedCounts: Map<string, number>;
+  let collections: Awaited<ReturnType<typeof listCollections>>;
+  let memberships: Map<string, string[]>;
   try {
     recipes = await listRecipes(owner, {
       mealType: sp.meal,
@@ -41,7 +45,11 @@ export default async function LibraryPage({
       origin: sp.origin === "own" || sp.origin === "saved" ? sp.origin : undefined,
       sort: sp.sort,
     });
-    cookedCounts = await cookedCountsForOwner(owner, recipes.map((r) => r.id));
+    [cookedCounts, collections, memberships] = await Promise.all([
+      cookedCountsForOwner(owner, recipes.map((r) => r.id)),
+      listCollections(owner),
+      collectionIdsByRecipe(owner, recipes.map((r) => r.id)),
+    ]);
   } catch {
     return <DeploymentIssue />;
   }
@@ -117,15 +125,28 @@ export default async function LibraryPage({
         />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {recipes.map((r) => (
-            <RecipeCard
-              key={r.id}
-              recipe={r}
-              bottomRightSlot={
-                <MadeItButton recipeId={r.id} initialCount={cookedCounts.get(r.id) ?? 0} />
-              }
-            />
-          ))}
+          {recipes.map((r) => {
+            const inIds = new Set(memberships.get(r.id) ?? []);
+            return (
+              <RecipeCard
+                key={r.id}
+                recipe={r}
+                bottomRightSlot={
+                  <div className="flex gap-2">
+                    <CollectionQuickAdd
+                      recipeId={r.id}
+                      collections={collections.map((c) => ({
+                        id: c.id,
+                        name: c.name,
+                        has: inIds.has(c.id),
+                      }))}
+                    />
+                    <MadeItButton recipeId={r.id} initialCount={cookedCounts.get(r.id) ?? 0} />
+                  </div>
+                }
+              />
+            );
+          })}
         </div>
       )}
     </div>

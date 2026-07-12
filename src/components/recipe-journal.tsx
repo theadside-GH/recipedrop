@@ -97,10 +97,14 @@ export function RecipeJournal({
             {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <NotebookPen className="h-4 w-4" />}
             Save note
           </Button>
-          <Button size="sm" variant="secondary" onClick={() => add("cooked")} disabled={isPending}>
-            <ChefHat className="h-4 w-4" />
-            {draft.trim() ? "Cooked it — save with note" : "Cooked it today"}
-          </Button>
+          {/* Plain cook logging lives in the "I made it!" button up top — this
+              only appears when there's a note to attach to the cook. */}
+          {draft.trim() && (
+            <Button size="sm" variant="secondary" onClick={() => add("cooked")} disabled={isPending}>
+              <ChefHat className="h-4 w-4" />
+              Cooked it — save with note
+            </Button>
+          )}
         </div>
       </div>
 
