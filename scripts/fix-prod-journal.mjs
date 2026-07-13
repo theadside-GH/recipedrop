@@ -16,6 +16,7 @@ const remap = [
   [1784178000000, 1783696789000], // 0009
   [1784264400000, 1783698727000], // 0010
   [1784350800000, 1783704783000], // 0011
+  [1784350800001, 1783723730901], // 0012 — undo the temporary outranking bump
 ];
 
 const sql = postgres(url, { max: 1, prepare: false, connect_timeout: 15 });
