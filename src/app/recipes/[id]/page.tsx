@@ -4,10 +4,13 @@ import { ArrowLeft } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { getRecipeFull } from "@/lib/repo/recipes";
 import { listCollectionIdsForRecipe, listCollections } from "@/lib/repo/collections";
+import { listRecipeComments } from "@/lib/repo/comments";
 import { listRecipeNotes } from "@/lib/repo/notes";
 import { RecipeDetail } from "@/components/recipe-detail";
 import { CollectionPicker } from "@/components/collection-picker";
+import { FavoriteButton } from "@/components/favorite-button";
 import { MadeItButton } from "@/components/made-it-button";
+import { RecipeComments } from "@/components/recipe-comments";
 import { RecipeJournal } from "@/components/recipe-journal";
 
 export const dynamic = "force-dynamic";
@@ -26,10 +29,11 @@ export default async function RecipePage({
     notFound();
   }
 
-  const [collections, memberIds, notes] = await Promise.all([
+  const [collections, memberIds, notes, comments] = await Promise.all([
     listCollections(viewer),
     listCollectionIdsForRecipe(viewer, id),
     listRecipeNotes(viewer, id),
+    data.recipe.isPublic ? listRecipeComments(id, viewer) : Promise.resolve([]),
   ]);
   const inCollections = new Set(memberIds);
   const cookedCount = notes.filter((note) => note.kind === "cooked").length;
@@ -53,6 +57,11 @@ export default async function RecipePage({
         dropperAvatar={data.dropper?.avatarUrl}
         actionsSlot={
           <>
+            <FavoriteButton
+              recipeId={id}
+              initialFavorite={data.recipe.isFavorite}
+              className="h-13 w-13"
+            />
             {/* key: journal "Cooked it" entries change the count server-side —
                 remount so the toggle never shows stale state after refresh. */}
             <MadeItButton key={`made-${cookedCount}`} recipeId={id} initialCount={cookedCount} labeled />
@@ -76,6 +85,22 @@ export default async function RecipePage({
           createdAt: note.createdAt.toISOString(),
         }))}
       />
+      {/* Comments ride along with sharing: the thread other cooks see on /r. */}
+      {data.recipe.isPublic && (
+        <RecipeComments
+          recipeId={id}
+          canModerate
+          entries={comments.map((comment) => ({
+            id: comment.id,
+            body: comment.body,
+            createdAt: comment.createdAt.toISOString(),
+            authorName: comment.authorName,
+            authorHandle: comment.authorHandle,
+            authorAvatar: comment.authorAvatar,
+            mine: comment.mine,
+          }))}
+        />
+      )}
     </div>
   );
 }

@@ -3,9 +3,15 @@ import type React from "react";
 import { ArrowRight, Compass, Flame, LayoutGrid, Search, Sparkles, Users } from "lucide-react";
 import { RecipeCard } from "@/components/recipe-card";
 import { SaveDropToggle } from "@/components/save-drop-toggle";
+import { CollectionQuickAdd } from "@/components/collection-picker";
+import { FavoriteButton } from "@/components/favorite-button";
+import { MadeItButton } from "@/components/made-it-button";
+import { MadeThisButton } from "@/components/social-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getViewerEmail } from "@/lib/auth";
+import { collectionIdsByRecipe, listCollections } from "@/lib/repo/collections";
+import { cookedCountsForOwner } from "@/lib/repo/notes";
 import {
   countPublicRecipes,
   listPublicRecipes,
@@ -13,7 +19,7 @@ import {
   savedCopyIdsFor,
   type PublicRecipeRow,
 } from "@/lib/repo/recipes";
-import { cookedCountsFor, listFollowedRecipes } from "@/lib/repo/social";
+import { cookedCountsFor, listFollowedRecipes, viewerCookedIdsFor } from "@/lib/repo/social";
 import { cn } from "@/lib/utils";
 import { ShareOnboardingCard } from "./share-onboarding-card";
 
@@ -55,11 +61,56 @@ export default async function DiscoverPage({
         ]);
 
   const allRows = [...newest, ...popular, ...followed];
-  const [cookedCounts, savedCopies, ownImports] = await Promise.all([
-    cookedCountsFor(allRows.map((row) => row.recipe.id)),
-    savedCopyIdsFor(viewer, allRows.map((row) => row.recipe)),
-    ownImportIdsFor(viewer, allRows.map((row) => row.recipe)),
-  ]);
+  const ownIds = allRows
+    .filter((row) => row.recipe.ownerEmail === viewer)
+    .map((row) => row.recipe.id);
+  const [cookedCounts, savedCopies, ownImports, viewerCooked, collections, memberships, ownMadeCounts] =
+    await Promise.all([
+      cookedCountsFor(allRows.map((row) => row.recipe.id)),
+      savedCopyIdsFor(viewer, allRows.map((row) => row.recipe)),
+      ownImportIdsFor(viewer, allRows.map((row) => row.recipe)),
+      viewerCookedIdsFor(viewer, allRows.map((row) => row.recipe.id)),
+      viewer ? listCollections(viewer) : Promise.resolve([]),
+      viewer ? collectionIdsByRecipe(viewer, ownIds) : Promise.resolve(new Map<string, string[]>()),
+      viewer ? cookedCountsForOwner(viewer, ownIds) : Promise.resolve(new Map<string, number>()),
+    ]);
+
+  // The same action icons in the same spot as Your Recipes cards: your own
+  // dishcovery gets the library row, everyone else's gets save + made-this.
+  const actionsFor = (row: PublicRecipeRow) =>
+    row.recipe.ownerEmail === viewer ? (
+      <>
+        <FavoriteButton recipeId={row.recipe.id} initialFavorite={row.recipe.isFavorite} />
+        <CollectionQuickAdd
+          recipeId={row.recipe.id}
+          collections={collections.map((c) => ({
+            id: c.id,
+            name: c.name,
+            has: (memberships.get(row.recipe.id) ?? []).includes(c.id),
+          }))}
+        />
+        <MadeItButton
+          recipeId={row.recipe.id}
+          initialCount={ownMadeCounts.get(row.recipe.id) ?? 0}
+        />
+      </>
+    ) : (
+      <>
+        <SaveDropToggle
+          recipeId={row.recipe.id}
+          initialSaved={savedCopies.has(row.recipe.id)}
+          alreadyOwn={ownImports.has(row.recipe.id)}
+          signedIn={!!viewer}
+        />
+        <MadeThisButton
+          iconOnly
+          recipeId={row.recipe.id}
+          initialCooked={viewerCooked.has(row.recipe.id)}
+          initialCount={cookedCounts.get(row.recipe.id) ?? 0}
+          signedIn={!!viewer}
+        />
+      </>
+    );
 
   return (
     <div className="space-y-8">
@@ -73,7 +124,7 @@ export default async function DiscoverPage({
             <h1 className="text-3xl sm:text-4xl">Dishcover your next favorite dish</h1>
             <p className="mt-2 text-muted">
               Dishcoveries — public recipes shared by fellow dishcoverers. Tap the little
-              recipe book on a photo to save it to Your Recipes — tap again to un-save.
+              recipe book on a card to save it to Your Recipes — tap again to un-save.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -139,8 +190,7 @@ export default async function DiscoverPage({
           recipes={newest}
           viewer={viewer}
           cookedCounts={cookedCounts}
-          savedCopies={savedCopies}
-          ownImports={ownImports}
+          actions={actionsFor}
           empty={
             viewAll
               ? "No dishcoveries yet."
@@ -164,8 +214,7 @@ export default async function DiscoverPage({
               recipes={followed}
               viewer={viewer}
               cookedCounts={cookedCounts}
-              savedCopies={savedCopies}
-              ownImports={ownImports}
+              actions={actionsFor}
               empty=""
             />
           )}
@@ -176,8 +225,7 @@ export default async function DiscoverPage({
             recipes={newest}
             viewer={viewer}
             cookedCounts={cookedCounts}
-            savedCopies={savedCopies}
-            ownImports={ownImports}
+            actions={actionsFor}
             empty="No dishcoveries yet."
             action={
               <Link
@@ -195,8 +243,7 @@ export default async function DiscoverPage({
             recipes={popular}
             viewer={viewer}
             cookedCounts={cookedCounts}
-            savedCopies={savedCopies}
-            ownImports={ownImports}
+            actions={actionsFor}
             empty="Popular dishcoveries will appear here once sharing grows."
             action={
               <Link
@@ -275,8 +322,7 @@ function PublicSection({
   recipes,
   viewer,
   cookedCounts,
-  savedCopies,
-  ownImports,
+  actions,
   empty,
   action,
 }: {
@@ -286,8 +332,8 @@ function PublicSection({
   recipes: PublicRecipeRow[];
   viewer: string;
   cookedCounts: Map<string, number>;
-  savedCopies: Map<string, string>;
-  ownImports: Set<string>;
+  /** Per-card action icons for the row under the photo. */
+  actions: (row: PublicRecipeRow) => React.ReactNode;
   empty: string;
   action?: React.ReactNode;
 }) {
@@ -318,7 +364,6 @@ function PublicSection({
                   ? `/recipes/${row.recipe.id}`
                   : `/r/${row.recipe.id}`
               }
-              showFavorite={false}
               byline={row.handle ? `@${row.handle}` : row.displayName}
               bylineAvatar={row.avatarUrl}
               bylineHref={row.handle ? `/u/${row.handle}` : undefined}
@@ -329,16 +374,7 @@ function PublicSection({
                   <Badge variant="solid">Your dishcovery</Badge>
                 ) : undefined
               }
-              bottomRightSlot={
-                row.recipe.ownerEmail === viewer ? undefined : (
-                  <SaveDropToggle
-                    recipeId={row.recipe.id}
-                    initialSaved={savedCopies.has(row.recipe.id)}
-                    alreadyOwn={ownImports.has(row.recipe.id)}
-                    signedIn={!!viewer}
-                  />
-                )
-              }
+              actionsRow={actions(row)}
             />
           ))}
         </div>

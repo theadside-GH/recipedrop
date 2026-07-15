@@ -55,8 +55,10 @@ import {
   reportDrop,
   setFollowByHandle,
   setFollowByRecipe,
+  unmarkCookedByRecipe,
   type CookedState,
 } from "@/lib/repo/social";
+import { addRecipeComment, deleteRecipeComment } from "@/lib/repo/comments";
 import {
   addRecipeNote,
   deleteRecipeNote,
@@ -609,12 +611,37 @@ export async function reportDropAction(recipeId: string, reason: string): Promis
   await reportDrop(owner, recipeId, reason || null);
 }
 
-export async function markCookedAction(recipeId: string): Promise<CookedState> {
+/** "I made this" on someone else's dish — on marks it, off is the undo. */
+export async function markCookedAction(
+  recipeId: string,
+  cooked: boolean = true,
+): Promise<CookedState> {
   const owner = await getOwnerEmail();
-  const result = await markCookedByRecipe(owner, recipeId);
+  const result = cooked
+    ? await markCookedByRecipe(owner, recipeId)
+    : await unmarkCookedByRecipe(owner, recipeId);
   revalidatePath(`/r/${recipeId}`);
   revalidatePath("/discover");
   return result;
+}
+
+// ---- Comments ---------------------------------------------------------------
+
+export async function addRecipeCommentAction(recipeId: string, body: string): Promise<void> {
+  const owner = await getOwnerEmail();
+  await addRecipeComment(owner, recipeId, body);
+  revalidatePath(`/r/${recipeId}`);
+  revalidatePath(`/recipes/${recipeId}`);
+}
+
+export async function deleteRecipeCommentAction(
+  recipeId: string,
+  commentId: string,
+): Promise<void> {
+  const owner = await getOwnerEmail();
+  await deleteRecipeComment(owner, recipeId, commentId);
+  revalidatePath(`/r/${recipeId}`);
+  revalidatePath(`/recipes/${recipeId}`);
 }
 
 export async function setPantryItemAction(input: {

@@ -135,6 +135,41 @@ export async function markCookedByRecipe(
   return getCookedState(viewerEmail, recipeId);
 }
 
+/** Undo for a mis-tapped "I made this" on someone else's dish. */
+export async function unmarkCookedByRecipe(
+  viewerEmail: string,
+  recipeId: string,
+): Promise<CookedState> {
+  const db = await getDb();
+  try {
+    await db
+      .delete(cookedEvent)
+      .where(and(eq(cookedEvent.recipeId, recipeId), eq(cookedEvent.cookerEmail, viewerEmail)));
+  } catch (err) {
+    if (isMissingTable(err)) throw migrationPendingError();
+    throw err;
+  }
+  return getCookedState(viewerEmail, recipeId);
+}
+
+/** Which of these recipes the viewer has marked "I made this" — for card toggles. */
+export async function viewerCookedIdsFor(
+  viewerEmail: string,
+  recipeIds: string[],
+): Promise<Set<string>> {
+  if (!viewerEmail || recipeIds.length === 0) return new Set();
+  return readSafe(new Set<string>(), async () => {
+    const db = await getDb();
+    const rows = await db
+      .select({ recipeId: cookedEvent.recipeId })
+      .from(cookedEvent)
+      .where(
+        and(eq(cookedEvent.cookerEmail, viewerEmail), inArray(cookedEvent.recipeId, recipeIds)),
+      );
+    return new Set(rows.map((row) => row.recipeId));
+  });
+}
+
 /** Newest public recipes from cooks the viewer follows, for the Discover rail. */
 export async function listFollowedRecipes(
   viewerEmail: string,

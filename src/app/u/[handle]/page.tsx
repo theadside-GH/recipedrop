@@ -3,10 +3,15 @@ import Link from "next/link";
 import { ArrowLeft, BookOpen, CircleUserRound, Users } from "lucide-react";
 import { getViewerEmail } from "@/lib/auth";
 import { listPublicRecipesByOwner, ownImportIdsFor, savedCopyIdsFor } from "@/lib/repo/recipes";
-import { cookedCountsFor, getCookProfileByHandle, isFollowingHandle } from "@/lib/repo/social";
+import {
+  cookedCountsFor,
+  getCookProfileByHandle,
+  isFollowingHandle,
+  viewerCookedIdsFor,
+} from "@/lib/repo/social";
 import { RecipeCard } from "@/components/recipe-card";
 import { SaveDropToggle } from "@/components/save-drop-toggle";
-import { FollowCookButton } from "@/components/social-buttons";
+import { FollowCookButton, MadeThisButton } from "@/components/social-buttons";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +48,11 @@ export default async function CookPage({
     listPublicRecipesByOwner(profile.email, 60),
     viewer && !isSelf ? isFollowingHandle(viewer, profile.handle) : Promise.resolve(false),
   ]);
-  const [cookedCounts, savedCopies, ownImports] = await Promise.all([
+  const [cookedCounts, savedCopies, ownImports, viewerCooked] = await Promise.all([
     cookedCountsFor(recipes.map((row) => row.recipe.id)),
     savedCopyIdsFor(viewer ?? "", recipes.map((row) => row.recipe)),
     ownImportIdsFor(viewer ?? "", recipes.map((row) => row.recipe)),
+    viewerCookedIdsFor(viewer ?? "", recipes.map((row) => row.recipe.id)),
   ]);
 
   return (
@@ -109,18 +115,26 @@ export default async function CookPage({
             <RecipeCard
               key={row.recipe.id}
               recipe={row.recipe}
-              href={`/r/${row.recipe.id}`}
-              showFavorite={false}
+              href={isSelf ? `/recipes/${row.recipe.id}` : `/r/${row.recipe.id}`}
               cookedCount={cookedCounts.get(row.recipe.id)}
               dropperCount={row.dropperCount}
-              bottomRightSlot={
+              actionsRow={
                 isSelf ? undefined : (
-                  <SaveDropToggle
-                    recipeId={row.recipe.id}
-                    initialSaved={savedCopies.has(row.recipe.id)}
-                    alreadyOwn={ownImports.has(row.recipe.id)}
-                    signedIn={!!viewer}
-                  />
+                  <>
+                    <SaveDropToggle
+                      recipeId={row.recipe.id}
+                      initialSaved={savedCopies.has(row.recipe.id)}
+                      alreadyOwn={ownImports.has(row.recipe.id)}
+                      signedIn={!!viewer}
+                    />
+                    <MadeThisButton
+                      iconOnly
+                      recipeId={row.recipe.id}
+                      initialCooked={viewerCooked.has(row.recipe.id)}
+                      initialCount={cookedCounts.get(row.recipe.id) ?? 0}
+                      signedIn={!!viewer}
+                    />
+                  </>
                 )
               }
             />

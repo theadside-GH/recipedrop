@@ -60,28 +60,33 @@ export function FollowButton({
   );
 }
 
-/** "I made this" — one per person per recipe; shows the total. */
+/** "I made this" — one per person per recipe; shows the total. Tap again to undo. */
 export function MadeThisButton({
   recipeId,
   initialCooked,
   initialCount,
   signedIn = true,
+  iconOnly = false,
+  className,
 }: {
   recipeId: string;
   initialCooked: boolean;
   initialCount: number;
   signedIn?: boolean;
+  /** Compact round form for recipe cards. */
+  iconOnly?: boolean;
+  className?: string;
 }) {
   const [cooked, setCooked] = useState(initialCooked);
   const [count, setCount] = useState(initialCount);
   const [pending, startTransition] = useTransition();
   const gate = useSignInGate(signedIn);
 
-  function mark() {
-    if (pending || cooked || gate()) return;
+  function toggle() {
+    if (pending || gate()) return;
     startTransition(async () => {
       try {
-        const result = await markCookedAction(recipeId);
+        const result = await markCookedAction(recipeId, !cooked);
         setCooked(result.viewerCooked);
         setCount(result.cookedCount);
       } catch {
@@ -90,14 +95,40 @@ export function MadeThisButton({
     });
   }
 
+  const title = cooked ? "You made this — tap to undo" : "I made this";
+
+  if (iconOnly) {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        aria-pressed={cooked}
+        aria-label={title}
+        title={title}
+        className={cn(
+          "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card/95 text-foreground shadow-sm transition-colors hover:bg-surface",
+          cooked && "border-fresh/40 bg-fresh-soft text-fresh",
+          className,
+        )}
+      >
+        {pending ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <ChefHat className={cn("h-4 w-4", cooked && "fill-current")} />
+        )}
+      </button>
+    );
+  }
+
   return (
     <Button
       type="button"
       size="lg"
       variant="secondary"
-      onClick={mark}
-      disabled={pending || cooked}
-      className={cn(cooked && "border-green-200 bg-green-50 text-green-700 disabled:opacity-100")}
+      onClick={toggle}
+      disabled={pending}
+      title={title}
+      className={cn(cooked && "border-green-200 bg-green-50 text-green-700", className)}
     >
       {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ChefHat className="h-4 w-4" />}
       {cooked ? "You made this" : "I made this"}

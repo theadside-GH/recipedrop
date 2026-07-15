@@ -4,8 +4,10 @@ import { ArrowLeft, BookMarked, CircleUserRound } from "lucide-react";
 import { getViewerEmail } from "@/lib/auth";
 import { getCollectionFull } from "@/lib/repo/collections";
 import { ownImportIdsFor, savedCopyIdsFor } from "@/lib/repo/recipes";
+import { cookedCountsFor, viewerCookedIdsFor } from "@/lib/repo/social";
 import { RecipeCard } from "@/components/recipe-card";
 import { SaveDropToggle } from "@/components/save-drop-toggle";
+import { MadeThisButton } from "@/components/social-buttons";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -32,9 +34,11 @@ export default async function PublicCollectionPage({
   const isOwner = data.collection.ownerEmail === viewer;
   const recipes = data.recipes.filter((r) => r.isPublic && !r.isHidden);
   const byline = data.owner?.handle ? `@${data.owner.handle}` : data.owner?.displayName;
-  const [savedCopies, ownImports] = await Promise.all([
+  const [savedCopies, ownImports, cookedCounts, viewerCooked] = await Promise.all([
     savedCopyIdsFor(viewer ?? "", recipes),
     ownImportIdsFor(viewer ?? "", recipes),
+    cookedCountsFor(recipes.map((r) => r.id)),
+    viewerCookedIdsFor(viewer ?? "", recipes.map((r) => r.id)),
   ]);
 
   return (
@@ -88,18 +92,27 @@ export default async function PublicCollectionPage({
             <RecipeCard
               key={r.id}
               recipe={r}
-              href={`/r/${r.id}`}
-              showFavorite={false}
+              href={isOwner ? `/recipes/${r.id}` : `/r/${r.id}`}
               byline={byline ?? undefined}
               bylineAvatar={data.owner?.avatarUrl}
-              bottomRightSlot={
+              cookedCount={cookedCounts.get(r.id)}
+              actionsRow={
                 isOwner ? undefined : (
-                  <SaveDropToggle
-                    recipeId={r.id}
-                    initialSaved={savedCopies.has(r.id)}
-                    alreadyOwn={ownImports.has(r.id)}
-                    signedIn={!!viewer}
-                  />
+                  <>
+                    <SaveDropToggle
+                      recipeId={r.id}
+                      initialSaved={savedCopies.has(r.id)}
+                      alreadyOwn={ownImports.has(r.id)}
+                      signedIn={!!viewer}
+                    />
+                    <MadeThisButton
+                      iconOnly
+                      recipeId={r.id}
+                      initialCooked={viewerCooked.has(r.id)}
+                      initialCount={cookedCounts.get(r.id) ?? 0}
+                      signedIn={!!viewer}
+                    />
+                  </>
                 )
               }
             />

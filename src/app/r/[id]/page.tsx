@@ -6,8 +6,10 @@ import { ArrowLeft } from "lucide-react";
 import { getViewerEmail } from "@/lib/auth";
 import { dropperCountForRecipe, getRecipeFull, savedCopyIdsFor } from "@/lib/repo/recipes";
 import { listCollectionIdsForRecipe, listCollections } from "@/lib/repo/collections";
+import { listRecipeComments } from "@/lib/repo/comments";
 import { getCookedState, isFollowingOwnerOfRecipe } from "@/lib/repo/social";
 import { CollectionPicker } from "@/components/collection-picker";
+import { RecipeComments } from "@/components/recipe-comments";
 import { RecipeDetail } from "@/components/recipe-detail";
 import { ReportDropButton } from "@/components/report-drop-button";
 import { SaveDropButton } from "@/components/save-drop-button";
@@ -70,18 +72,20 @@ export default async function PublicRecipePage({
   if (isOwner) redirect(`/recipes/${id}`);
   // Moderation-hidden drops stay reachable for their owner only.
   if (data.recipe.isHidden) notFound();
-  const [following, cookedState, dropperCount, collections, memberIds] = await Promise.all([
-    viewer ? isFollowingOwnerOfRecipe(viewer, id) : Promise.resolve(false),
-    getCookedState(viewer ?? "", id),
-    dropperCountForRecipe(data.recipe),
-    viewer ? listCollections(viewer) : Promise.resolve([]),
-    viewer
-      ? savedCopyIdsFor(viewer, [data.recipe]).then((copies) => {
-          const copyId = copies.get(id);
-          return copyId ? listCollectionIdsForRecipe(viewer, copyId) : [];
-        })
-      : Promise.resolve([]),
-  ]);
+  const [following, cookedState, dropperCount, collections, memberIds, comments] =
+    await Promise.all([
+      viewer ? isFollowingOwnerOfRecipe(viewer, id) : Promise.resolve(false),
+      getCookedState(viewer ?? "", id),
+      dropperCountForRecipe(data.recipe),
+      viewer ? listCollections(viewer) : Promise.resolve([]),
+      viewer
+        ? savedCopyIdsFor(viewer, [data.recipe]).then((copies) => {
+            const copyId = copies.get(id);
+            return copyId ? listCollectionIdsForRecipe(viewer, copyId) : [];
+          })
+        : Promise.resolve([]),
+      listRecipeComments(id, viewer),
+    ]);
   const inCollections = new Set(memberIds);
   const cookName = data.dropper?.handle ? `@${data.dropper.handle}` : data.dropper?.displayName;
 
@@ -134,6 +138,19 @@ export default async function PublicRecipePage({
             />
           </>
         }
+      />
+      <RecipeComments
+        recipeId={data.recipe.id}
+        signedIn={!!viewer}
+        entries={comments.map((comment) => ({
+          id: comment.id,
+          body: comment.body,
+          createdAt: comment.createdAt.toISOString(),
+          authorName: comment.authorName,
+          authorHandle: comment.authorHandle,
+          authorAvatar: comment.authorAvatar,
+          mine: comment.mine,
+        }))}
       />
       {viewer && (
         <div className="border-t border-border pt-4">

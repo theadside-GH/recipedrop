@@ -19,7 +19,7 @@ export default async function ImportPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Import recipes</h1>
         <p className="mt-1 text-muted">
-          Drop in a link, paste text, upload a photo, or paste a whole list - DishCovered
+          Paste a link, paste text, upload a photo, or paste a whole list - DishCovered
           turns each one into a clean, step-by-step recipe. Family recipe that only lives
           in your head?{" "}
           <Link href="/recipes/new" className="font-medium text-brand hover:underline">

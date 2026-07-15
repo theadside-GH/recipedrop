@@ -5,6 +5,7 @@ import { collectionIdsByRecipe, listCollections } from "@/lib/repo/collections";
 import { cookedCountsForOwner } from "@/lib/repo/notes";
 import { listRecipes } from "@/lib/repo/recipes";
 import { CollectionQuickAdd } from "@/components/collection-picker";
+import { FavoriteButton } from "@/components/favorite-button";
 import { MadeItButton } from "@/components/made-it-button";
 import { RecipeCard } from "@/components/recipe-card";
 import { LibraryFilters } from "@/components/library-filters";
@@ -131,8 +132,9 @@ export default async function LibraryPage({
               <RecipeCard
                 key={r.id}
                 recipe={r}
-                bottomRightSlot={
-                  <div className="flex gap-2">
+                actionsRow={
+                  <>
+                    <FavoriteButton recipeId={r.id} initialFavorite={r.isFavorite} />
                     <CollectionQuickAdd
                       recipeId={r.id}
                       collections={collections.map((c) => ({
@@ -142,7 +144,7 @@ export default async function LibraryPage({
                       }))}
                     />
                     <MadeItButton recipeId={r.id} initialCount={cookedCounts.get(r.id) ?? 0} />
-                  </div>
+                  </>
                 }
               />
             );

@@ -421,6 +421,32 @@ export const recipeNote = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Comments — signed-in cooks talking on a public dishcovery; visible to
+// everyone who can see the recipe
+// ---------------------------------------------------------------------------
+
+export const recipeComment = pgTable(
+  "recipe_comment",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    recipeId: uuid("recipe_id")
+      .notNull()
+      .references(() => recipe.id, { onDelete: "cascade" }),
+    authorEmail: text("author_email").notNull(),
+    body: text("body").notNull(),
+    // Moderation kill switch, mirrors recipe.isHidden. Flipped by the operator.
+    isHidden: boolean("is_hidden").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("recipe_comment_recipe_idx").on(t.recipeId),
+    index("recipe_comment_author_idx").on(t.authorEmail),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Content reports — viewers flagging a public drop; reviewed by the operator
 // (rows are read straight from the DB for now, no admin UI)
 // ---------------------------------------------------------------------------
@@ -534,3 +560,4 @@ export type PantryItem = typeof pantryItem.$inferSelect;
 export type ImportJob = typeof importJob.$inferSelect;
 export type Collection = typeof collection.$inferSelect;
 export type RecipeNote = typeof recipeNote.$inferSelect;
+export type RecipeComment = typeof recipeComment.$inferSelect;

@@ -3,33 +3,33 @@ import type React from "react";
 import { Bookmark, ChefHat, Clock, UtensilsCrossed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { RecipeImage } from "@/components/recipe-image";
-import { FavoriteButton } from "@/components/favorite-button";
 import { formatMinutes } from "@/lib/utils";
 import type { Recipe } from "@/lib/db/schema";
 
 export function RecipeCard({
   recipe,
-  showFavorite = true,
   byline,
   bylineAvatar,
   bylineHref,
   href,
   topRightSlot,
-  bottomRightSlot,
+  actionsRow,
   cookedCount,
   dropperCount,
 }: {
   recipe: Recipe;
-  showFavorite?: boolean;
   byline?: string;
   bylineAvatar?: string | null;
   /** Link target for the byline (the cook's public page). */
   bylineHref?: string;
   href?: string;
-  /** Overlay action rendered in the top-right corner (e.g. "Your dishcovery"). */
+  /** Overlay rendered in the photo's top-right corner (badges, management controls). */
   topRightSlot?: React.ReactNode;
-  /** Overlay action on the photo's bottom-right corner (e.g. save toggle). */
-  bottomRightSlot?: React.ReactNode;
+  /**
+   * Action icons (favorite, save, collection, made it) shown in the
+   * description section under the photo — the same spot on every page.
+   */
+  actionsRow?: React.ReactNode;
   /** "I made this" count shown on public cards when > 0. */
   cookedCount?: number;
   /** Cooks who have this dish (imported or saved); shown on public cards when > 1. */
@@ -52,7 +52,7 @@ export function RecipeCard({
   return (
     // The card link is a stretched overlay (rendered last, z-[5]) rather than
     // a wrapper, so the byline can be its own link — <a> can't nest in <a>.
-    // Interactive corners (favorite, save, byline) sit above it at z-10.
+    // Interactive pieces (actions row, byline, corner slots) sit above it at z-10.
     <div className="group relative overflow-hidden rounded-2xl border border-border bg-card shadow-card transition-all hover:-translate-y-0.5 hover:shadow-card-hover">
       <div>
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface">
@@ -67,9 +67,6 @@ export function RecipeCard({
               {recipe.mealType}
             </Badge>
           </div>
-          {bottomRightSlot && (
-            <div className="absolute bottom-3 right-3 z-10">{bottomRightSlot}</div>
-          )}
         </div>
         <div className="p-4">
           <h3 className="line-clamp-2 font-display text-[1.06rem] font-semibold leading-snug">
@@ -113,6 +110,9 @@ export function RecipeCard({
             )}
             {quick && <Badge variant="fresh">Quick</Badge>}
           </div>
+          {actionsRow && (
+            <div className="relative z-10 mt-3 flex items-center gap-2">{actionsRow}</div>
+          )}
         </div>
       </div>
       <Link
@@ -120,13 +120,6 @@ export function RecipeCard({
         aria-label={recipe.title}
         className="absolute inset-0 z-[5]"
       />
-      {showFavorite && (
-        <FavoriteButton
-          recipeId={recipe.id}
-          initialFavorite={recipe.isFavorite}
-          className="absolute right-3 top-3 z-10"
-        />
-      )}
       {topRightSlot && <div className="absolute right-3 top-3 z-10">{topRightSlot}</div>}
     </div>
   );

@@ -4,6 +4,7 @@ import { ArrowLeft, Globe } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { getCollectionFull } from "@/lib/repo/collections";
 import { cookedCountsForOwner } from "@/lib/repo/notes";
+import { FavoriteButton } from "@/components/favorite-button";
 import { MadeItButton } from "@/components/made-it-button";
 import { RecipeCard } from "@/components/recipe-card";
 import { ShareLinkButton } from "@/components/share-link-button";
@@ -55,8 +56,9 @@ export default async function ManageCollectionPage({
       {data.collection.isPublic && privateCount > 0 && (
         <p className="flex items-center gap-2 rounded-xl border border-border bg-surface p-3 text-sm text-muted">
           <Globe className="h-4 w-4 shrink-0" />
-          {privateCount} recipe{privateCount === 1 ? " is" : "s are"} private and won&apos;t show
-          on your shared page. Make a recipe public from its own page to include it.
+          {privateCount} recipe{privateCount === 1 ? " is" : "s are"}{" "}
+          private and won&apos;t show on your shared page. Make a recipe public from its own page
+          to include it.
         </p>
       )}
 
@@ -70,12 +72,14 @@ export default async function ManageCollectionPage({
             <RecipeCard
               key={r.id}
               recipe={r}
-              showFavorite={false}
               topRightSlot={
                 <RemoveFromCollectionButton collectionId={data.collection.id} recipeId={r.id} />
               }
-              bottomRightSlot={
-                <MadeItButton recipeId={r.id} initialCount={cookedCounts.get(r.id) ?? 0} />
+              actionsRow={
+                <>
+                  <FavoriteButton recipeId={r.id} initialFavorite={r.isFavorite} />
+                  <MadeItButton recipeId={r.id} initialCount={cookedCounts.get(r.id) ?? 0} />
+                </>
               }
             />
           ))}
