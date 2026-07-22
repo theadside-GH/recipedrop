@@ -35,6 +35,7 @@ import type { SourceType } from "@/lib/sources/types";
 import { sourceKeyFor } from "@/lib/source-key";
 import { guessAisle } from "@/lib/shopping/aisle";
 import { normalizeUnit, type UnitCategory } from "@/lib/shopping/units";
+import { isSafeRasterType } from "@/lib/net/image-content";
 
 /** All known canonical ingredient names, to keep imports merged over time. */
 export async function getKnownCanonicalNames(): Promise<string[]> {
@@ -284,7 +285,7 @@ export async function setRecipeImage(input: {
   const db = await getDb();
   const [updated] = await db
     .update(recipe)
-    .set({ imagePath: input.imagePath })
+    .set({ imagePath: cleanImagePath(input.imagePath) })
     .where(and(eq(recipe.id, input.id), eq(recipe.ownerEmail, input.ownerEmail)))
     .returning({ id: recipe.id });
   if (!updated) throw new Error("Recipe not found.");
@@ -736,7 +737,7 @@ function normalizeEditedFields(input: Omit<RecipeEditInput, "id" | "ownerEmail">
     sourceUrl,
     sourceKey: sourceKeyFor(sourceUrl),
     sourceAuthor: cleanOptional(input.sourceAuthor),
-    imagePath: cleanOptional(input.imagePath),
+    imagePath: cleanImagePath(input.imagePath),
     prepMinutes,
     cookMinutes,
     totalMinutes:
@@ -848,6 +849,21 @@ export async function createRecipeManual(
 function cleanOptional(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
+}
+
+/**
+ * Sanitize a client-supplied imagePath before it is stored. The og-image and
+ * image-proxy routes serve stored images inline from our origin, so a
+ * `data:image/svg+xml` value (script-capable) would be a stored-XSS vector.
+ * Accept only http(s) URLs and raster data: URLs; drop anything else to null.
+ */
+function cleanImagePath(value: string | null | undefined): string | null {
+  const trimmed = cleanOptional(value);
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  const dataType = trimmed.match(/^data:([\w.+-]+\/[\w.+-]+);base64,/i)?.[1];
+  if (dataType && isSafeRasterType(dataType)) return trimmed;
+  return null;
 }
 
 function positiveIntOrNull(value: number | null | undefined): number | null {
@@ -1041,66 +1057,72 @@ export async function saveDropForOwner(
   if (duplicate) return { id: duplicate.id, alreadySaved: true };
 
   const db = await getDb();
-  const [created] = await db
-    .insert(recipe)
-    .values({
-      ownerEmail,
-      title: source.recipe.title,
-      description: source.recipe.description,
-      sourceType: source.recipe.sourceType,
-      sourceUrl: source.recipe.sourceUrl,
-      // Reuse the original's key — it may be short-link-resolved, which a
-      // plain recompute from the URL would lose.
-      sourceKey: source.recipe.sourceKey ?? sourceKeyFor(source.recipe.sourceUrl),
-      savedFromEmail: source.recipe.ownerEmail,
-      sourceAuthor: source.recipe.sourceAuthor,
-      imagePath: source.recipe.imagePath,
-      prepMinutes: source.recipe.prepMinutes,
-      cookMinutes: source.recipe.cookMinutes,
-      totalMinutes: source.recipe.totalMinutes,
-      servingsDefault: source.recipe.servingsDefault,
-      mealType: source.recipe.mealType,
-      difficulty: source.recipe.difficulty,
-    })
-    .returning();
+  // One transaction: a partial copy (recipe row but no ingredients/steps) or a
+  // dropCount bump that outruns the actual save must never persist.
+  const created = await db.transaction(async (tx) => {
+    const [row] = await tx
+      .insert(recipe)
+      .values({
+        ownerEmail,
+        title: source.recipe.title,
+        description: source.recipe.description,
+        sourceType: source.recipe.sourceType,
+        sourceUrl: source.recipe.sourceUrl,
+        // Reuse the original's key — it may be short-link-resolved, which a
+        // plain recompute from the URL would lose.
+        sourceKey: source.recipe.sourceKey ?? sourceKeyFor(source.recipe.sourceUrl),
+        savedFromEmail: source.recipe.ownerEmail,
+        sourceAuthor: source.recipe.sourceAuthor,
+        imagePath: source.recipe.imagePath,
+        prepMinutes: source.recipe.prepMinutes,
+        cookMinutes: source.recipe.cookMinutes,
+        totalMinutes: source.recipe.totalMinutes,
+        servingsDefault: source.recipe.servingsDefault,
+        mealType: source.recipe.mealType,
+        difficulty: source.recipe.difficulty,
+      })
+      .returning();
 
-  if (source.ingredients.length > 0) {
-    await db.insert(recipeIngredient).values(
-      source.ingredients.map((ing, i) => ({
-        recipeId: created.id,
-        rawText: ing.rawText,
-        canonicalIngredientId: ing.canonicalIngredientId,
-        canonicalName: ing.canonicalName,
-        quantity: ing.quantity,
-        unit: ing.unit,
-        unitCategory: ing.unitCategory,
-        note: ing.note,
-        optional: ing.optional,
-        sortOrder: i,
-      })),
-    );
-  }
-  if (source.steps.length > 0) {
-    await db.insert(step).values(
-      source.steps.map((s) => ({
-        recipeId: created.id,
-        stepNumber: s.stepNumber,
-        instruction: s.instruction,
-        durationMinutes: s.durationMinutes,
-      })),
-    );
-  }
-  for (const t of source.tags) {
-    const tagId = await upsertTag(db, t);
-    if (tagId) {
-      await db.insert(recipeTag).values({ recipeId: created.id, tagId }).onConflictDoNothing();
+    if (source.ingredients.length > 0) {
+      await tx.insert(recipeIngredient).values(
+        source.ingredients.map((ing, i) => ({
+          recipeId: row.id,
+          rawText: ing.rawText,
+          canonicalIngredientId: ing.canonicalIngredientId,
+          canonicalName: ing.canonicalName,
+          quantity: ing.quantity,
+          unit: ing.unit,
+          unitCategory: ing.unitCategory,
+          note: ing.note,
+          optional: ing.optional,
+          sortOrder: i,
+        })),
+      );
     }
-  }
+    if (source.steps.length > 0) {
+      await tx.insert(step).values(
+        source.steps.map((s) => ({
+          recipeId: row.id,
+          stepNumber: s.stepNumber,
+          instruction: s.instruction,
+          durationMinutes: s.durationMinutes,
+        })),
+      );
+    }
+    for (const t of source.tags) {
+      const tagId = await upsertTag(tx as unknown as DB, t);
+      if (tagId) {
+        await tx.insert(recipeTag).values({ recipeId: row.id, tagId }).onConflictDoNothing();
+      }
+    }
 
-  await db
-    .update(recipe)
-    .set({ dropCount: sql`${recipe.dropCount} + 1` })
-    .where(eq(recipe.id, sourceRecipeId));
+    await tx
+      .update(recipe)
+      .set({ dropCount: sql`${recipe.dropCount} + 1` })
+      .where(eq(recipe.id, sourceRecipeId));
+
+    return row;
+  });
 
   return { id: created.id, alreadySaved: false };
 }
@@ -1253,6 +1275,144 @@ export async function listTags(): Promise<string[]> {
   const db = await getDb();
   const rows = await db.select({ name: tag.name }).from(tag).orderBy(tag.name);
   return rows.map((r) => r.name);
+}
+
+// ---------------------------------------------------------------------------
+// Data export — the owner's full library as a portable, id-free JSON tree.
+// ---------------------------------------------------------------------------
+
+export interface ExportedIngredient {
+  raw: string;
+  canonicalName: string | null;
+  quantity: number | null;
+  unit: string | null;
+  unitCategory: string;
+  note: string | null;
+  optional: boolean;
+}
+
+export interface ExportedStep {
+  stepNumber: number;
+  instruction: string;
+  durationMinutes: number | null;
+}
+
+export interface ExportedRecipe {
+  title: string;
+  description: string | null;
+  source: {
+    type: string;
+    url: string | null;
+    author: string | null;
+  };
+  times: {
+    prepMinutes: number | null;
+    cookMinutes: number | null;
+    totalMinutes: number | null;
+  };
+  servings: number;
+  mealType: string;
+  difficulty: string | null;
+  isFavorite: boolean;
+  createdAt: string;
+  tags: string[];
+  ingredients: ExportedIngredient[];
+  steps: ExportedStep[];
+}
+
+/**
+ * Gather the owner's entire recipe library into a portable, id-free shape for
+ * the /api/export download. Owner-scoped at the root (only this owner's recipe
+ * rows are selected) and every child query is constrained to that same set of
+ * recipe ids, so another user's data can never leak in. Children are fetched
+ * with a single inArray query each (not one round-trip per recipe) to avoid an
+ * N+1 blow-up on large libraries.
+ */
+export async function exportRecipesForOwner(ownerEmail: string): Promise<ExportedRecipe[]> {
+  const db = await getDb();
+  const recipes = await db
+    .select()
+    .from(recipe)
+    .where(eq(recipe.ownerEmail, ownerEmail))
+    .orderBy(desc(recipe.createdAt));
+  if (recipes.length === 0) return [];
+
+  const ids = recipes.map((r) => r.id);
+
+  const [ingredients, steps, tagRows] = await Promise.all([
+    db
+      .select()
+      .from(recipeIngredient)
+      .where(inArray(recipeIngredient.recipeId, ids))
+      .orderBy(recipeIngredient.sortOrder),
+    db
+      .select()
+      .from(step)
+      .where(inArray(step.recipeId, ids))
+      .orderBy(step.stepNumber),
+    db
+      .select({ recipeId: recipeTag.recipeId, name: tag.name })
+      .from(recipeTag)
+      .innerJoin(tag, eq(tag.id, recipeTag.tagId))
+      .where(inArray(recipeTag.recipeId, ids))
+      .orderBy(tag.name),
+  ]);
+
+  const ingredientsByRecipe = new Map<string, ExportedIngredient[]>();
+  for (const ing of ingredients) {
+    const list = ingredientsByRecipe.get(ing.recipeId) ?? [];
+    list.push({
+      raw: ing.rawText,
+      canonicalName: ing.canonicalName,
+      quantity: ing.quantity,
+      unit: ing.unit,
+      unitCategory: ing.unitCategory,
+      note: ing.note,
+      optional: ing.optional,
+    });
+    ingredientsByRecipe.set(ing.recipeId, list);
+  }
+
+  const stepsByRecipe = new Map<string, ExportedStep[]>();
+  for (const s of steps) {
+    const list = stepsByRecipe.get(s.recipeId) ?? [];
+    list.push({
+      stepNumber: s.stepNumber,
+      instruction: s.instruction,
+      durationMinutes: s.durationMinutes,
+    });
+    stepsByRecipe.set(s.recipeId, list);
+  }
+
+  const tagsByRecipe = new Map<string, string[]>();
+  for (const row of tagRows) {
+    const list = tagsByRecipe.get(row.recipeId) ?? [];
+    list.push(row.name);
+    tagsByRecipe.set(row.recipeId, list);
+  }
+
+  return recipes.map((r) => ({
+    title: r.title,
+    description: r.description,
+    source: {
+      type: r.sourceType,
+      url: r.sourceUrl,
+      author: r.sourceAuthor,
+    },
+    times: {
+      prepMinutes: r.prepMinutes,
+      cookMinutes: r.cookMinutes,
+      totalMinutes: r.totalMinutes,
+    },
+    servings: r.servingsDefault,
+    mealType: r.mealType,
+    difficulty: r.difficulty,
+    isFavorite: r.isFavorite,
+    createdAt: r.createdAt.toISOString(),
+    tags: tagsByRecipe.get(r.id) ?? [],
+    ingredients: ingredientsByRecipe.get(r.id) ?? [],
+    steps: stepsByRecipe.get(r.id) ?? [],
+  }));
 }
 
 /** Lightweight count for empty-state detection. */

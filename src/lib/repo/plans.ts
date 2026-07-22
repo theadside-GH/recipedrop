@@ -88,6 +88,7 @@ export async function getPlanFull(ownerEmail: string, id: string) {
     .select({
       id: mealPlanItem.id,
       plannedServings: mealPlanItem.plannedServings,
+      dayOfWeek: mealPlanItem.dayOfWeek,
       recipeId: recipe.id,
       title: recipe.title,
       imagePath: recipe.imagePath,
@@ -132,6 +133,25 @@ export async function setPlannedServings(ownerEmail: string, itemId: string, ser
     );
 }
 
+/** Assign (or clear, with null) the weekday slot for a plan item. 0=Mon…6=Sun. */
+export async function setPlanItemDay(
+  ownerEmail: string,
+  itemId: string,
+  dayOfWeek: number | null,
+) {
+  const day =
+    dayOfWeek === null || !Number.isInteger(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6
+      ? null
+      : dayOfWeek;
+  const db = await getDb();
+  await db
+    .update(mealPlanItem)
+    .set({ dayOfWeek: day })
+    .where(
+      and(eq(mealPlanItem.id, itemId), inArray(mealPlanItem.mealPlanId, ownedPlanIds(db, ownerEmail))),
+    );
+}
+
 export async function removePlanItem(ownerEmail: string, itemId: string) {
   const db = await getDb();
   await db
@@ -165,13 +185,26 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
     .innerJoin(recipe, eq(recipe.id, mealPlanItem.recipeId))
     .where(eq(mealPlanItem.mealPlanId, mealPlanId));
 
+  // One round-trip for every recipe's ingredients instead of one query per
+  // recipe (a week of dinners was ~7 sequential round-trips), grouped in memory.
+  const recipeIds = [...new Set(items.map((it) => it.recipeId))];
+  const allIngredients = recipeIds.length
+    ? await db
+        .select()
+        .from(recipeIngredient)
+        .where(inArray(recipeIngredient.recipeId, recipeIds))
+    : [];
+  const ingredientsByRecipe = new Map<string, typeof allIngredients>();
+  for (const ing of allIngredients) {
+    const bucket = ingredientsByRecipe.get(ing.recipeId);
+    if (bucket) bucket.push(ing);
+    else ingredientsByRecipe.set(ing.recipeId, [ing]);
+  }
+
   const lines: PlannedIngredient[] = [];
   const optionalLines: { name: string; recipeTitle: string }[] = [];
   for (const it of items) {
-    const ings = await db
-      .select()
-      .from(recipeIngredient)
-      .where(eq(recipeIngredient.recipeId, it.recipeId));
+    const ings = ingredientsByRecipe.get(it.recipeId) ?? [];
     for (const ing of ings) {
       const name = ing.canonicalName ?? ing.rawText;
       // Optional ingredients must not masquerade as required buys — they get

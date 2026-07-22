@@ -60,6 +60,7 @@ export default async function PlanPage({
           totalMinutes: it.totalMinutes,
           servingsDefault: it.servingsDefault,
           plannedServings: it.plannedServings,
+          dayOfWeek: it.dayOfWeek,
         }))}
         allRecipes={allRecipes.map((r) => ({
           id: r.id,

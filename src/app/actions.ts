@@ -36,6 +36,7 @@ import {
   addCustomShoppingItem,
   removeCustomShoppingItem,
   setPlannedServings,
+  setPlanItemDay,
   removePlanItem,
   deletePlan,
   generateShoppingList,
@@ -334,6 +335,16 @@ export async function setServingsAction(
 ): Promise<void> {
   const owner = await getOwnerEmail();
   await setPlannedServings(owner, itemId, servings);
+  revalidatePath(`/plans/${planId}`);
+}
+
+export async function setPlanItemDayAction(
+  planId: string,
+  itemId: string,
+  dayOfWeek: number | null,
+): Promise<void> {
+  const owner = await getOwnerEmail();
+  await setPlanItemDay(owner, itemId, dayOfWeek);
   revalidatePath(`/plans/${planId}`);
 }
 

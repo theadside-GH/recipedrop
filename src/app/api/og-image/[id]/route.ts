@@ -3,6 +3,9 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { recipe } from "@/lib/db/schema";
 import { isHostedImage } from "@/lib/storage";
+import { isSafeRasterType } from "@/lib/net/image-content";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Serves a public recipe's photo at a stable URL so shared links can carry a
@@ -15,7 +18,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await params;
-  if (!/^[0-9a-f-]{36}$/i.test(id)) return new Response("Not found", { status: 404 });
+  if (!UUID_RE.test(id)) return new Response("Not found", { status: 404 });
 
   const db = await getDb();
   const [row] = await db
@@ -29,12 +32,18 @@ export async function GET(
 
   const cache = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400";
 
-  // Embedded snapshot (the common case): decode and serve the bytes.
+  // Embedded snapshot (the common case): decode and serve the bytes. Raster
+  // types only — never serve a stored image/svg+xml inline (script-capable).
   const dataMatch = row.imagePath.match(/^data:(image\/[\w.+-]+);base64,([\s\S]+)$/);
   if (dataMatch) {
+    if (!isSafeRasterType(dataMatch[1])) return new Response("Not found", { status: 404 });
     const bytes = Buffer.from(dataMatch[2], "base64");
     return new Response(new Uint8Array(bytes), {
-      headers: { "content-type": dataMatch[1], "cache-control": cache },
+      headers: {
+        "content-type": dataMatch[1],
+        "cache-control": cache,
+        "x-content-type-options": "nosniff",
+      },
     });
   }
 

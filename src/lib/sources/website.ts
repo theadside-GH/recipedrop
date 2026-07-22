@@ -13,9 +13,22 @@ const CRAWLER_UA =
 async function fetchHtml(url: string, ua = UA): Promise<string> {
   // safeFetch: imported URLs are user-supplied — never let one reach an
   // internal host (localhost, cloud metadata, LAN).
-  const res = await safeFetch(url, {
+  let res = await safeFetch(url, {
     headers: { "user-agent": ua, accept: "text/html,application/xhtml+xml" },
   });
+  // Some WAFs (e.g. thekitchn.com) 403 the full Chrome UA string when the TLS
+  // fingerprint isn't a real browser, but allow a generic one — retry once
+  // before giving up.
+  if (res.status === 403 && ua === UA) {
+    res = await safeFetch(url, {
+      headers: { "user-agent": "Mozilla/5.0", accept: "text/html,application/xhtml+xml" },
+    });
+  }
+  if (res.status === 403) {
+    throw new Error(
+      "This site blocks automated importers (HTTP 403). Open the recipe, copy its text, and use the \"Paste text\" tab instead.",
+    );
+  }
   if (!res.ok) throw new Error(`Could not fetch the page (HTTP ${res.status}).`);
   return res.text();
 }

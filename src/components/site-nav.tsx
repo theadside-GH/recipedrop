@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   Archive,
@@ -19,7 +20,38 @@ interface NavLink {
   label: string;
   mobileLabel?: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** Show the viewer's profile picture instead of the icon when they have one. */
+  avatar?: boolean;
   match: (pathname: string) => boolean;
+}
+
+function NavIcon({
+  link,
+  active,
+  className,
+  avatarClassName,
+}: {
+  link: NavLink;
+  active: boolean;
+  className: string;
+  avatarClassName: string;
+}) {
+  // 404 (no picture set) or a broken remote URL falls back to the icon.
+  const [failed, setFailed] = useState(false);
+  if (!link.avatar || failed) return <link.icon className={className} />;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/api/avatar"
+      alt=""
+      onError={() => setFailed(true)}
+      className={cn(
+        "rounded-full border bg-card object-cover",
+        active ? "border-brand" : "border-border",
+        avatarClassName,
+      )}
+    />
+  );
 }
 
 const LINKS: NavLink[] = [
@@ -40,7 +72,7 @@ const LINKS: NavLink[] = [
     match: (p: string) => p.startsWith("/plans"),
   },
   { href: "/pantry", label: "Pantry", icon: Archive, match: (p: string) => p.startsWith("/pantry") },
-  { href: "/profile", label: "Profile", mobileLabel: "Me", icon: User, match: (p: string) => p.startsWith("/profile") },
+  { href: "/profile", label: "Profile", mobileLabel: "Me", icon: User, avatar: true, match: (p: string) => p.startsWith("/profile") },
 ];
 
 // Signed-out visitors only get pages that work for them, plus a Sign in
@@ -80,7 +112,7 @@ export function SiteNav({ signedIn = true }: { signedIn?: boolean }) {
                       active ? "bg-brand-soft text-brand" : "text-muted hover:bg-surface",
                     )}
                   >
-                    <l.icon className="h-4 w-4" />
+                    <NavIcon link={l} active={active} className="h-4 w-4" avatarClassName="h-6 w-6 -my-1" />
                     {l.label}
                   </Link>
                 );
@@ -115,7 +147,7 @@ export function SiteNav({ signedIn = true }: { signedIn?: boolean }) {
                 active ? "text-brand" : "text-muted",
               )}
             >
-              <l.icon className="h-5 w-5" />
+              <NavIcon link={l} active={active} className="h-5 w-5" avatarClassName="h-5 w-5" />
               {l.mobileLabel ?? l.label}
             </Link>
           );

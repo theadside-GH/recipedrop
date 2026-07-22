@@ -235,6 +235,10 @@ export const mealPlanItem = pgTable(
       .notNull()
       .references(() => recipe.id, { onDelete: "cascade" }),
     plannedServings: integer("planned_servings").notNull().default(2),
+    // Optional day slot within the week: 0 = Monday … 6 = Sunday. Null means
+    // the recipe is in the plan but not yet assigned to a night ("unscheduled"),
+    // which is what every pre-calendar item is.
+    dayOfWeek: integer("day_of_week"),
   },
   (t) => [index("meal_plan_item_plan_idx").on(t.mealPlanId)],
 );

@@ -1,0 +1,1 @@
+ALTER TABLE "meal_plan_item" ADD COLUMN "day_of_week" integer;

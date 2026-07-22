@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
+  CalendarDays,
   Loader2,
   Minus,
   Plus,
@@ -21,9 +22,14 @@ import {
   addToPlanAction,
   generateListAction,
   removePlanItemAction,
+  setPlanItemDayAction,
   setServingsAction,
 } from "@/app/actions";
 import { ShoppingListView, type ShoppingItem } from "./shopping-list-view";
+
+// 0 = Monday … 6 = Sunday. Null day = "Unscheduled".
+const DAY_LABELS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const DAY_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 interface PlanItem {
   id: string;
@@ -34,6 +40,7 @@ interface PlanItem {
   totalMinutes: number | null;
   servingsDefault: number;
   plannedServings: number;
+  dayOfWeek: number | null;
 }
 
 interface PickRecipe {
@@ -94,6 +101,13 @@ export function PlanEditor({
     });
   }
 
+  function changeDay(itemId: string, dayOfWeek: number | null) {
+    startTransition(async () => {
+      await setPlanItemDayAction(planId, itemId, dayOfWeek);
+      router.refresh();
+    });
+  }
+
   async function generate() {
     setGenerating(true);
     try {
@@ -115,35 +129,31 @@ export function PlanEditor({
       </div>
 
       {items.length > 0 && (
-        <div className="space-y-3">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3"
-            >
-              <Thumb src={item.imagePath} meal={item.mealType} title={item.title} />
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-medium">{item.title}</p>
-                <p className="text-xs text-muted">
-                  {formatMinutes(item.totalMinutes)} - recipe serves {item.servingsDefault}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted" />
-                <Stepper
-                  value={item.plannedServings}
-                  onChange={(v) => changeServings(item.id, v)}
-                />
-              </div>
-              <button
-                onClick={() => remove(item.id)}
-                className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-red-50 hover:text-red-500"
-                aria-label="Remove from list"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
-          ))}
+        <div className="space-y-4">
+          {/* Each weekday that has a meal, then an "Unscheduled" bucket for the
+              recipes not yet assigned to a night (every pre-calendar item). */}
+          {[...Array(7).keys()]
+            .filter((day) => items.some((it) => it.dayOfWeek === day))
+            .map((day) => (
+              <DaySection
+                key={day}
+                heading={DAY_LABELS[day]}
+                items={items.filter((it) => it.dayOfWeek === day)}
+                onChangeServings={changeServings}
+                onChangeDay={changeDay}
+                onRemove={remove}
+              />
+            ))}
+          {items.some((it) => it.dayOfWeek == null) && (
+            <DaySection
+              heading="Unscheduled"
+              subtle
+              items={items.filter((it) => it.dayOfWeek == null)}
+              onChangeServings={changeServings}
+              onChangeDay={changeDay}
+              onRemove={remove}
+            />
+          )}
         </div>
       )}
 
@@ -220,6 +230,89 @@ export function PlanEditor({
         </div>
       )}
     </div>
+  );
+}
+
+function DaySection({
+  heading,
+  items,
+  subtle,
+  onChangeServings,
+  onChangeDay,
+  onRemove,
+}: {
+  heading: string;
+  items: PlanItem[];
+  subtle?: boolean;
+  onChangeServings: (itemId: string, servings: number) => void;
+  onChangeDay: (itemId: string, day: number | null) => void;
+  onRemove: (itemId: string) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <h2
+        className={cn(
+          "px-1 text-sm font-semibold uppercase tracking-wide",
+          subtle ? "text-muted" : "text-brand",
+        )}
+      >
+        {heading}
+      </h2>
+      {items.map((item) => (
+        <div
+          key={item.id}
+          className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card p-3"
+        >
+          <Thumb src={item.imagePath} meal={item.mealType} title={item.title} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-medium">{item.title}</p>
+            <p className="text-xs text-muted">
+              {formatMinutes(item.totalMinutes)} - recipe serves {item.servingsDefault}
+            </p>
+          </div>
+          <DayPicker value={item.dayOfWeek} onChange={(d) => onChangeDay(item.id, d)} />
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted" />
+            <Stepper value={item.plannedServings} onChange={(v) => onChangeServings(item.id, v)} />
+          </div>
+          <button
+            onClick={() => onRemove(item.id)}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-muted hover:bg-red-50 hover:text-red-500"
+            aria-label="Remove from list"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Assign a plan item to a night of the week (or clear it back to unscheduled). */
+function DayPicker({
+  value,
+  onChange,
+}: {
+  value: number | null;
+  onChange: (day: number | null) => void;
+}) {
+  return (
+    <label className="flex items-center gap-1.5 text-xs text-muted">
+      <CalendarDays className="h-4 w-4" />
+      <span className="sr-only">Day of week</span>
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))}
+        className="h-8 rounded-lg border border-border bg-surface px-2 text-xs font-medium text-foreground focus:border-brand focus-visible:outline-none"
+      >
+        <option value="">Any day</option>
+        {DAY_SHORT.map((label, day) => (
+          <option key={day} value={day}>
+            {label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

@@ -157,9 +157,9 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
           className="mt-1 h-4 w-4"
         />
         <span>
-          <span className="block text-sm font-medium">Include me in public discovery</span>
+          <span className="block text-sm font-medium">Include me in public dishcovery</span>
           <span className="block text-xs text-muted">
-            Only recipes you mark Public can appear. Private recipes never show in discovery.
+            Only recipes you mark Public can appear. Private recipes never show in dishcovery.
           </span>
         </span>
       </label>

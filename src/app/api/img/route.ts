@@ -1,4 +1,5 @@
-import { safeFetch } from "@/lib/net/safe-fetch";
+import { readBodyCapped, safeFetch } from "@/lib/net/safe-fetch";
+import { isSafeRasterType, normalizeImageType } from "@/lib/net/image-content";
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
@@ -41,8 +42,8 @@ export async function GET(request: Request): Promise<Response> {
     return new Response("Blocked or unreachable", { status: 400 });
   }
 
-  const contentType = upstream.headers.get("content-type") ?? "";
-  if (!upstream.ok || !contentType.startsWith("image/")) {
+  // Raster types only — never reflect SVG (script-capable) from our origin.
+  if (!upstream.ok || !isSafeRasterType(upstream.headers.get("content-type"))) {
     return new Response("Not an image", { status: 502 });
   }
   const declaredLength = Number(upstream.headers.get("content-length") ?? 0);
@@ -50,15 +51,16 @@ export async function GET(request: Request): Promise<Response> {
     return new Response("Image too large", { status: 502 });
   }
 
-  const buffer = await upstream.arrayBuffer();
-  if (buffer.byteLength > MAX_BYTES) {
-    return new Response("Image too large", { status: 502 });
-  }
+  const buffer = await readBodyCapped(upstream, MAX_BYTES);
+  if (!buffer) return new Response("Image too large", { status: 502 });
 
-  return new Response(buffer, {
+  return new Response(new Uint8Array(buffer), {
     headers: {
-      "content-type": contentType,
+      "content-type": normalizeImageType(upstream.headers.get("content-type")),
+      "content-length": String(buffer.byteLength),
       "cache-control": "public, max-age=86400, s-maxage=604800, stale-while-revalidate=604800",
+      // Belt-and-suspenders: forbid MIME sniffing even for the raster types.
+      "x-content-type-options": "nosniff",
     },
   });
 }

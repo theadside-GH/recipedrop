@@ -1,6 +1,7 @@
 import "server-only";
 import sharp from "sharp";
-import { safeFetch } from "@/lib/net/safe-fetch";
+import { readBodyCapped, safeFetch } from "@/lib/net/safe-fetch";
+import { isSafeRasterType } from "@/lib/net/image-content";
 import { persistImage, uploadImageBytes } from "@/lib/storage";
 
 const UA =
@@ -47,11 +48,12 @@ export async function imageUrlToDataUrl(url: string): Promise<string | null> {
       signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) return null;
-    const type = res.headers.get("content-type") ?? "";
-    if (!type.startsWith("image/")) return null;
+    // Raster only — sharp would choke on SVG anyway, and we never want to
+    // round-trip script-bearing markup into a stored recipe photo.
+    if (!isSafeRasterType(res.headers.get("content-type"))) return null;
     if (Number(res.headers.get("content-length") ?? 0) > MAX_SOURCE_BYTES) return null;
-    const bytes = Buffer.from(await res.arrayBuffer());
-    if (bytes.byteLength === 0 || bytes.byteLength > MAX_SOURCE_BYTES) return null;
+    const bytes = await readBodyCapped(res, MAX_SOURCE_BYTES);
+    if (!bytes || bytes.byteLength === 0) return null;
     const jpeg = await sharp(bytes)
       .rotate()
       .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: "inside", withoutEnlargement: true })

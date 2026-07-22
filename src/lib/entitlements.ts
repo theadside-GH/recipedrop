@@ -49,6 +49,15 @@ export class QuotaExceededError extends Error {
   }
 }
 
+export class PhotoQuotaExceededError extends Error {
+  constructor(tier: TierId, photoLimit: number) {
+    super(
+      `Photo imports are limited to ${photoLimit}/day on the ${TIERS[tier].label} plan. Upgrade for unlimited photo imports.`,
+    );
+    this.name = "PhotoQuotaExceededError";
+  }
+}
+
 async function tierFor(ownerEmail: string): Promise<TierId> {
   const db = await getDb();
   const [row] = await db
@@ -93,14 +102,29 @@ function isMissingTable(err: unknown): boolean {
  */
 export async function recordAiUse(ownerEmail: string, kind: AiUseKind): Promise<void> {
   try {
-    const { tier, used, limit } = await getAiUsage(ownerEmail);
-    if (used >= limit) throw new QuotaExceededError(tier);
-    if (kind === "photo" && features.billingEnabled) {
-      const photoLimit = TIERS[tier].photoUsesPerDay;
-      if (Number.isFinite(photoLimit)) {
-        const db = await getDb();
-        const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const [row] = await db
+    const tier = await tierFor(ownerEmail);
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const dailyLimit = TIERS[tier].aiUsesPerDay;
+    const photoLimit = TIERS[tier].photoUsesPerDay;
+    const enforcePhoto =
+      kind === "photo" && features.billingEnabled && Number.isFinite(photoLimit);
+
+    // Insert first, then count inside the same transaction, and roll back if
+    // the insert pushed us over. Counting before inserting is a check-then-act
+    // race: the import client runs jobs 3-wide, so parallel calls could all
+    // read used=9 and all insert. Insert-then-verify makes the cap exact.
+    const db = await getDb();
+    await db.transaction(async (tx) => {
+      await tx.insert(aiUsageEvent).values({ ownerEmail, kind });
+
+      const [total] = await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(aiUsageEvent)
+        .where(and(eq(aiUsageEvent.ownerEmail, ownerEmail), gte(aiUsageEvent.createdAt, since)));
+      if ((total?.n ?? 0) > dailyLimit) throw new QuotaExceededError(tier);
+
+      if (enforcePhoto) {
+        const [photos] = await tx
           .select({ n: sql<number>`count(*)::int` })
           .from(aiUsageEvent)
           .where(
@@ -110,17 +134,13 @@ export async function recordAiUse(ownerEmail: string, kind: AiUseKind): Promise<
               gte(aiUsageEvent.createdAt, since),
             ),
           );
-        if ((row?.n ?? 0) >= photoLimit) {
-          throw new Error(
-            `Photo imports are limited to ${photoLimit}/day on the ${TIERS[tier].label} plan. Upgrade for unlimited photo imports.`,
-          );
+        if ((photos?.n ?? 0) > (photoLimit as number)) {
+          throw new PhotoQuotaExceededError(tier, photoLimit as number);
         }
       }
-    }
-    const db = await getDb();
-    await db.insert(aiUsageEvent).values({ ownerEmail, kind });
+    });
   } catch (err) {
-    if (err instanceof QuotaExceededError) throw err;
+    if (err instanceof QuotaExceededError || err instanceof PhotoQuotaExceededError) throw err;
     if (isMissingTable(err)) {
       console.warn("ai_usage_event table missing — run `npm run db:migrate`. Allowing AI use unmetered.");
       return;
