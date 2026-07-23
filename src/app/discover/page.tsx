@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type React from "react";
-import { ArrowRight, Compass, Flame, LayoutGrid, Search, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Compass, Crown, Flame, LayoutGrid, Search, Sparkles, Users } from "lucide-react";
 import { RecipeCard } from "@/components/recipe-card";
 import { SaveDropToggle } from "@/components/save-drop-toggle";
 import { CollectionQuickAdd } from "@/components/collection-picker";
@@ -10,6 +10,7 @@ import { MadeThisButton } from "@/components/social-buttons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getViewerEmail } from "@/lib/auth";
+import { TIERS } from "@/lib/entitlements";
 import { collectionIdsByRecipe, listCollections } from "@/lib/repo/collections";
 import { cookedCountsForOwner } from "@/lib/repo/notes";
 import {
@@ -134,6 +135,12 @@ export default async function DiscoverPage({
                 Browse all dishcoveries
               </Button>
             </Link>
+            <Link href="/pro">
+              <Button variant="secondary">
+                <Crown className="h-4 w-4 text-brand" />
+                Free &amp; Pro plans
+              </Button>
+            </Link>
             {viewer && (
               <Link href="/profile">
                 <Button variant="secondary">
@@ -254,6 +261,26 @@ export default async function DiscoverPage({
               </Link>
             }
           />
+
+          <section className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 sm:p-7">
+            <div className="max-w-xl">
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <Crown className="h-5 w-5 text-brand" />
+                Free to cook. Pro for import sprees.
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-muted">
+                The free plan is the full app — your recipe library, meal plans, one smart
+                shopping list, and {TIERS.free.aiUsesPerDay} AI imports every day. Pro
+                raises that to {TIERS.pro.aiUsesPerDay} a day and removes the caps on
+                photo imports, plans, and collections.
+              </p>
+            </div>
+            <Link href="/pro">
+              <Button size="lg">
+                Why subscribe <ArrowRight className="h-4 w-4" />
+              </Button>
+            </Link>
+          </section>
         </>
       )}
     </div>
