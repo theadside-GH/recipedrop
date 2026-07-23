@@ -47,6 +47,8 @@ const RESERVED_HANDLES = new Set([
   "pro",
   "terms",
   "privacy",
+  "ios",
+  "shortcut",
 ]);
 
 function cleanHandle(value: string | null | undefined): string | null {

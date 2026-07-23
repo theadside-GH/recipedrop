@@ -52,8 +52,10 @@ const FAQS = [
   {
     question: "What about iPhone?",
     answer:
-      "iPhones don't offer the share-to-app shortcut, so copy the video's link, open DishCovered, and paste it into Import — same result, one extra step. You can still add DishCovered to your Home Screen: open it in Safari, tap Share, then Add to Home Screen.",
+      "Add the free “Save to DishCovered” Shortcut (a 2-minute one-time setup) and it appears in your share sheet — TikTok's Share button then saves recipes straight into DishCovered, just like Android. The setup guide is on the iPhone page.",
     icon: Smartphone,
+    href: "/ios",
+    linkLabel: "iPhone setup guide →",
   },
   {
     question: "Who can use this app?",
@@ -103,7 +105,7 @@ export default function AboutPage() {
             <p className="mt-2 text-sm leading-6 text-muted">{item.answer}</p>
             {"href" in item && item.href && (
               <Link href={item.href} className="mt-2 inline-block text-sm font-medium text-brand hover:underline">
-                About DishCovered Pro →
+                {"linkLabel" in item && item.linkLabel ? item.linkLabel : "About DishCovered Pro →"}
               </Link>
             )}
           </article>

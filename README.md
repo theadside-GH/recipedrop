@@ -55,7 +55,14 @@ NEXT_PUBLIC_SITE_URL=
 STRIPE_SECRET_KEY=
 STRIPE_PRICE_ID=
 STRIPE_WEBHOOK_SECRET=
+IOS_SHORTCUT_URL=
 ```
+
+iPhone share support: iOS has no Web Share Target, so the share sheet is
+reached via an iOS Shortcut instead. Build the "Save to DishCovered" shortcut
+once (steps on `/ios`), share it as an iCloud link, and set `IOS_SHORTCUT_URL`
+— `/shortcut` redirects there and the iPhone onboarding gains a one-tap
+install button.
 
 `SUPABASE_SERVICE_ROLE_KEY` (server-only, from Project Settings → API) lets the
 app host photos in Supabase Storage (`recipe-images` bucket) instead of

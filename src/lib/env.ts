@@ -37,6 +37,14 @@ export const env = {
   stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
 
   /**
+   * iCloud link to the "Save to DishCovered" iOS Shortcut (created once in the
+   * Shortcuts app, shared via Copy iCloud Link). When set, /shortcut redirects
+   * there and /ios shows a one-tap "Get the Shortcut" button; when empty, /ios
+   * shows build-it-yourself steps instead.
+   */
+  iosShortcutUrl: process.env.IOS_SHORTCUT_URL ?? "",
+
+  /**
    * Comma/space-separated emails allowed to use the app. When set, sign-in
    * stays open (Supabase handles it) but anyone not on the list lands on an
    * "invite only" page — protecting the shared AI key from strangers who find

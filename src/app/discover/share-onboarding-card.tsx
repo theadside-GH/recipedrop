@@ -86,16 +86,17 @@ export function ShareOnboardingCard() {
           <div className="text-sm">
             <p className="flex items-center gap-1.5 font-semibold">
               <Share className="h-4 w-4 text-brand" />
-              {isIos ? "Copy any recipe video's link" : "Share any recipe video"}
+              {isIos ? "Add the DishCovered Shortcut" : "Share any recipe video"}
             </p>
             <p className="mt-1 text-muted">
               {isIos ? (
                 <>
-                  In TikTok, Instagram, or YouTube tap Share → <strong>Copy link</strong>, then
-                  open DishCovered and paste it into <strong>Import</strong>.
-                  <Sparkles className="mx-1 inline h-3.5 w-3.5 text-brand" />
-                  Done — it&apos;s in Your Recipes. (iPhones don&apos;t allow direct
-                  share-to-app for web apps.)
+                  A 2-minute one-time setup puts <strong>Save to DishCovered</strong> in
+                  your share sheet — then TikTok&apos;s Share button saves recipes here
+                  directly.{" "}
+                  <a href="/ios" className="font-semibold text-brand hover:underline">
+                    Set it up →
+                  </a>
                 </>
               ) : (
                 <>
