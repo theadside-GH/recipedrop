@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { getOwnerEmail } from "@/lib/auth";
-import { features } from "@/lib/env";
+import { env, features } from "@/lib/env";
+import { findCustomerByEmail, getStripe } from "@/lib/billing";
 import {
   createSingleJob,
   createBulkJobs,
@@ -730,4 +732,49 @@ export async function setLeftoverItemAction(input: {
   });
   if (input.planId) revalidatePath(`/plans/${input.planId}`);
   revalidatePath("/pantry");
+}
+
+// ---- Billing --------------------------------------------------------------
+
+/**
+ * Send the signed-in user to Stripe Checkout for the Pro subscription.
+ * The webhook (not the success redirect) is what actually flips paid_tier.
+ */
+export async function createCheckoutAction(): Promise<void> {
+  const email = await getOwnerEmail();
+  const stripe = getStripe();
+  if (!stripe || !features.checkoutEnabled) {
+    throw new Error("Billing isn't set up yet — check back soon.");
+  }
+  const site = env.siteUrl || "http://localhost:3000";
+  const existing = await findCustomerByEmail(email);
+  const session = await stripe.checkout.sessions.create({
+    mode: "subscription",
+    line_items: [{ price: env.stripePriceId, quantity: 1 }],
+    // Reuse the customer if they've paid before (e.g. resubscribing) so
+    // Stripe doesn't mint duplicates; otherwise let Checkout collect email.
+    ...(existing ? { customer: existing.id } : { customer_email: email }),
+    allow_promotion_codes: true,
+    success_url: `${site}/profile?upgraded=1`,
+    cancel_url: `${site}/pro`,
+  });
+  if (!session.url) throw new Error("Stripe didn't return a checkout link. Try again.");
+  redirect(session.url);
+}
+
+/** Open the Stripe billing portal (change card, cancel, invoices). */
+export async function openBillingPortalAction(): Promise<void> {
+  const email = await getOwnerEmail();
+  const stripe = getStripe();
+  if (!stripe) throw new Error("Billing isn't set up yet.");
+  const customer = await findCustomerByEmail(email);
+  if (!customer) {
+    throw new Error("No billing record found for your account. If you just subscribed, give it a minute.");
+  }
+  const site = env.siteUrl || "http://localhost:3000";
+  const portal = await stripe.billingPortal.sessions.create({
+    customer: customer.id,
+    return_url: `${site}/profile`,
+  });
+  redirect(portal.url);
 }

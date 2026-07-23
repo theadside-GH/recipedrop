@@ -8,15 +8,17 @@
 //    shopping list you opened while online still open in the store on bad Wi-Fi.
 //  - Everything else (APIs, image proxy, RSC data fetches): straight to the
 //    network, never cached — they're per-request and often auth-sensitive.
-const STATIC_CACHE = "dishcovered-static-v3";
-const PAGE_CACHE = "dishcovered-pages-v3";
+// v4: icon URLs gained ?v=2 (logo cache-bust) — old caches may hold the
+// pre-rebrand icons, so retire them wholesale.
+const STATIC_CACHE = "dishcovered-static-v4";
+const PAGE_CACHE = "dishcovered-pages-v4";
 const KEEP = [STATIC_CACHE, PAGE_CACHE];
 
 const CORE_ASSETS = [
   "/manifest.webmanifest",
-  "/icon-192.png",
-  "/icon-512.png",
-  "/icon-maskable-512.png",
+  "/icon-192.png?v=2",
+  "/icon-512.png?v=2",
+  "/icon-maskable-512.png?v=2",
   "/offline",
 ];
 

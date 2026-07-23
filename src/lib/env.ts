@@ -30,6 +30,12 @@ export const env = {
   /** Stripe secret key — presence turns on paid-tier limit enforcement. */
   stripeSecretKey: process.env.STRIPE_SECRET_KEY ?? "",
 
+  /** Price id of the Pro subscription (price_… from the Stripe dashboard). */
+  stripePriceId: process.env.STRIPE_PRICE_ID ?? "",
+
+  /** Signing secret for /api/stripe/webhook (whsec_… from the dashboard). */
+  stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
+
   /**
    * Comma/space-separated emails allowed to use the app. When set, sign-in
    * stays open (Supabase handles it) but anyone not on the list lands on an
@@ -82,6 +88,10 @@ export const features = {
    */
   get billingEnabled() {
     return env.stripeSecretKey.length > 0;
+  },
+  /** True when checkout can actually run (secret key + a Pro price id). */
+  get checkoutEnabled() {
+    return env.stripeSecretKey.length > 0 && env.stripePriceId.length > 0;
   },
   /** Photos upload to Supabase Storage instead of embedding in the DB. */
   get storageEnabled() {

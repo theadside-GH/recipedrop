@@ -52,6 +52,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 INVITE_EMAILS=
 NEXT_PUBLIC_SITE_URL=
+STRIPE_SECRET_KEY=
+STRIPE_PRICE_ID=
+STRIPE_WEBHOOK_SECRET=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` (server-only, from Project Settings → API) lets the
@@ -61,6 +64,15 @@ embedded photos into storage, run `npm run migrate:images` once.
 
 For local testing, only `ANTHROPIC_API_KEY` is needed for imports. For a hosted
 web app, set all values except `PGLITE_DIR`.
+
+Billing (optional): create a subscription product in Stripe, then set
+`STRIPE_SECRET_KEY` (enables Free/Pro limit enforcement), `STRIPE_PRICE_ID`
+(the Pro price, `price_…` — enables the upgrade button on /profile and /pro),
+and `STRIPE_WEBHOOK_SECRET` (from a webhook endpoint pointed at
+`/api/stripe/webhook`, subscribed to `checkout.session.completed`,
+`customer.subscription.updated`, and `customer.subscription.deleted`). The
+webhook is what flips `user_profile.paid_tier`; leave all three unset and the
+app stays free with only the shared daily AI cap.
 
 The app is multi-user: anyone can sign in with a magic link or Google, and each
 account only ever sees its own recipes. `OWNER_EMAIL` is used for local

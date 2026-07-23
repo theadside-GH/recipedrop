@@ -30,7 +30,10 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "DishCovered", statusBarStyle: "default" },
-  icons: { icon: "/icon-192.png", apple: "/icon-192.png" },
+  // ?v=2 busts cached copies of the old RecipeDrop logo (pre-2026-07-11) in
+  // browser favicon caches and installed-PWA manifests. Bump together with
+  // manifest.webmanifest and the sw.js cache version if the logo changes again.
+  icons: { icon: "/icon-192.png?v=2", apple: "/icon-192.png?v=2" },
   other: {
     "mobile-web-app-capable": "yes",
   },

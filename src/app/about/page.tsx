@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Bot,
   CircleHelp,
@@ -72,6 +73,13 @@ const FAQS = [
       "It extracts ingredients, steps, timing, servings, meal type, tags, and shopping-list-friendly ingredient names from messy source material.",
     icon: Bot,
   },
+  {
+    question: "Is there a paid plan?",
+    answer:
+      "The free plan is the full app with a daily AI-import allowance. DishCovered Pro raises that allowance and removes the caps — see the Pro page for what it includes and why it exists.",
+    icon: Sparkles,
+    href: "/pro",
+  },
 ];
 
 export default function AboutPage() {
@@ -93,6 +101,11 @@ export default function AboutPage() {
             </div>
             <h2 className="font-semibold">{item.question}</h2>
             <p className="mt-2 text-sm leading-6 text-muted">{item.answer}</p>
+            {"href" in item && item.href && (
+              <Link href={item.href} className="mt-2 inline-block text-sm font-medium text-brand hover:underline">
+                About DishCovered Pro →
+              </Link>
+            )}
           </article>
         ))}
       </section>

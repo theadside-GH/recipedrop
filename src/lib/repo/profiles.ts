@@ -44,6 +44,7 @@ const RESERVED_HANDLES = new Set([
   "profile",
   "collections",
   "api",
+  "pro",
 ]);
 
 function cleanHandle(value: string | null | undefined): string | null {
@@ -101,6 +102,20 @@ export async function getOrCreateProfile(email: string, seed: ProfileSeed = {}) 
     })
     .returning();
   return created;
+}
+
+/**
+ * Flip a user between free and pro. Called only from the Stripe webhook;
+ * getOrCreateProfile first so a subscriber who somehow has no profile row yet
+ * (e.g. paid before ever opening /profile) still gets their tier recorded.
+ */
+export async function setPaidTier(email: string, tier: "free" | "pro") {
+  const db = await getDb();
+  await getOrCreateProfile(email);
+  await db
+    .update(userProfile)
+    .set({ paidTier: tier, updatedAt: new Date() })
+    .where(eq(userProfile.email, email));
 }
 
 export async function updateProfile(email: string, input: ProfileInput) {
