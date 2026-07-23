@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { SiteNav } from "@/components/site-nav";
+import { SiteFooter } from "@/components/site-footer";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { InstallAppPrompt } from "@/components/install-app-prompt";
 import { getViewerEmail } from "@/lib/auth";
@@ -58,6 +59,7 @@ export default async function RootLayout({
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 sm:pb-10">
           {children}
         </main>
+        <SiteFooter />
       </body>
     </html>
   );

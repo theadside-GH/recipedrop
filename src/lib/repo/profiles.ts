@@ -45,6 +45,8 @@ const RESERVED_HANDLES = new Set([
   "collections",
   "api",
   "pro",
+  "terms",
+  "privacy",
 ]);
 
 function cleanHandle(value: string | null | undefined): string | null {
