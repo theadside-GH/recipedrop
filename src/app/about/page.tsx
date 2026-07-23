@@ -76,7 +76,7 @@ const FAQS = [
   {
     question: "Is there a paid plan?",
     answer:
-      "The free plan is the full app with a daily AI-import allowance. DishCovered Pro raises that allowance and removes the caps — see the Pro page for what it includes and why it exists.",
+      "The free plan is the full app with a weekly AI-import allowance. DishCovered Pro switches that to a much bigger daily allowance and unlocks the premium features — see the Pro page for the full comparison.",
     icon: Sparkles,
     href: "/pro",
   },

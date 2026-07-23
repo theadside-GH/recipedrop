@@ -4,10 +4,13 @@ import {
   Bot,
   CalendarRange,
   Camera,
+  Check,
   CircleHelp,
   Crown,
   FolderOpen,
   HandCoins,
+  MessageCircle,
+  Minus,
   Share2,
   ShieldCheck,
   Sparkles,
@@ -37,7 +40,7 @@ export default async function ProPage() {
   const faqs = [
     {
       question: "What stays free forever?",
-      answer: `Your recipe library, cook mode, meal plans, the merged shopping list, pantry, collections, sharing dishcoveries, and ${TIERS.free.aiUsesPerDay} AI imports every day. DishCovered is useful without paying a cent — Pro just removes the ceilings.`,
+      answer: `Your recipe library, cook mode, meal plans, the merged shopping list, pantry, saving and sharing dishcoveries, and ${TIERS.free.aiUses} AI imports every ${TIERS.free.aiWindowLabel}. DishCovered is useful without paying a cent — Pro removes the ceilings.`,
       icon: BadgeCheck,
     },
     {
@@ -48,7 +51,7 @@ export default async function ProPage() {
     },
     {
       question: "What exactly does Pro unlock?",
-      answer: `${TIERS.pro.aiUsesPerDay} AI imports a day (vs ${TIERS.free.aiUsesPerDay}), unlimited photo imports (vs ${TIERS.free.photoUsesPerDay}/day), unlimited meal plans and collections (vs ${TIERS.free.maxPlans} and ${TIERS.free.maxCollections}), and public collections — share a whole themed set of dishcoveries with one link.`,
+      answer: `${TIERS.pro.aiUses} AI imports a day (the free plan gets ${TIERS.free.aiUses} a week), unlimited photo imports, unlimited meal plans and collections, public collections you can share with one link, and commenting on dishcoveries.`,
       icon: Crown,
     },
     {
@@ -73,17 +76,17 @@ export default async function ProPage() {
   const perks = [
     {
       icon: Bot,
-      title: `${TIERS.pro.aiUsesPerDay} AI imports a day`,
-      text: `Import sprees welcome — the free plan's ${TIERS.free.aiUsesPerDay}/day becomes ${TIERS.pro.aiUsesPerDay}.`,
+      title: `${TIERS.pro.aiUses} AI imports a day`,
+      text: `Import sprees welcome — the free plan's ${TIERS.free.aiUses} a week becomes ${TIERS.pro.aiUses} a day.`,
     },
     {
       icon: Camera,
       title: "Unlimited photo imports",
-      text: "Scan the whole family recipe box, not three cards a day.",
+      text: "Scan the whole family recipe box, not a few cards a week.",
     },
     {
       icon: CalendarRange,
-      title: "Unlimited meal plans",
+      title: "Unlimited meal plans & collections",
       text: "Keep this week, next week, and the holiday menu all going at once.",
     },
     {
@@ -91,6 +94,27 @@ export default async function ProPage() {
       title: "Public collections",
       text: "Share an entire collection — “Sunday pastas”, “Camping food” — with one link.",
     },
+    {
+      icon: MessageCircle,
+      title: "Comment on dishcoveries",
+      text: "Tips, swaps, and how it turned out — join the thread on any shared dish.",
+    },
+    {
+      icon: HandCoins,
+      title: "Keep it indie",
+      text: "Pro is what keeps DishCovered ad-free, tracker-free, and independent.",
+    },
+  ];
+
+  const comparison: { feature: string; free: string | boolean; pro: string | boolean }[] = [
+    { feature: "Recipe library, cook mode & shopping list", free: true, pro: true },
+    { feature: "Meal plans & pantry", free: true, pro: true },
+    { feature: "AI recipe imports", free: `${TIERS.free.aiUses}/${TIERS.free.aiWindowLabel}`, pro: `${TIERS.pro.aiUses}/${TIERS.pro.aiWindowLabel}` },
+    { feature: "Photo scans", free: `${TIERS.free.photoUses}/${TIERS.free.aiWindowLabel}`, pro: "Unlimited" },
+    { feature: "Meal plans you can keep", free: `${TIERS.free.maxPlans}`, pro: "Unlimited" },
+    { feature: "Collections", free: `${TIERS.free.maxCollections}`, pro: "Unlimited" },
+    { feature: "Public collections", free: false, pro: true },
+    { feature: "Commenting on dishcoveries", free: false, pro: true },
   ];
 
   return (
@@ -104,8 +128,10 @@ export default async function ProPage() {
           DishCovered Pro — for cooks who Dishcover a lot
         </h1>
         <p className="mt-3 max-w-xl text-muted">
-          The free plan is the full app. Pro raises the daily AI allowance and removes the
-          caps, so importing your hundredth TikTok feels the same as your first.
+          The free plan is the full app with {TIERS.free.aiUses} AI imports a{" "}
+          {TIERS.free.aiWindowLabel}. Pro makes it {TIERS.pro.aiUses} a{" "}
+          {TIERS.pro.aiWindowLabel} and unlocks everything else — so importing your
+          hundredth TikTok feels the same as your first.
         </p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
           <UpgradeCta signedIn={!!viewer} isPro={isPro} />
@@ -125,6 +151,35 @@ export default async function ProPage() {
             <p className="mt-1 text-sm leading-6 text-muted">{perk.text}</p>
           </article>
         ))}
+      </section>
+
+      <section className="overflow-hidden rounded-3xl border border-border bg-card">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-surface/60 text-left">
+              <th className="px-5 py-3.5 font-semibold">What you get</th>
+              <th className="w-28 px-3 py-3.5 text-center font-semibold">Free</th>
+              <th className="w-28 px-3 py-3.5 text-center font-semibold text-brand">
+                <span className="inline-flex items-center gap-1">
+                  <Crown className="h-4 w-4" /> Pro
+                </span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {comparison.map((row) => (
+              <tr key={row.feature} className="border-b border-border/60 last:border-0">
+                <td className="px-5 py-3 text-muted">{row.feature}</td>
+                <td className="px-3 py-3 text-center">
+                  <Cell value={row.free} />
+                </td>
+                <td className="px-3 py-3 text-center font-medium text-foreground">
+                  <Cell value={row.pro} pro />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </section>
 
       <section className="space-y-3">
@@ -160,6 +215,12 @@ export default async function ProPage() {
       </section>
     </div>
   );
+}
+
+function Cell({ value, pro = false }: { value: string | boolean; pro?: boolean }) {
+  if (value === true) return <Check className={pro ? "mx-auto h-4 w-4 text-brand" : "mx-auto h-4 w-4 text-fresh"} />;
+  if (value === false) return <Minus className="mx-auto h-4 w-4 text-border" />;
+  return <>{value}</>;
 }
 
 function UpgradeCta({ signedIn, isPro }: { signedIn: boolean; isPro: boolean }) {

@@ -30,7 +30,7 @@ export default async function ImportPage() {
       </div>
       {usage && (
         <p className="text-sm text-muted">
-          AI uses today: {usage.used} of {usage.limit}
+          AI uses this {usage.windowLabel}: {usage.used} of {usage.limit}
           {usage.tier === "free" ? " (Free plan)" : ""}. Imports, photo scans, recipe
           repairs, and plan autopilot all count.
           {usage.tier === "free" && (

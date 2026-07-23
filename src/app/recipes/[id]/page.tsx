@@ -5,6 +5,7 @@ import { getOwnerEmail } from "@/lib/auth";
 import { getRecipeFull } from "@/lib/repo/recipes";
 import { listCollectionIdsForRecipe, listCollections } from "@/lib/repo/collections";
 import { listRecipeComments } from "@/lib/repo/comments";
+import { canCommentNow } from "@/lib/entitlements";
 import { listRecipeNotes } from "@/lib/repo/notes";
 import { RecipeDetail } from "@/components/recipe-detail";
 import { CollectionPicker } from "@/components/collection-picker";
@@ -29,11 +30,12 @@ export default async function RecipePage({
     notFound();
   }
 
-  const [collections, memberIds, notes, comments] = await Promise.all([
+  const [collections, memberIds, notes, comments, canComment] = await Promise.all([
     listCollections(viewer),
     listCollectionIdsForRecipe(viewer, id),
     listRecipeNotes(viewer, id),
     data.recipe.isPublic ? listRecipeComments(id, viewer) : Promise.resolve([]),
+    canCommentNow(viewer),
   ]);
   const inCollections = new Set(memberIds);
   const cookedCount = notes.filter((note) => note.kind === "cooked").length;
@@ -90,6 +92,7 @@ export default async function RecipePage({
         <RecipeComments
           recipeId={id}
           canModerate
+          canComment={canComment}
           entries={comments.map((comment) => ({
             id: comment.id,
             body: comment.body,

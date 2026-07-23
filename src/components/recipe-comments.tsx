@@ -28,12 +28,15 @@ export function RecipeComments({
   entries: initialEntries,
   signedIn = true,
   canModerate = false,
+  canComment = true,
 }: {
   recipeId: string;
   entries: CommentEntry[];
   signedIn?: boolean;
   /** The viewer owns this recipe and may remove any comment. */
   canModerate?: boolean;
+  /** False when billing is live and the viewer's plan doesn't include commenting. */
+  canComment?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -160,28 +163,38 @@ export function RecipeComments({
         </ul>
       )}
 
-      <div className="mt-4 space-y-3">
-        <Textarea
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          rows={2}
-          maxLength={2000}
-          placeholder={
-            signedIn
-              ? "e.g. Swapped the feta for goat cheese — even better."
-              : "Sign in to join the conversation."
-          }
-        />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <Button size="sm" onClick={post} disabled={isPending || !draft.trim()}>
-          {isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <MessageCircle className="h-4 w-4" />
-          )}
-          Post comment
-        </Button>
-      </div>
+      {signedIn && !canComment ? (
+        <p className="mt-4 rounded-xl border border-dashed border-border bg-surface p-3 text-sm text-muted">
+          Joining the conversation is a{" "}
+          <Link href="/pro" className="font-semibold text-brand hover:underline">
+            DishCovered Pro
+          </Link>{" "}
+          perk — upgrade to post tips and swaps on dishcoveries.
+        </p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <Textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            rows={2}
+            maxLength={2000}
+            placeholder={
+              signedIn
+                ? "e.g. Swapped the feta for goat cheese — even better."
+                : "Sign in to join the conversation."
+            }
+          />
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <Button size="sm" onClick={post} disabled={isPending || !draft.trim()}>
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <MessageCircle className="h-4 w-4" />
+            )}
+            Post comment
+          </Button>
+        </div>
+      )}
     </section>
   );
 }

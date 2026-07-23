@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Archive,
   BookOpen,
+  Crown,
   Info,
   LogIn,
   PlusCircle,
@@ -22,6 +23,8 @@ interface NavLink {
   icon: React.ComponentType<{ className?: string }>;
   /** Show the viewer's profile picture instead of the icon when they have one. */
   avatar?: boolean;
+  /** Skip in the mobile bottom tab bar (space is tight there). */
+  desktopOnly?: boolean;
   match: (pathname: string) => boolean;
 }
 
@@ -73,6 +76,8 @@ const LINKS: NavLink[] = [
   },
   { href: "/pantry", label: "Pantry", icon: Archive, match: (p: string) => p.startsWith("/pantry") },
   { href: "/profile", label: "Profile", mobileLabel: "Me", icon: User, avatar: true, match: (p: string) => p.startsWith("/profile") },
+  // Desktop-only: the mobile tab bar is full; on phones About lives in the footer.
+  { href: "/about", label: "About", icon: Info, desktopOnly: true, match: (p: string) => p.startsWith("/about") },
 ];
 
 // Signed-out visitors only get pages that work for them, plus a Sign in
@@ -82,7 +87,14 @@ const ANON_LINKS: NavLink[] = [
   { href: "/about", label: "About", icon: Info, match: (p: string) => p.startsWith("/about") },
 ];
 
-export function SiteNav({ signedIn = true }: { signedIn?: boolean }) {
+export function SiteNav({
+  signedIn = true,
+  tier = null,
+}: {
+  signedIn?: boolean;
+  /** The viewer's plan, shown as an always-visible badge next to the logo. */
+  tier?: "free" | "pro" | null;
+}) {
   const pathname = usePathname();
   const links = signedIn ? LINKS : ANON_LINKS;
   const loginHref = pathname.startsWith("/login")
@@ -94,11 +106,32 @@ export function SiteNav({ signedIn = true }: { signedIn?: boolean }) {
       {/* Top bar (desktop + mobile header) */}
       <header className="sticky top-0 z-30 border-b border-border bg-background/80 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link href="/discover" className="flex items-center gap-2.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/icon-192.png" alt="" className="h-9 w-9 rounded-full border border-border bg-white object-cover shadow-sm" />
-            <span className="font-display text-xl font-semibold tracking-tight">DishCovered</span>
-          </Link>
+          <div className="flex items-center gap-2.5">
+            <Link href="/discover" className="flex items-center gap-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/icon-192.png" alt="" className="h-9 w-9 rounded-full border border-border bg-white object-cover shadow-sm" />
+              <span className="font-display text-xl font-semibold tracking-tight">DishCovered</span>
+            </Link>
+            {signedIn && tier === "pro" && (
+              <Link
+                href="/profile"
+                title="You're on DishCovered Pro"
+                className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-brand to-amber-500 px-2.5 py-1 text-xs font-bold uppercase tracking-wide text-white shadow-sm"
+              >
+                <Crown className="h-3 w-3" />
+                Pro
+              </Link>
+            )}
+            {signedIn && tier === "free" && (
+              <Link
+                href="/pro"
+                title="You're on the Free plan — see what Pro includes"
+                className="inline-flex items-center gap-1 rounded-full border border-border bg-surface px-2.5 py-1 text-xs font-semibold text-muted transition-colors hover:border-brand hover:text-brand"
+              >
+                Free plan
+              </Link>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <nav className="hidden items-center gap-1 sm:flex">
               {links.map((l) => {
@@ -134,9 +167,11 @@ export function SiteNav({ signedIn = true }: { signedIn?: boolean }) {
       {/* Bottom tab bar (mobile) */}
       <nav
         className="fixed bottom-0 left-0 right-0 z-30 grid border-t border-border bg-background/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden"
-        style={{ gridTemplateColumns: `repeat(${links.length + (signedIn ? 0 : 1)}, 1fr)` }}
+        style={{
+          gridTemplateColumns: `repeat(${links.filter((l) => !l.desktopOnly).length + (signedIn ? 0 : 1)}, 1fr)`,
+        }}
       >
-        {links.map((l) => {
+        {links.filter((l) => !l.desktopOnly).map((l) => {
           const active = l.match(pathname);
           return (
             <Link

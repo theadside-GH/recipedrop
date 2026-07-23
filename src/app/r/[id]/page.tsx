@@ -7,6 +7,7 @@ import { getViewerEmail } from "@/lib/auth";
 import { dropperCountForRecipe, getRecipeFull, savedCopyIdsFor } from "@/lib/repo/recipes";
 import { listCollectionIdsForRecipe, listCollections } from "@/lib/repo/collections";
 import { listRecipeComments } from "@/lib/repo/comments";
+import { canCommentNow } from "@/lib/entitlements";
 import { getCookedState, isFollowingOwnerOfRecipe } from "@/lib/repo/social";
 import { CollectionPicker } from "@/components/collection-picker";
 import { RecipeComments } from "@/components/recipe-comments";
@@ -72,7 +73,7 @@ export default async function PublicRecipePage({
   if (isOwner) redirect(`/recipes/${id}`);
   // Moderation-hidden drops stay reachable for their owner only.
   if (data.recipe.isHidden) notFound();
-  const [following, cookedState, dropperCount, collections, memberIds, comments] =
+  const [following, cookedState, dropperCount, collections, memberIds, comments, canComment] =
     await Promise.all([
       viewer ? isFollowingOwnerOfRecipe(viewer, id) : Promise.resolve(false),
       getCookedState(viewer ?? "", id),
@@ -85,6 +86,7 @@ export default async function PublicRecipePage({
           })
         : Promise.resolve([]),
       listRecipeComments(id, viewer),
+      viewer ? canCommentNow(viewer) : Promise.resolve(true),
     ]);
   const inCollections = new Set(memberIds);
   const cookName = data.dropper?.handle ? `@${data.dropper.handle}` : data.dropper?.displayName;
@@ -142,6 +144,7 @@ export default async function PublicRecipePage({
       <RecipeComments
         recipeId={data.recipe.id}
         signedIn={!!viewer}
+        canComment={canComment}
         entries={comments.map((comment) => ({
           id: comment.id,
           body: comment.body,

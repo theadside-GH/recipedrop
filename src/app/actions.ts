@@ -69,6 +69,7 @@ import {
   type RecipeNoteKind,
 } from "@/lib/repo/notes";
 import {
+  assertCanComment,
   assertCanCreateCollection,
   assertCanCreatePlan,
   assertCanPublishCollection,
@@ -642,6 +643,7 @@ export async function markCookedAction(
 
 export async function addRecipeCommentAction(recipeId: string, body: string): Promise<void> {
   const owner = await getOwnerEmail();
+  await assertCanComment(owner);
   await addRecipeComment(owner, recipeId, body);
   revalidatePath(`/r/${recipeId}`);
   revalidatePath(`/recipes/${recipeId}`);

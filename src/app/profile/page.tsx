@@ -29,21 +29,31 @@ export default async function ProfilePage({
     <div className="mx-auto max-w-2xl space-y-5">
       <ProfileForm profile={profile} email={currentUser.email} />
 
-      <section className="space-y-3 rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <section
+        className={
+          isPro
+            ? "space-y-3 rounded-2xl border border-brand/40 bg-gradient-to-br from-brand-soft via-card to-card p-5 sm:p-6"
+            : "space-y-3 rounded-2xl border border-border bg-card p-5 sm:p-6"
+        }
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold tracking-tight">Your plan</h2>
             <p className="mt-1 text-sm text-muted">
               {isPro
-                ? `Pro — ${TIERS.pro.aiUsesPerDay} AI imports a day, unlimited photo imports, plans, and collections.`
-                : `Free — ${TIERS.free.aiUsesPerDay} AI imports a day. Pro raises that to ${TIERS.pro.aiUsesPerDay} and removes the caps.`}
+                ? `Pro — ${TIERS.pro.aiUses} AI imports a day, unlimited photo imports, plans, and collections, plus commenting and public collections.`
+                : `Free — ${TIERS.free.aiUses} AI imports a week. Pro raises that to ${TIERS.pro.aiUses} a day and unlocks the rest.`}
             </p>
           </div>
-          {isPro && (
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-brand-soft px-3 py-1 text-sm font-semibold text-brand">
-              <Crown className="h-4 w-4" /> Pro
-            </span>
-          )}
+          <span
+            className={
+              isPro
+                ? "inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gradient-to-r from-brand to-amber-500 px-3 py-1 text-sm font-bold uppercase tracking-wide text-white shadow-sm"
+                : "inline-flex shrink-0 items-center rounded-full border border-border bg-surface px-3 py-1 text-sm font-semibold text-muted"
+            }
+          >
+            {isPro && <Crown className="h-4 w-4" />} {isPro ? "Pro" : "Free"}
+          </span>
         </div>
         {sp.upgraded === "1" && !isPro && (
           <p className="rounded-xl border border-brand/25 bg-brand-soft p-3 text-sm">

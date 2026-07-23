@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { InstallAppPrompt } from "@/components/install-app-prompt";
 import { getViewerEmail } from "@/lib/auth";
+import { getTier } from "@/lib/entitlements";
 import { env } from "@/lib/env";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
@@ -50,11 +51,12 @@ export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   const viewer = await getViewerEmail();
+  const tier = viewer ? await getTier(viewer) : null;
   return (
     <html lang="en" className={`${inter.variable} ${fraunces.variable} h-full antialiased`}>
       <body className="min-h-full bg-background">
         <ServiceWorkerRegister />
-        <SiteNav signedIn={!!viewer} />
+        <SiteNav signedIn={!!viewer} tier={tier} />
         <InstallAppPrompt />
         <main className="mx-auto max-w-6xl px-4 pb-24 pt-6 sm:px-6 sm:pb-10">
           {children}

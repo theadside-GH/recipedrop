@@ -10,26 +10,35 @@ import { features } from "@/lib/env";
  * value can never grant unlimited use. Wire the upgrade flow (Stripe etc.) by
  * setting paidTier — enforcement here picks it up automatically.
  *
- * The aiUsesPerDay cap is always enforced (it protects the shared Anthropic
- * key). Every other limit is dormant until `features.billingEnabled` (Stripe
- * configured), so nothing is locked before there is a way to pay.
+ * The AI-use cap is always enforced (it protects the shared Anthropic key);
+ * free meters over a rolling week, pro over a rolling day. Every other limit
+ * is dormant until `features.billingEnabled` (Stripe configured), so nothing
+ * is locked before there is a way to pay.
  */
 export const TIERS = {
   free: {
     label: "Free",
-    aiUsesPerDay: 10,
-    photoUsesPerDay: 3,
+    /** AI uses allowed per window (imports, photo scans, repairs, autopilot). */
+    aiUses: 10,
+    /** Size of the metering window in days: free refills weekly. */
+    aiWindowDays: 7,
+    aiWindowLabel: "week",
+    photoUses: 3,
     maxPlans: 2,
     maxCollections: 2,
     publicCollections: false,
+    canComment: false,
   },
   pro: {
     label: "Pro",
-    aiUsesPerDay: 200,
-    photoUsesPerDay: Infinity,
+    aiUses: 200,
+    aiWindowDays: 1,
+    aiWindowLabel: "day",
+    photoUses: Infinity,
     maxPlans: Infinity,
     maxCollections: Infinity,
     publicCollections: true,
+    canComment: true,
   },
 } as const;
 
@@ -42,8 +51,8 @@ export class QuotaExceededError extends Error {
     const t = TIERS[tier];
     super(
       tier === "free"
-        ? `You've used all ${t.aiUsesPerDay} AI imports on the Free plan today. More tomorrow — or upgrade for a bigger allowance.`
-        : `You've hit today's limit of ${t.aiUsesPerDay} AI imports. It resets tomorrow.`,
+        ? `You've used all ${t.aiUses} AI imports on the Free plan this ${t.aiWindowLabel}. Upgrade to Pro for ${TIERS.pro.aiUses} a day — or check back next ${t.aiWindowLabel}.`
+        : `You've hit today's limit of ${t.aiUses} AI imports. It resets tomorrow.`,
     );
     this.name = "QuotaExceededError";
   }
@@ -51,8 +60,9 @@ export class QuotaExceededError extends Error {
 
 export class PhotoQuotaExceededError extends Error {
   constructor(tier: TierId, photoLimit: number) {
+    const t = TIERS[tier];
     super(
-      `Photo imports are limited to ${photoLimit}/day on the ${TIERS[tier].label} plan. Upgrade for unlimited photo imports.`,
+      `Photo imports are limited to ${photoLimit}/${t.aiWindowLabel} on the ${t.label} plan. Upgrade for unlimited photo imports.`,
     );
     this.name = "PhotoQuotaExceededError";
   }
@@ -68,22 +78,41 @@ async function tierFor(ownerEmail: string): Promise<TierId> {
   return row?.paidTier === "pro" ? "pro" : "free";
 }
 
-/** AI uses in the past 24h and the user's daily allowance. */
+/** The viewer's tier, for badges and UI gating. Fails soft to "free". */
+export async function getTier(ownerEmail: string): Promise<TierId> {
+  try {
+    return await tierFor(ownerEmail);
+  } catch {
+    return "free";
+  }
+}
+
+function windowStart(tier: TierId): Date {
+  return new Date(Date.now() - TIERS[tier].aiWindowDays * 24 * 60 * 60 * 1000);
+}
+
+/** AI uses in the tier's current window and the allowance for it. */
 export async function getAiUsage(ownerEmail: string): Promise<{
   tier: TierId;
   used: number;
   limit: number;
+  /** "week" for free, "day" for pro — for copy like "AI uses this week". */
+  windowLabel: string;
 }> {
   const db = await getDb();
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [tier, [row]] = await Promise.all([
-    tierFor(ownerEmail),
-    db
-      .select({ n: sql<number>`count(*)::int` })
-      .from(aiUsageEvent)
-      .where(and(eq(aiUsageEvent.ownerEmail, ownerEmail), gte(aiUsageEvent.createdAt, since))),
-  ]);
-  return { tier, used: row?.n ?? 0, limit: TIERS[tier].aiUsesPerDay };
+  const tier = await tierFor(ownerEmail);
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(aiUsageEvent)
+    .where(
+      and(eq(aiUsageEvent.ownerEmail, ownerEmail), gte(aiUsageEvent.createdAt, windowStart(tier))),
+    );
+  return {
+    tier,
+    used: row?.n ?? 0,
+    limit: TIERS[tier].aiUses,
+    windowLabel: TIERS[tier].aiWindowLabel,
+  };
 }
 
 /** Postgres 42P01 (undefined_table) — the usage migration hasn't run yet. */
@@ -103,9 +132,9 @@ function isMissingTable(err: unknown): boolean {
 export async function recordAiUse(ownerEmail: string, kind: AiUseKind): Promise<void> {
   try {
     const tier = await tierFor(ownerEmail);
-    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const dailyLimit = TIERS[tier].aiUsesPerDay;
-    const photoLimit = TIERS[tier].photoUsesPerDay;
+    const since = windowStart(tier);
+    const dailyLimit = TIERS[tier].aiUses;
+    const photoLimit = TIERS[tier].photoUses;
     const enforcePhoto =
       kind === "photo" && features.billingEnabled && Number.isFinite(photoLimit);
 
@@ -192,4 +221,19 @@ export async function assertCanPublishCollection(ownerEmail: string): Promise<vo
   if (!TIERS[tier].publicCollections) {
     throw new Error("Sharing whole collections publicly is a Pro feature.");
   }
+}
+
+/** Dormant until billing: commenting on dishcoveries is a Pro perk. */
+export async function assertCanComment(ownerEmail: string): Promise<void> {
+  if (!features.billingEnabled) return;
+  const tier = await tierFor(ownerEmail);
+  if (!TIERS[tier].canComment) {
+    throw new Error("Commenting on dishcoveries is a Pro perk. Upgrade to join the conversation.");
+  }
+}
+
+/** True when the viewer may comment (mirrors assertCanComment for UI gating). */
+export async function canCommentNow(ownerEmail: string): Promise<boolean> {
+  if (!features.billingEnabled) return true;
+  return TIERS[await getTier(ownerEmail)].canComment;
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type React from "react";
-import { ArrowRight, Compass, Crown, Flame, LayoutGrid, Search, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Check, Compass, Crown, Flame, LayoutGrid, Search, Sparkles, Users } from "lucide-react";
 import { RecipeCard } from "@/components/recipe-card";
 import { SaveDropToggle } from "@/components/save-drop-toggle";
 import { CollectionQuickAdd } from "@/components/collection-picker";
@@ -262,28 +262,90 @@ export default async function DiscoverPage({
             }
           />
 
-          <section className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-border bg-card p-6 sm:p-7">
-            <div className="max-w-xl">
-              <h2 className="flex items-center gap-2 text-lg font-semibold">
-                <Crown className="h-5 w-5 text-brand" />
-                Free to cook. Pro for import sprees.
-              </h2>
-              <p className="mt-1 text-sm leading-6 text-muted">
-                The free plan is the full app — your recipe library, meal plans, one smart
-                shopping list, and {TIERS.free.aiUsesPerDay} AI imports every day. Pro
-                raises that to {TIERS.pro.aiUsesPerDay} a day and removes the caps on
-                photo imports, plans, and collections.
+          <section className="space-y-4">
+            <div className="text-center">
+              <h2 className="text-2xl font-semibold">Free to cook. Pro to feast.</h2>
+              <p className="mx-auto mt-1 max-w-lg text-sm text-muted">
+                Two plans, honest limits. Every dishcoverer starts free — Pro is for cooks
+                who import everything they see.
               </p>
             </div>
-            <Link href="/pro">
-              <Button size="lg">
-                Why subscribe <ArrowRight className="h-4 w-4" />
-              </Button>
-            </Link>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <PlanCard
+                name="Free"
+                tagline="The full app, on the house"
+                items={[
+                  `${TIERS.free.aiUses} AI recipe imports a ${TIERS.free.aiWindowLabel}`,
+                  `${TIERS.free.photoUses} photo scans a ${TIERS.free.aiWindowLabel}`,
+                  `${TIERS.free.maxPlans} meal plans, ${TIERS.free.maxCollections} collections`,
+                  "Cook mode, pantry & smart shopping list",
+                  "Save & share dishcoveries",
+                ]}
+              />
+              <PlanCard
+                pro
+                name="Pro"
+                tagline="For cooks who import everything"
+                items={[
+                  `${TIERS.pro.aiUses} AI recipe imports a ${TIERS.pro.aiWindowLabel}`,
+                  "Unlimited photo scans",
+                  "Unlimited meal plans & collections",
+                  "Share whole collections publicly",
+                  "Comment on dishcoveries",
+                ]}
+                action={
+                  <Link href="/pro">
+                    <Button size="lg" className="w-full justify-center">
+                      Why subscribe <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                }
+              />
+            </div>
           </section>
         </>
       )}
     </div>
+  );
+}
+
+function PlanCard({
+  name,
+  tagline,
+  items,
+  action,
+  pro = false,
+}: {
+  name: string;
+  tagline: string;
+  items: string[];
+  action?: React.ReactNode;
+  pro?: boolean;
+}) {
+  return (
+    <article
+      className={cn(
+        "flex flex-col rounded-3xl border p-6 sm:p-7",
+        pro
+          ? "border-brand/40 bg-gradient-to-br from-brand-soft via-card to-card shadow-md"
+          : "border-border bg-card",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        {pro && <Crown className="h-5 w-5 text-brand" />}
+        <h3 className={cn("text-xl font-semibold", pro && "text-brand")}>{name}</h3>
+      </div>
+      <p className="mt-0.5 text-sm text-muted">{tagline}</p>
+      <ul className="mt-4 flex-1 space-y-2.5">
+        {items.map((item) => (
+          <li key={item} className="flex items-start gap-2.5 text-sm">
+            <Check className={cn("mt-0.5 h-4 w-4 shrink-0", pro ? "text-brand" : "text-fresh")} />
+            {item}
+          </li>
+        ))}
+      </ul>
+      {action && <div className="mt-5">{action}</div>}
+    </article>
   );
 }
 
