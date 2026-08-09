@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { clearCachedPages } from "@/lib/pwa";
 
 export function SignOutButton() {
   const [busy, setBusy] = useState(false);
@@ -12,6 +13,7 @@ export function SignOutButton() {
     setBusy(true);
     try {
       await getBrowserSupabase().auth.signOut();
+      await clearCachedPages();
     } finally {
       window.location.href = "/discover";
     }

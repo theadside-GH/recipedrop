@@ -49,13 +49,16 @@ export function LibraryFilters() {
     <div className="space-y-3">
       <div className="relative">
         <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
+        {/* Enter commits the search — committing on blur navigated the page
+            out from under anyone who merely tapped elsewhere mid-thought. */}
         <input
+          type="search"
+          enterKeyHint="search"
           defaultValue={search}
-          placeholder="Search recipes..."
+          placeholder="Search recipes… (press Enter)"
           onKeyDown={(e) => {
             if (e.key === "Enter") setParam("q", (e.target as HTMLInputElement).value);
           }}
-          onBlur={(e) => setParam("q", e.target.value)}
           className="h-12 w-full rounded-full border border-border bg-card pl-11 pr-4 text-sm focus:border-brand focus-visible:outline-none"
         />
       </div>

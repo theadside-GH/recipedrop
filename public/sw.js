@@ -10,9 +10,12 @@
 //    network, never cached — they're per-request and often auth-sensitive.
 // v4: icon URLs gained ?v=2 (logo cache-bust) — old caches may hold the
 // pre-rebrand icons, so retire them wholesale.
-const STATIC_CACHE = "dishcovered-static-v4";
-const PAGE_CACHE = "dishcovered-pages-v4";
+// v5: page cache gains an entry cap and a sign-out clear (cached private
+// pages must not outlive the session on a shared device).
+const STATIC_CACHE = "dishcovered-static-v5";
+const PAGE_CACHE = "dishcovered-pages-v5";
 const KEEP = [STATIC_CACHE, PAGE_CACHE];
+const PAGE_CACHE_MAX_ENTRIES = 30;
 
 const CORE_ASSETS = [
   "/manifest.webmanifest",
@@ -62,6 +65,15 @@ async function cacheFirst(request) {
   return response;
 }
 
+async function trimPageCache(cache) {
+  // Cache API keys come back oldest-insertion-first in practice — dropping
+  // from the front approximates LRU and keeps the cache from growing forever.
+  const keys = await cache.keys();
+  for (let i = 0; i < keys.length - PAGE_CACHE_MAX_ENTRIES; i++) {
+    await cache.delete(keys[i]);
+  }
+}
+
 async function networkFirstPage(request) {
   const cache = await caches.open(PAGE_CACHE);
   try {
@@ -69,7 +81,8 @@ async function networkFirstPage(request) {
     // Only cache real, non-redirected page bodies — a cached redirect can't be
     // replayed and an opaque/partial response is useless offline.
     if (response.ok && response.type === "basic") {
-      cache.put(request, response.clone());
+      await cache.put(request, response.clone());
+      await trimPageCache(cache);
     }
     return response;
   } catch {
@@ -83,6 +96,15 @@ async function networkFirstPage(request) {
     });
   }
 }
+
+// Sign-out (or any privacy-sensitive moment) tells the worker to forget every
+// cached page — a signed-out user's recipes and lists must not be readable
+// offline by the next person on a shared device.
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "clear-page-cache") {
+    event.waitUntil(caches.delete(PAGE_CACHE));
+  }
+});
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;

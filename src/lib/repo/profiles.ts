@@ -2,6 +2,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { userProfile } from "@/lib/db/schema";
+import { sanitizeStoredImagePath } from "@/lib/net/image-content";
 
 export interface ProfileInput {
   displayName: string;
@@ -85,7 +86,9 @@ export async function getOrCreateProfile(email: string, seed: ProfileSeed = {}) 
       const [updated] = await db
         .update(userProfile)
         .set({
-          avatarUrl: cleanOptional(seed.avatarUrl),
+          // Seed avatars come from OAuth user_metadata, which the user's own
+          // client can rewrite — sanitize like any client input.
+          avatarUrl: sanitizeStoredImagePath(seed.avatarUrl),
           displayName:
             existing.displayName || seed.displayName?.trim() || defaultName(email),
           updatedAt: new Date(),
@@ -102,7 +105,7 @@ export async function getOrCreateProfile(email: string, seed: ProfileSeed = {}) 
     .values({
       email,
       displayName: seed.displayName?.trim() || defaultName(email),
-      avatarUrl: cleanOptional(seed.avatarUrl),
+      avatarUrl: sanitizeStoredImagePath(seed.avatarUrl),
     })
     .returning();
   return created;
@@ -140,7 +143,9 @@ export async function updateProfile(email: string, input: ProfileInput) {
           handleChanged && existing.handle && !existing.handleChangedAt
             ? new Date()
             : existing.handleChangedAt,
-        avatarUrl: cleanOptional(input.avatarUrl),
+        // Same raster-only sanitization recipe images get — /api/avatar serves
+        // this value inline from our origin, so an SVG data URL would be XSS.
+        avatarUrl: sanitizeStoredImagePath(input.avatarUrl),
         bio: cleanOptional(input.bio),
         publicFeedOptIn: input.publicFeedOptIn,
         updatedAt: new Date(),

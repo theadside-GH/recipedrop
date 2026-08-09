@@ -339,14 +339,29 @@ function formatSeconds(total: number): string {
 }
 
 function notifyDone() {
-  if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate?.([200, 100, 200]);
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    navigator.vibrate?.([300, 120, 300, 120, 500]);
+  }
   try {
+    // A single 0.4s beep was easy to miss over a range hood or music — this is
+    // a kitchen-timer pattern: three two-tone chirps over ~2.5s, louder via a
+    // gain node than the default oscillator level.
     const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    osc.frequency.value = 880;
-    osc.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.4);
+    const gain = ctx.createGain();
+    gain.gain.value = 0.6;
+    gain.connect(ctx.destination);
+    for (let burst = 0; burst < 3; burst++) {
+      for (const [i, freq] of [988, 1319].entries()) {
+        const osc = ctx.createOscillator();
+        osc.type = "square";
+        osc.frequency.value = freq;
+        osc.connect(gain);
+        const at = ctx.currentTime + burst * 0.9 + i * 0.18;
+        osc.start(at);
+        osc.stop(at + 0.15);
+      }
+    }
+    window.setTimeout(() => void ctx.close(), 3500);
   } catch {
     // Audio is optional; vibration/visual feedback is enough.
   }

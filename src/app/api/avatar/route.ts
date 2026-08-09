@@ -1,4 +1,5 @@
 import { getCurrentUserProfileSeed, getViewerEmail } from "@/lib/auth";
+import { isSafeRasterType, normalizeImageType } from "@/lib/net/image-content";
 import { getOrCreateProfile } from "@/lib/repo/profiles";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +25,14 @@ export async function GET() {
 
   if (avatar.startsWith("data:")) {
     const match = avatar.match(/^data:([^;,]+);base64,(.+)$/);
-    if (!match) return new Response(null, { status: 404 });
+    // Raster-only, even if a bad value somehow reached the DB — serving an
+    // SVG inline from our origin would be stored XSS.
+    if (!match || !isSafeRasterType(match[1])) return new Response(null, { status: 404 });
     return new Response(Buffer.from(match[2], "base64"), {
       headers: {
-        "content-type": match[1],
+        "content-type": normalizeImageType(match[1]),
+        "content-disposition": "inline",
+        "x-content-type-options": "nosniff",
         "cache-control": "private, max-age=300",
       },
     });

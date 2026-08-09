@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Globe2, Loader2, Lock, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Input } from "@/components/ui/input";
 import {
   deleteCollectionAction,
@@ -80,10 +81,10 @@ export function CollectionPublicToggle({
 
 export function DeleteCollectionButton({ id, name }: { id: string; name: string }) {
   const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function remove() {
-    if (!window.confirm(`Delete the collection "${name}"? Recipes themselves are kept.`)) return;
     startTransition(async () => {
       await deleteCollectionAction(id);
       router.push("/collections");
@@ -91,10 +92,28 @@ export function DeleteCollectionButton({ id, name }: { id: string; name: string 
   }
 
   return (
-    <Button type="button" variant="danger" size="lg" onClick={remove} disabled={pending}>
-      {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-      Delete
-    </Button>
+    <>
+      <ConfirmDialog
+        open={confirming}
+        title={`Delete "${name}"?`}
+        body="Only the collection goes away — the recipes in it stay in Your Recipes."
+        confirmLabel="Delete collection"
+        danger
+        busy={pending}
+        onConfirm={remove}
+        onClose={() => setConfirming(false)}
+      />
+      <Button
+        type="button"
+        variant="danger"
+        size="lg"
+        onClick={() => setConfirming(true)}
+        disabled={pending}
+      >
+        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+        Delete
+      </Button>
+    </>
   );
 }
 

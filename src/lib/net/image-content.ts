@@ -21,3 +21,20 @@ export function normalizeImageType(contentType: string | null | undefined): stri
 export function isSafeRasterType(contentType: string | null | undefined): boolean {
   return ALLOWED_IMAGE_TYPES.has(normalizeImageType(contentType));
 }
+
+/**
+ * Sanitize a client-supplied image reference before storing it. Stored values
+ * are later served inline from our origin (og-image, image proxy, /api/avatar),
+ * so a `data:image/svg+xml` value (script-capable) would be a stored-XSS
+ * vector. Accept only http(s) URLs and raster data: URLs; anything else
+ * becomes null. Shared by recipe images and profile avatars — every stored
+ * image must pass through here.
+ */
+export function sanitizeStoredImagePath(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  const dataType = trimmed.match(/^data:([\w.+-]+\/[\w.+-]+);base64,/i)?.[1];
+  if (dataType && isSafeRasterType(dataType)) return trimmed;
+  return null;
+}

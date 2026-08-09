@@ -18,6 +18,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Textarea, Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
@@ -88,6 +89,7 @@ export function ImportClient({
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [singleImagePath, setSingleImagePath] = useState("");
   const [singleImageError, setSingleImageError] = useState<string | null>(null);
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const visibleJobs = hideSkipped ? jobs.filter((job) => !isSkippedDuplicate(job)) : jobs;
   const failedJobs = jobs.filter((job) => job.status === "failed");
   const skippedCount = jobs.filter(isSkippedDuplicate).length;
@@ -228,7 +230,7 @@ export function ImportClient({
   }
 
   async function clearHistory() {
-    if (!confirm("Clear import history? This will not delete saved recipes.")) return;
+    setConfirmingClear(false);
     setJobs([]);
     await clearImportHistoryAction();
   }
@@ -458,10 +460,18 @@ export function ImportClient({
                   {hideSkipped ? "Show skipped" : "Hide skipped"}
                 </Button>
               )}
-              <Button size="sm" variant="ghost" onClick={clearHistory}>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmingClear(true)}>
                 <Trash2 className="h-4 w-4" />
                 Clear history
               </Button>
+              <ConfirmDialog
+                open={confirmingClear}
+                title="Clear import history?"
+                body="Only this list of import attempts is cleared — saved recipes are untouched."
+                confirmLabel="Clear history"
+                onConfirm={clearHistory}
+                onClose={() => setConfirmingClear(false)}
+              />
             </div>
           </div>
           {visibleJobs.map((job) => (

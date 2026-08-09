@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/input";
 import { updateProfileAction } from "@/app/actions";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { clearCachedPages } from "@/lib/pwa";
 import { imageFileToDataUrl } from "@/lib/client-image";
 import type { UserProfile } from "@/lib/db/schema";
 
@@ -58,10 +59,17 @@ export function ProfileForm({ profile, email }: { profile: UserProfile; email: s
 
   function signOut() {
     startSignOutTransition(async () => {
-      const supabase = getBrowserSupabase();
-      await supabase.auth.signOut();
-      router.push("/login");
-      router.refresh();
+      try {
+        const supabase = getBrowserSupabase();
+        await supabase.auth.signOut();
+      } finally {
+        // Cached pages hold this user's private recipes/lists — clear them so
+        // they aren't readable offline after sign-out on a shared device,
+        // even if the sign-out call itself hiccuped.
+        await clearCachedPages();
+        router.push("/login");
+        router.refresh();
+      }
     });
   }
 

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChefHat, Loader2, NotebookPen, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Textarea } from "@/components/ui/input";
 import { addRecipeNoteAction, deleteRecipeNoteAction } from "@/app/actions";
 
@@ -29,6 +30,7 @@ export function RecipeJournal({
   const [entries, setEntries] = useState(initialEntries);
   const [draft, setDraft] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const cooks = entries.filter((entry) => entry.kind === "cooked");
@@ -59,16 +61,32 @@ export function RecipeJournal({
 
   function remove(noteId: string) {
     if (noteId.startsWith("tmp-")) return; // let the refresh catch up first
-    if (!confirm("Delete this entry? There's no undo.")) return;
+    setDeletingId(noteId);
+  }
+
+  function confirmRemove() {
+    const noteId = deletingId;
+    if (!noteId) return;
     startTransition(async () => {
       await deleteRecipeNoteAction(recipeId, noteId);
       setEntries((current) => current.filter((entry) => entry.id !== noteId));
+      setDeletingId(null);
       router.refresh();
     });
   }
 
   return (
     <section className="rounded-2xl border border-border bg-card p-5 print:hidden">
+      <ConfirmDialog
+        open={deletingId !== null}
+        title="Delete this entry?"
+        body="There's no undo — the note and its cooked-it mark go together."
+        confirmLabel="Delete entry"
+        danger
+        busy={isPending}
+        onConfirm={confirmRemove}
+        onClose={() => setDeletingId(null)}
+      />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-lg font-semibold">
           <NotebookPen className="h-5 w-5 text-brand" />

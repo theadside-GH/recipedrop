@@ -35,7 +35,7 @@ import type { SourceType } from "@/lib/sources/types";
 import { sourceKeyFor } from "@/lib/source-key";
 import { guessAisle } from "@/lib/shopping/aisle";
 import { normalizeUnit, type UnitCategory } from "@/lib/shopping/units";
-import { isSafeRasterType } from "@/lib/net/image-content";
+import { sanitizeStoredImagePath } from "@/lib/net/image-content";
 
 /** All known canonical ingredient names, to keep imports merged over time. */
 export async function getKnownCanonicalNames(): Promise<string[]> {
@@ -861,20 +861,9 @@ function cleanOptional(value: string | null | undefined): string | null {
   return trimmed ? trimmed : null;
 }
 
-/**
- * Sanitize a client-supplied imagePath before it is stored. The og-image and
- * image-proxy routes serve stored images inline from our origin, so a
- * `data:image/svg+xml` value (script-capable) would be a stored-XSS vector.
- * Accept only http(s) URLs and raster data: URLs; drop anything else to null.
- */
-function cleanImagePath(value: string | null | undefined): string | null {
-  const trimmed = cleanOptional(value);
-  if (!trimmed) return null;
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  const dataType = trimmed.match(/^data:([\w.+-]+\/[\w.+-]+);base64,/i)?.[1];
-  if (dataType && isSafeRasterType(dataType)) return trimmed;
-  return null;
-}
+// Client-supplied image references are stored-XSS-sensitive — the shared
+// sanitizer (raster-only data: URLs) lives in lib/net/image-content.
+const cleanImagePath = sanitizeStoredImagePath;
 
 function positiveIntOrNull(value: number | null | undefined): number | null {
   if (value == null || Number.isNaN(value) || value <= 0) return null;

@@ -7,6 +7,7 @@ import {
   Check,
   Clock,
   CircleUserRound,
+  Loader2,
   Minus,
   Plus,
   ChefHat,
@@ -15,10 +16,13 @@ import {
   Users,
   Pencil,
   ImageIcon,
+  Printer,
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { OverflowMenu, OverflowMenuItem } from "@/components/ui/overflow-menu";
 import { RecipeImage } from "@/components/recipe-image";
 import { SourceVideo } from "@/components/source-video";
 import { PrintButton } from "@/components/print-button";
@@ -65,6 +69,7 @@ export function RecipeDetail({
     unitSetting === "us" || unitSetting === "metric" ? unitSetting : "original";
   const [isPublic, setIsPublic] = useState(recipe.isPublic);
   const [isPending, startTransition] = useTransition();
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [repairPending, startRepairTransition] = useTransition();
   const [repairMessage, setRepairMessage] = useState<string | null>(null);
   const factor = recipe.servingsDefault > 0 ? servings / recipe.servingsDefault : 1;
@@ -76,7 +81,6 @@ export function RecipeDetail({
     /^unknown recipe|^tiktok recipe|^instagram recipe/i.test(recipe.title);
 
   function handleDelete() {
-    if (!confirm("Delete this recipe?")) return;
     startTransition(async () => {
       await deleteRecipeAction(recipe.id);
       router.push("/recipes");
@@ -229,49 +233,72 @@ export function RecipeDetail({
             Make public to share
           </div>
         )}
-        {!readOnly && recipe.sourceUrl && (
+        {readOnly ? (
+          // Public view has few actions — keep them flat.
           <>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={handleRepair}
-              disabled={repairPending}
-              title="Re-read the original link and rebuild missing details (ingredients, steps, photo) with AI"
-            >
-              <Wrench className="h-4 w-4" /> {repairPending ? "Improving..." : "Improve"}
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={handleImageRepair}
-              disabled={repairPending}
-              title="Replace the photo — from the original link, or a look-alike from the web"
-            >
-              <ImageIcon className="h-4 w-4" /> Fix image
-            </Button>
+            {recipe.sourceUrl && (
+              <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
+                <Button variant="secondary" size="lg">
+                  <ExternalLink className="h-4 w-4" /> Source
+                </Button>
+              </a>
+            )}
+            <PrintButton />
           </>
-        )}
-        {recipe.sourceUrl && (
-          <a href={recipe.sourceUrl} target="_blank" rel="noreferrer">
-            <Button variant="secondary" size="lg">
-              <ExternalLink className="h-4 w-4" /> Source
-            </Button>
-          </a>
-        )}
-        <PrintButton />
-        {!readOnly && (
-          <Button variant="danger" size="lg" onClick={handleDelete} disabled={isPending}>
-            <Trash2 className="h-4 w-4" /> Delete
-          </Button>
+        ) : (
+          // Owner view: everyday actions stay visible; occasional ones (and
+          // Delete, which was sitting inline next to them) live under More.
+          <OverflowMenu>
+            {recipe.sourceUrl && (
+              <>
+                <OverflowMenuItem icon={Wrench} onClick={handleRepair} disabled={repairPending}>
+                  {repairPending ? "Improving…" : "Improve with AI"}
+                </OverflowMenuItem>
+                <OverflowMenuItem
+                  icon={ImageIcon}
+                  onClick={handleImageRepair}
+                  disabled={repairPending}
+                >
+                  Fix image
+                </OverflowMenuItem>
+                <OverflowMenuItem icon={ExternalLink} href={recipe.sourceUrl}>
+                  Open source link
+                </OverflowMenuItem>
+              </>
+            )}
+            <OverflowMenuItem icon={Printer} onClick={() => window.print()}>
+              Print
+            </OverflowMenuItem>
+            <OverflowMenuItem icon={Trash2} danger onClick={() => setConfirmingDelete(true)}>
+              Delete recipe…
+            </OverflowMenuItem>
+          </OverflowMenu>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmingDelete}
+        title="Delete this recipe?"
+        body={`"${recipe.title}" and its journal entries will be gone for good — there's no undo.`}
+        confirmLabel="Delete recipe"
+        danger
+        busy={isPending}
+        onConfirm={handleDelete}
+        onClose={() => setConfirmingDelete(false)}
+      />
       {/* The reel the recipe came from — "from REEL to REAL" should be
           visible on the recipe itself, not a link that exits the app. */}
       <SourceVideo sourceUrl={recipe.sourceUrl} />
-      {couldUseHelp && recipe.sourceUrl && !readOnly && (
+      {couldUseHelp && recipe.sourceUrl && !readOnly && !repairPending && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 print:hidden">
-          This one looks like it may be missing a photo or details. Use <strong>Improve</strong>{" "}
-          or <strong>Fix image</strong> to have DishCovered try the source again.
+          This one looks like it may be missing a photo or details. Use{" "}
+          <strong>Improve with AI</strong> or <strong>Fix image</strong> under the{" "}
+          <strong>More</strong> menu to have DishCovered try the source again.
+        </div>
+      )}
+      {repairPending && (
+        <div className="flex items-center gap-2 rounded-xl border border-border bg-surface p-3 text-sm text-muted print:hidden">
+          <Loader2 className="h-4 w-4 animate-spin text-brand" />
+          Re-reading the source and rebuilding what&apos;s missing…
         </div>
       )}
       {repairMessage && (

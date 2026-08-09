@@ -8,7 +8,13 @@ import { Input } from "@/components/ui/input";
 import { safeRedirectPath } from "@/lib/auth-redirect";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
-export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
+export function LoginForm({
+  authEnabled,
+  inviteOnly = false,
+}: {
+  authEnabled: boolean;
+  inviteOnly?: boolean;
+}) {
   const params = useSearchParams();
   const [email, setEmail] = useState("");
   const [sent, setSent] = useState(false);
@@ -67,6 +73,13 @@ export function LoginForm({ authEnabled }: { authEnabled: boolean }) {
         then get clean instructions and shopping lists.
       </p>
       <p className="mt-1 text-muted">Sign in with a magic link — no password needed.</p>
+      {inviteOnly && (
+        <p className="mt-2 text-sm text-muted">
+          DishCovered is <strong className="font-medium text-foreground">invite-only</strong> right
+          now — anyone can browse public dishcoveries, but saving and importing needs an invite
+          from a current dishcoverer.
+        </p>
+      )}
 
       {!authEnabled ? (
         <p className="mt-6 rounded-xl border border-border bg-surface p-4 text-sm text-muted">

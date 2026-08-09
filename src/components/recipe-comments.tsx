@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { CircleUserRound, Loader2, MessageCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Textarea } from "@/components/ui/input";
 import { addRecipeCommentAction, deleteRecipeCommentAction } from "@/app/actions";
 
@@ -52,6 +53,7 @@ export function RecipeComments({
     setEntries(initialEntries);
   }
   const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function post() {
@@ -87,7 +89,12 @@ export function RecipeComments({
 
   function remove(commentId: string) {
     if (commentId.startsWith("tmp-")) return; // let the refresh catch up first
-    if (!confirm("Delete this comment? There's no undo.")) return;
+    setDeletingId(commentId);
+  }
+
+  function confirmRemove() {
+    const commentId = deletingId;
+    if (!commentId) return;
     startTransition(async () => {
       try {
         await deleteRecipeCommentAction(recipeId, commentId);
@@ -95,12 +102,24 @@ export function RecipeComments({
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "That did not delete. Try again.");
+      } finally {
+        setDeletingId(null);
       }
     });
   }
 
   return (
     <section className="rounded-2xl border border-border bg-card p-5 print:hidden">
+      <ConfirmDialog
+        open={deletingId !== null}
+        title="Delete this comment?"
+        body="There's no undo."
+        confirmLabel="Delete comment"
+        danger
+        busy={isPending}
+        onConfirm={confirmRemove}
+        onClose={() => setDeletingId(null)}
+      />
       <h2 className="flex items-center gap-2 text-lg font-semibold">
         <MessageCircle className="h-5 w-5 text-brand" />
         Comments
