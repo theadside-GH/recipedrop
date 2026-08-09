@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type React from "react";
-import { ArrowRight, Check, Compass, Crown, Flame, LayoutGrid, Search, Sparkles, Users } from "lucide-react";
+import { ArrowRight, BookMarked, Check, Compass, Crown, Flame, LayoutGrid, Search, Sparkles, Users } from "lucide-react";
 import { RecipeCard } from "@/components/recipe-card";
 import { SaveDropToggle } from "@/components/save-drop-toggle";
 import { CollectionQuickAdd } from "@/components/collection-picker";
@@ -16,6 +16,7 @@ import { cookedCountsForOwner } from "@/lib/repo/notes";
 import {
   countPublicRecipes,
   listPublicRecipes,
+  listRecipes,
   ownImportIdsFor,
   savedCopyIdsFor,
   type PublicRecipeRow,
@@ -61,10 +62,25 @@ export default async function DiscoverPage({
           Promise.resolve(0),
         ]);
 
+  // Searching from the home page must also find the viewer's own recipes —
+  // most of a library is private, and "I searched a dish I just imported and
+  // got nothing" reads as broken. Public hits stay the main results; own
+  // matches get their own section (deduped against the public list, which
+  // already shows the viewer's public dishcoveries).
+  const publicIds = new Set(newest.map((row) => row.recipe.id));
+  const mineAll =
+    q && viewer
+      ? (await listRecipes(viewer, { search: q, mealType: meal || undefined })).filter(
+          (r) => !publicIds.has(r.id),
+        )
+      : [];
+  const mine = mineAll.slice(0, 8);
+
   const allRows = [...newest, ...popular, ...followed];
   const ownIds = allRows
     .filter((row) => row.recipe.ownerEmail === viewer)
     .map((row) => row.recipe.id);
+  const libraryIds = [...new Set([...ownIds, ...mine.map((r) => r.id)])];
   const [cookedCounts, savedCopies, ownImports, viewerCooked, collections, memberships, ownMadeCounts] =
     await Promise.all([
       cookedCountsFor(allRows.map((row) => row.recipe.id)),
@@ -72,8 +88,8 @@ export default async function DiscoverPage({
       ownImportIdsFor(viewer, allRows.map((row) => row.recipe)),
       viewerCookedIdsFor(viewer, allRows.map((row) => row.recipe.id)),
       viewer ? listCollections(viewer) : Promise.resolve([]),
-      viewer ? collectionIdsByRecipe(viewer, ownIds) : Promise.resolve(new Map<string, string[]>()),
-      viewer ? cookedCountsForOwner(viewer, ownIds) : Promise.resolve(new Map<string, number>()),
+      viewer ? collectionIdsByRecipe(viewer, libraryIds) : Promise.resolve(new Map<string, string[]>()),
+      viewer ? cookedCountsForOwner(viewer, libraryIds) : Promise.resolve(new Map<string, number>()),
     ]);
 
   // The same action icons in the same spot as Your Recipes cards: your own
@@ -178,7 +194,55 @@ export default async function DiscoverPage({
       {viewer && <ShareOnboardingCard />}
 
       {filtering || viewAll ? (
-        <PublicSection
+        <>
+          {mine.length > 0 && (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="flex items-center gap-2 text-xl font-semibold">
+                  <BookMarked className="h-5 w-5 text-brand" />
+                  From your recipes ({mineAll.length})
+                </h2>
+                <Link
+                  href={`/recipes?q=${encodeURIComponent(q)}${meal ? `&meal=${meal}` : ""}`}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+                >
+                  Search Your Recipes <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+              <p className="max-w-2xl text-sm text-muted">
+                Matches from your own library — only you can see the private ones here.
+              </p>
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                {mine.map((r) => (
+                  <RecipeCard
+                    key={r.id}
+                    recipe={r}
+                    topRightSlot={
+                      r.isPublic ? undefined : <Badge variant="solid">Private</Badge>
+                    }
+                    actionsRow={
+                      <>
+                        <FavoriteButton recipeId={r.id} initialFavorite={r.isFavorite} />
+                        <CollectionQuickAdd
+                          recipeId={r.id}
+                          collections={collections.map((c) => ({
+                            id: c.id,
+                            name: c.name,
+                            has: (memberships.get(r.id) ?? []).includes(c.id),
+                          }))}
+                        />
+                        <MadeItButton
+                          recipeId={r.id}
+                          initialCount={ownMadeCounts.get(r.id) ?? 0}
+                        />
+                      </>
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+          <PublicSection
           title={
             viewAll
               ? `All dishcoveries (${publicTotal})`
@@ -211,7 +275,8 @@ export default async function DiscoverPage({
               </div>
             ) : undefined
           }
-        />
+          />
+        </>
       ) : (
         <>
           {followed.length > 0 && (
