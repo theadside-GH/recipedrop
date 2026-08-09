@@ -20,13 +20,17 @@ async function init(): Promise<DB> {
     const { drizzle } = await import("drizzle-orm/postgres-js");
     // max > 1 so a page's Promise.all query fan-out actually runs in parallel
     // and one slow import transaction can't serialize every other request on
-    // the instance. Supabase's transaction pooler (with prepare: false)
-    // multiplexes these fine; keep it modest so several warm instances don't
-    // exhaust the pooler's client limit.
+    // the instance. Pool size must match the pooler MODE, discovered live via
+    // EMAXCONNSESSION: Supabase's session pooler (port 5432) dedicates one of
+    // only ~15 clients per connection — a few warm instances at max 8
+    // exhausted it and 500'd signed-in pages. Transaction mode (port 6543,
+    // with prepare: false) multiplexes, so max 8 is safe there. Prefer the
+    // 6543 URL in production; this guard keeps session-mode URLs alive.
+    const sessionMode = /:5432\//.test(env.databaseUrl);
     const client = postgres(env.databaseUrl, {
       prepare: false,
-      max: 8,
-      idle_timeout: 20,
+      max: sessionMode ? 2 : 8,
+      idle_timeout: sessionMode ? 5 : 20,
       connect_timeout: 10,
     });
     return drizzle(client, { schema }) as unknown as DB;
