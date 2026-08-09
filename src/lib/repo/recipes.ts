@@ -307,9 +307,19 @@ export interface RecipeFilters {
 /**
  * Search condition across title, description, ingredient names/lines, and
  * tags. Plain ILIKE so it works on both Supabase and local PGlite.
+ *
+ * The query is split into words and every word must match somewhere —
+ * "lemon chicken" has to find "Lemon Garlic Chicken" even though the words
+ * aren't adjacent in the title (a single %whole-phrase% ILIKE misses it).
  */
 function recipeSearchCondition(db: DB, term: string): SQL {
-  const q = `%${term.trim()}%`;
+  const tokens = term.trim().split(/\s+/).slice(0, 8);
+  return and(...tokens.map((token) => tokenCondition(db, token)))!;
+}
+
+function tokenCondition(db: DB, token: string): SQL {
+  // % and _ are ILIKE wildcards — a user typing them means the literal char.
+  const q = `%${token.replace(/[\\%_]/g, (ch) => `\\${ch}`)}%`;
   return or(
     ilike(recipe.title, q),
     ilike(recipe.description, q),

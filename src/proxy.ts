@@ -24,6 +24,19 @@ function isProtectedPath(pathname: string) {
 }
 
 export async function proxy(request: NextRequest) {
+  // Canonical host. The apex and www both serve the app, but auth cookies are
+  // host-only — a login on www is invisible on dishcovered.app and vice versa,
+  // which reads as "the app logged me out again". Fold the apex onto www
+  // before any auth work so there is exactly one cookie jar.
+  const host = request.headers.get("host")?.toLowerCase();
+  if (host === "dishcovered.app") {
+    const url = new URL(
+      request.nextUrl.pathname + request.nextUrl.search,
+      "https://www.dishcovered.app",
+    );
+    return NextResponse.redirect(url, 308);
+  }
+
   if (!features.authEnabled) return NextResponse.next({ request });
   const { pathname, search } = request.nextUrl;
 
@@ -51,22 +64,34 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // getUser() above may have refreshed the session — Supabase rotates the
+  // refresh token, so a redirect that drops the Set-Cookie headers strands the
+  // browser with a dead token and the next visit is signed out. Every response
+  // the proxy returns from here on must carry the refreshed cookies.
+  const redirectWithAuthCookies = (url: URL) => {
+    const redirect = NextResponse.redirect(url);
+    for (const cookie of response.cookies.getAll()) {
+      redirect.cookies.set(cookie);
+    }
+    return redirect;
+  };
+
   if (!user && isProtectedPath(pathname)) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
     loginUrl.search = "";
     loginUrl.searchParams.set("next", pathWithSearch(pathname, search));
-    return NextResponse.redirect(loginUrl);
+    return redirectWithAuthCookies(loginUrl);
   }
 
   // Invite list (INVITE_EMAILS): signed-in strangers can still browse public
   // pages, but the app itself — and its metered AI — stays friends-only.
   if (user && isProtectedPath(pathname) && isUninvited(user.email)) {
-    return NextResponse.redirect(new URL("/not-invited", request.url));
+    return redirectWithAuthCookies(new URL("/not-invited", request.url));
   }
 
   if (user && pathname === "/login") {
-    return NextResponse.redirect(new URL("/", request.url));
+    return redirectWithAuthCookies(new URL("/", request.url));
   }
 
   return response;
