@@ -368,7 +368,7 @@ export function ShoppingListView({
                         className={cn(
                           "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
                           isChecked
-                            ? "border-fresh bg-fresh text-white"
+                            ? "border-fresh bg-fresh text-background"
                             : "border-border hover:border-brand",
                         )}
                       >

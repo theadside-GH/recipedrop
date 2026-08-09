@@ -14,6 +14,7 @@ const SORTS = [
   { label: "Newest", value: "newest" },
   { label: "Oldest", value: "oldest" },
   { label: "Favorites", value: "favorites" },
+  { label: "Top rated", value: "rating" },
   { label: "Quickest", value: "quickest" },
   { label: "Title", value: "title" },
 ];

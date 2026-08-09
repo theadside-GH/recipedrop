@@ -107,7 +107,7 @@ export function LoginForm({
               className="w-full"
               size="lg"
             >
-              <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-white text-xs font-bold text-foreground">
+              <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-white text-xs font-bold text-stone-900">
                 G
               </span>
               Continue with Google

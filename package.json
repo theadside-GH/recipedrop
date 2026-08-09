@@ -31,6 +31,7 @@
     "clsx": "^2.1.1",
     "convert": "^7.0.0",
     "drizzle-orm": "^0.45.2",
+    "fflate": "^0.8.3",
     "jsdom": "^28.1.0",
     "lucide-react": "^1.17.0",
     "next": "16.2.9",

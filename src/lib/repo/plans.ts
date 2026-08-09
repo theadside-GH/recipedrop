@@ -76,6 +76,59 @@ export async function listPlans(ownerEmail: string) {
   return plans.map((p) => ({ ...p, customItemCount: customByPlan.get(p.id) ?? 0 }));
 }
 
+/**
+ * Today's plan slot (0 = Monday … 6 = Sunday) in the household's timezone.
+ * The server runs in UTC, where a NYC user's evening is already "tomorrow" —
+ * exactly when the Tonight card matters most.
+ */
+function todayPlanSlot(): number {
+  const timeZone = process.env.APP_TIMEZONE || "America/New_York";
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(
+    new Date(),
+  );
+  const slots: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  return slots[weekday] ?? (new Date().getDay() + 6) % 7;
+}
+
+export interface TonightItem {
+  planId: string;
+  planName: string;
+  recipeId: string;
+  title: string;
+  imagePath: string | null;
+  totalMinutes: number | null;
+  mealType: string;
+}
+
+/**
+ * What's planned for tonight: items in the most recent plan whose day slot is
+ * today. Plans carry day-of-week (0 = Monday … 6 = Sunday) without a week
+ * anchor, so "tonight" reads the newest plan — the one being cooked from.
+ */
+export async function tonightItemsFor(ownerEmail: string): Promise<TonightItem[]> {
+  const db = await getDb();
+  const today = todayPlanSlot();
+  const [latest] = await db
+    .select({ id: mealPlan.id, name: mealPlan.name })
+    .from(mealPlan)
+    .where(eq(mealPlan.ownerEmail, ownerEmail))
+    .orderBy(desc(mealPlan.createdAt))
+    .limit(1);
+  if (!latest) return [];
+  const rows = await db
+    .select({
+      recipeId: recipe.id,
+      title: recipe.title,
+      imagePath: recipe.imagePath,
+      totalMinutes: recipe.totalMinutes,
+      mealType: recipe.mealType,
+    })
+    .from(mealPlanItem)
+    .innerJoin(recipe, eq(recipe.id, mealPlanItem.recipeId))
+    .where(and(eq(mealPlanItem.mealPlanId, latest.id), eq(mealPlanItem.dayOfWeek, today)));
+  return rows.map((row) => ({ ...row, planId: latest.id, planName: latest.name }));
+}
+
 export async function getPlanFull(ownerEmail: string, id: string) {
   const db = await getDb();
   const [plan] = await db

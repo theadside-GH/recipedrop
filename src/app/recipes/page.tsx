@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { BookMarked, Dices, PenLine, PlusCircle, Sparkles } from "lucide-react";
+import { BookMarked, CalendarClock, ChefHat, Dices, PenLine, PlusCircle, Sparkles } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
 import { collectionIdsByRecipe, listCollections } from "@/lib/repo/collections";
 import { cookedCountsForOwner } from "@/lib/repo/notes";
+import { tonightItemsFor, type TonightItem } from "@/lib/repo/plans";
 import { listRecipes } from "@/lib/repo/recipes";
 import { CollectionQuickAdd } from "@/components/collection-picker";
 import { FavoriteButton } from "@/components/favorite-button";
@@ -26,7 +27,7 @@ export default async function LibraryPage({
     favorite?: string;
     made?: string;
     origin?: string;
-    sort?: "newest" | "oldest" | "favorites" | "quickest" | "title";
+    sort?: "newest" | "oldest" | "favorites" | "rating" | "quickest" | "title";
   }>;
 }) {
   const sp = await searchParams;
@@ -35,6 +36,9 @@ export default async function LibraryPage({
   let cookedCounts: Map<string, number>;
   let collections: Awaited<ReturnType<typeof listCollections>>;
   let memberships: Map<string, string[]>;
+  // The Tonight card is auxiliary — if its query breaks, the library must
+  // still render, so it fails to empty on its own.
+  const tonight: TonightItem[] = await tonightItemsFor(owner).catch(() => []);
   try {
     recipes = await listRecipes(owner, {
       mealType: sp.meal,
@@ -121,6 +125,8 @@ export default async function LibraryPage({
         )}
       </div>
 
+      {tonight.length > 0 && <TonightCard items={tonight} />}
+
       <LibraryFilters />
 
       {recipes.length === 0 ? (
@@ -137,6 +143,7 @@ export default async function LibraryPage({
               <RecipeCard
                 key={r.id}
                 recipe={r}
+                showRating
                 actionsRow={
                   <>
                     <FavoriteButton recipeId={r.id} initialFavorite={r.isFavorite} />
@@ -156,6 +163,41 @@ export default async function LibraryPage({
           })}
         </div>
       )}
+    </div>
+  );
+}
+
+/** What's planned for tonight, straight off the newest plan's day slots. */
+function TonightCard({ items }: { items: TonightItem[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-brand/30 bg-gradient-to-r from-brand-soft to-card p-4">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground">
+          <CalendarClock className="h-5 w-5" />
+        </span>
+        <div>
+          <p className="font-semibold">Tonight</p>
+          <p className="text-sm text-muted">
+            From <Link href={`/plans/${items[0].planId}`} className="text-brand hover:underline">{items[0].planName}</Link>
+          </p>
+        </div>
+      </div>
+      <div className="flex min-w-0 flex-1 flex-wrap gap-2">
+        {items.map((item, index) => (
+          <Link
+            key={`${item.recipeId}-${index}`}
+            href={`/recipes/${item.recipeId}/cook`}
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium transition-colors hover:border-brand hover:bg-brand-soft"
+            title="Open in cook mode"
+          >
+            <ChefHat className="h-4 w-4 text-brand" />
+            <span className="max-w-52 truncate">{item.title}</span>
+            {item.totalMinutes != null && (
+              <span className="text-xs text-muted">{item.totalMinutes} min</span>
+            )}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

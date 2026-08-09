@@ -25,6 +25,7 @@ import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { OverflowMenu, OverflowMenuItem } from "@/components/ui/overflow-menu";
 import { RecipeImage } from "@/components/recipe-image";
 import { SourceVideo } from "@/components/source-video";
+import { StarRating } from "@/components/star-rating";
 import { PrintButton } from "@/components/print-button";
 import { RecipePublicToggle } from "@/components/recipe-public-toggle";
 import { ShareLinkButton } from "@/components/share-link-button";
@@ -178,6 +179,9 @@ export function RecipeDetail({
             </div>
           )}
           {recipe.description && <p className="text-muted">{recipe.description}</p>}
+          {!readOnly && (
+            <StarRating recipeId={recipe.id} initialRating={recipe.rating} className="pt-1" />
+          )}
           <div className="flex flex-wrap gap-2 pt-1">
             {tags.map((t) =>
               readOnly ? (

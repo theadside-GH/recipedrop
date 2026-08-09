@@ -24,6 +24,7 @@ import {
   saveDropForOwner,
   setRecipeFavorite,
   setRecipeImage,
+  setRecipeRating,
   setRecipePublic,
   unsaveDropForOwner,
   updateRecipe,
@@ -186,6 +187,13 @@ export async function deleteRecipeAction(id: string): Promise<void> {
 export async function setFavoriteAction(id: string, isFavorite: boolean): Promise<void> {
   const owner = await getOwnerEmail();
   await setRecipeFavorite(owner, id, isFavorite);
+  revalidatePath("/recipes");
+  revalidatePath(`/recipes/${id}`);
+}
+
+export async function setRecipeRatingAction(id: string, rating: number | null): Promise<void> {
+  const owner = await getOwnerEmail();
+  await setRecipeRating(owner, id, rating);
   revalidatePath("/recipes");
   revalidatePath(`/recipes/${id}`);
 }

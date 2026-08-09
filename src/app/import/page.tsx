@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { features } from "@/lib/env";
 import { ImportClient } from "./import-client";
+import { PaprikaImport } from "./paprika-import";
 import { getOwnerEmail } from "@/lib/auth";
 import { getAiUsage } from "@/lib/entitlements";
 import { listRecentJobs, STALE_PROCESSING_MS } from "@/lib/repo/imports";
@@ -63,6 +64,7 @@ export default async function ImportPage() {
         aiRemaining={usage ? Math.max(0, usage.limit - usage.used) : null}
         aiWindowLabel={usage?.windowLabel ?? "week"}
       />
+      <PaprikaImport />
     </div>
   );
 }

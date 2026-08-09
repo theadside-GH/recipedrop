@@ -10,7 +10,9 @@ const badgeVariants = cva(
         neutral: "bg-surface text-muted",
         brand: "bg-brand-soft text-brand",
         fresh: "bg-fresh-soft text-fresh",
-        solid: "bg-foreground/85 text-white backdrop-blur",
+        // text-background (not text-white): dark mode flips foreground to
+        // cream, and the label must flip with it to stay readable.
+        solid: "bg-foreground/85 text-background backdrop-blur",
       },
     },
     defaultVariants: { variant: "neutral" },

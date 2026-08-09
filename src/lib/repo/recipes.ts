@@ -301,7 +301,7 @@ export interface RecipeFilters {
   made?: boolean;
   /** "own" = dropped by the owner; "saved" = saved from another cook's drop. */
   origin?: "own" | "saved";
-  sort?: "newest" | "oldest" | "favorites" | "quickest" | "title";
+  sort?: "newest" | "oldest" | "favorites" | "rating" | "quickest" | "title";
 }
 
 /**
@@ -393,6 +393,7 @@ export async function listRecipes(ownerEmail: string, filters: RecipeFilters = {
 function recipeOrder(sort: RecipeFilters["sort"] = "newest") {
   if (sort === "oldest") return [asc(recipe.createdAt)];
   if (sort === "favorites") return [desc(recipe.isFavorite), desc(recipe.createdAt)];
+  if (sort === "rating") return [desc(sql`coalesce(${recipe.rating}, 0)`), desc(recipe.createdAt)];
   if (sort === "quickest") return [asc(sql`coalesce(${recipe.totalMinutes}, 99999)`), desc(recipe.createdAt)];
   if (sort === "title") return [asc(recipe.title)];
   return [desc(recipe.createdAt)];
@@ -407,6 +408,20 @@ export async function setRecipeFavorite(
   await db
     .update(recipe)
     .set({ isFavorite })
+    .where(and(eq(recipe.id, id), eq(recipe.ownerEmail, ownerEmail)));
+}
+
+/** The owner's private 1–5 star rating; null clears it. */
+export async function setRecipeRating(
+  ownerEmail: string,
+  id: string,
+  rating: number | null,
+): Promise<void> {
+  const clean = rating == null ? null : Math.min(5, Math.max(1, Math.round(rating)));
+  const db = await getDb();
+  await db
+    .update(recipe)
+    .set({ rating: clean })
     .where(and(eq(recipe.id, id), eq(recipe.ownerEmail, ownerEmail)));
 }
 

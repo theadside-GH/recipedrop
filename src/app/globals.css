@@ -32,6 +32,73 @@
   --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
 }
 
+:root {
+  color-scheme: light;
+}
+
+/* ------------------------------------------------------------------ */
+/* Dark theme — follows the system setting. The whole UI is built on   */
+/* the tokens above, so dark mode is a token override: warm near-black */
+/* paper, slightly lifted cards, and the same tangerine brand. The     */
+/* amber/red literal utilities (warning banners, danger buttons) are   */
+/* Tailwind v4 theme vars too, so they get kitchen-safe dark values.   */
+/* ------------------------------------------------------------------ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+
+    --color-background: #161310;
+    --color-surface: #211d19;
+    --color-card: #262019;
+    --color-foreground: #f1ebe3;
+    --color-muted: #a89d90;
+    --color-border: #37302a;
+
+    --color-brand: #f4703f;
+    --color-brand-hover: #f8845a;
+    --color-brand-foreground: #ffffff;
+    --color-brand-soft: #37211a;
+
+    --color-fresh: #4ade80;
+    --color-fresh-soft: #14301e;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 6px 20px -10px rgb(0 0 0 / 0.5);
+    --shadow-card-hover: 0 2px 4px rgb(0 0 0 / 0.35), 0 14px 32px -12px rgb(0 0 0 / 0.6);
+
+    /* Warning banners: border-amber-200 bg-amber-50 text-amber-800/900 */
+    --color-amber-50: #2e2410;
+    --color-amber-100: #3a2d13;
+    --color-amber-200: #57431c;
+    --color-amber-800: #f5cf87;
+    --color-amber-900: #fae3b3;
+
+    /* Danger buttons/notes: bg-red-50 text-red-600 border-red-200 */
+    --color-red-50: #331b19;
+    --color-red-100: #44211e;
+    --color-red-200: #5e2b27;
+    --color-red-600: #f58c82;
+
+    /* Success pills (social buttons): border-green-200 bg-green-50 text-green-700 */
+    --color-green-50: #142e1e;
+    --color-green-100: #183a25;
+    --color-green-200: #245633;
+    --color-green-700: #6ee7a0;
+  }
+}
+
+@media print {
+  /* Print always renders the light theme, whatever the system prefers. */
+  :root {
+    color-scheme: light;
+    --color-background: #ffffff;
+    --color-surface: #f6f1e9;
+    --color-card: #ffffff;
+    --color-foreground: #1c1917;
+    --color-muted: #7d746b;
+    --color-border: #ece5db;
+  }
+}
+
 html,
 body {
   height: 100%;

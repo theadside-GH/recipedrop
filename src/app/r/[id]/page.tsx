@@ -102,8 +102,15 @@ export default async function PublicRecipePage({
       <RecipeDetail
         // RecipeDetail is a client component: blank the owner's email (and the
         // original dropper's, on saved copies) so no address ever ships in the
-        // page payload of a public drop.
-        recipe={{ ...data.recipe, ownerEmail: "", savedFromEmail: null }}
+        // page payload of a public drop — and blank the owner's private
+        // rating/favorite too; they're personal, not part of the public dish.
+        recipe={{
+          ...data.recipe,
+          ownerEmail: "",
+          savedFromEmail: null,
+          rating: null,
+          isFavorite: false,
+        }}
         ingredients={data.ingredients}
         steps={data.steps}
         tags={data.tags}

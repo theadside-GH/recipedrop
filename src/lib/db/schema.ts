@@ -125,6 +125,9 @@ export const recipe = pgTable(
     mealType: mealTypeEnum("meal_type").notNull().default("dinner"),
     difficulty: text("difficulty"), // "easy" | "medium" | "hard"
     isFavorite: boolean("is_favorite").notNull().default(false),
+    // The owner's own 1–5 star rating ("would I make this again?"). Private,
+    // like favorites — never shown on public surfaces.
+    rating: integer("rating"),
     isPublic: boolean("is_public").notNull().default(false),
     // Moderation kill switch: hides a drop from every public surface without
     // touching the owner's copy. Flipped by the operator (no UI yet).

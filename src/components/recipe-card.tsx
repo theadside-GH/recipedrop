@@ -3,6 +3,7 @@ import type React from "react";
 import { Bookmark, ChefHat, Clock, UtensilsCrossed } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { RecipeImage } from "@/components/recipe-image";
+import { StarBadge } from "@/components/star-rating";
 import { formatMinutes } from "@/lib/utils";
 import type { Recipe } from "@/lib/db/schema";
 
@@ -12,6 +13,7 @@ export function RecipeCard({
   bylineAvatar,
   bylineHref,
   href,
+  showRating = false,
   topRightSlot,
   actionsRow,
   cookedCount,
@@ -23,6 +25,8 @@ export function RecipeCard({
   /** Link target for the byline (the cook's public page). */
   bylineHref?: string;
   href?: string;
+  /** Show the owner's private star rating — owner-only surfaces (library). */
+  showRating?: boolean;
   /** Overlay rendered in the photo's top-right corner (badges, management controls). */
   topRightSlot?: React.ReactNode;
   /**
@@ -96,6 +100,7 @@ export function RecipeCard({
                 {recipe.difficulty}
               </span>
             )}
+            {showRating && <StarBadge rating={recipe.rating} />}
             {(cookedCount ?? 0) > 0 && (
               <span className="inline-flex items-center gap-1" title="People who made this">
                 <ChefHat className="h-3.5 w-3.5" />
