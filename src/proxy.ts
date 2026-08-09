@@ -37,15 +37,26 @@ function isPublicApiPath(pathname: string) {
 }
 
 export async function proxy(request: NextRequest) {
-  // Canonical host. The apex and www both serve the app, but auth cookies are
-  // host-only — a login on www is invisible on dishcovered.app and vice versa,
-  // which reads as "the app logged me out again". Fold the apex onto www
-  // before any auth work so there is exactly one cookie jar.
+  // Canonical host. The apex, www, AND the Vercel default domains all serve
+  // the app, but auth cookies are host-only — a session on one host is
+  // invisible on the others, which reads as "the app logged me out again".
+  // Worse: Supabase's post-login redirect can land on the vercel.app domain
+  // (its configured fallback), stranding the session there. Fold every
+  // production alias onto www before any auth work so there is exactly one
+  // cookie jar — this also carries auth-confirm codes/tokens onto www, where
+  // they verify fine. Preview deployment hosts are left alone.
+  const CANONICAL_HOST = "www.dishcovered.app";
+  const ALIAS_HOSTS = new Set([
+    "dishcovered.app",
+    "recipedrop-8nyc.vercel.app",
+    "recipedrop-8nyc-ralphs-projects-e94e1575.vercel.app",
+    "recipedrop-8nyc-git-main-ralphs-projects-e94e1575.vercel.app",
+  ]);
   const host = request.headers.get("host")?.toLowerCase();
-  if (host === "dishcovered.app") {
+  if (host && ALIAS_HOSTS.has(host)) {
     const url = new URL(
       request.nextUrl.pathname + request.nextUrl.search,
-      "https://www.dishcovered.app",
+      `https://${CANONICAL_HOST}`,
     );
     return NextResponse.redirect(url, 308);
   }
