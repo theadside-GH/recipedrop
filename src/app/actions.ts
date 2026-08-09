@@ -131,13 +131,14 @@ export async function startImport(input: {
     return { jobs: [toView(job)], aiEnabled: features.aiEnabled };
   } catch (error) {
     console.error("Import start failed", error);
+    // Auth/invite/quota failures carry their own user-facing message — don't
+    // relabel them as a database problem (that misdirects triage and users).
+    const message =
+      error instanceof Error && /sign in|invite|plan|allowance/i.test(error.message)
+        ? error.message
+        : "Import could not start. Check that the database is reachable, then try again.";
     return {
-      jobs: [
-        failedJob(
-          input.value.trim().slice(0, 80) || "Import",
-          "Import could not start. Check that the database is reachable, then try again.",
-        ),
-      ],
+      jobs: [failedJob(input.value.trim().slice(0, 80) || "Import", message)],
       aiEnabled: features.aiEnabled,
     };
   }

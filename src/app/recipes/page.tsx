@@ -51,8 +51,13 @@ export default async function LibraryPage({
       listCollections(owner),
       collectionIdsByRecipe(owner, recipes.map((r) => r.id)),
     ]);
-  } catch {
-    return <DeploymentIssue />;
+  } catch (error) {
+    // Only genuine can't-reach-the-database failures get the DATABASE_URL
+    // panel — anything else (a future query bug, bad data) must surface
+    // through error.tsx, not hide behind deployment advice that sends whoever
+    // is debugging to the wrong place.
+    if (isConnectionError(error)) return <DeploymentIssue />;
+    throw error;
   }
 
   return (
@@ -152,6 +157,15 @@ export default async function LibraryPage({
         </div>
       )}
     </div>
+  );
+}
+
+function isConnectionError(error: unknown): boolean {
+  const code = (error as { code?: string })?.code ?? "";
+  const message = error instanceof Error ? error.message : "";
+  return (
+    ["ECONNREFUSED", "ECONNRESET", "ENOTFOUND", "ETIMEDOUT", "CONNECT_TIMEOUT"].includes(code) ||
+    /connect|connection|refusing to start the embedded fallback/i.test(message)
   );
 }
 

@@ -23,6 +23,19 @@ function isProtectedPath(pathname: string) {
   );
 }
 
+// Anonymous-by-design API routes: the image proxy and OG images are fetched
+// by browsers/crawlers without cookies, health is for uptime checks, and the
+// Stripe webhook authenticates via signature, not session. (Session-scoped
+// APIs like /api/export and /api/avatar are NOT listed — they stay behind the
+// normal auth pass.)
+const PUBLIC_API_PREFIXES = ["/api/img", "/api/og-image", "/api/health", "/api/stripe"];
+
+function isPublicApiPath(pathname: string) {
+  return PUBLIC_API_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
+
 export async function proxy(request: NextRequest) {
   // Canonical host. The apex and www both serve the app, but auth cookies are
   // host-only — a login on www is invisible on dishcovered.app and vice versa,
@@ -39,6 +52,13 @@ export async function proxy(request: NextRequest) {
 
   if (!features.authEnabled) return NextResponse.next({ request });
   const { pathname, search } = request.nextUrl;
+
+  // Public API surfaces never read the session, but every recipe card image
+  // routes through /api/img — running a Supabase auth round-trip per image
+  // taxed the hottest pages for nothing. Skip straight through.
+  if (isPublicApiPath(pathname)) {
+    return NextResponse.next({ request });
+  }
 
   if (pathname === "/") {
     return NextResponse.redirect(new URL("/discover", request.url));

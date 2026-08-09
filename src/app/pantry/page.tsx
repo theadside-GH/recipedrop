@@ -35,7 +35,7 @@ export default async function PantryPage() {
           </p>
         </div>
         <Link href="/plans" className={buttonVariants({ variant: "secondary" })}>
-          Shopping lists
+          Plan &amp; Shop
           <ArrowRight className="h-4 w-4" />
         </Link>
       </div>

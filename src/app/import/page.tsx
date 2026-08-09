@@ -3,7 +3,7 @@ import { features } from "@/lib/env";
 import { ImportClient } from "./import-client";
 import { getOwnerEmail } from "@/lib/auth";
 import { getAiUsage } from "@/lib/entitlements";
-import { listRecentJobs } from "@/lib/repo/imports";
+import { listRecentJobs, STALE_PROCESSING_MS } from "@/lib/repo/imports";
 import type { JobView } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +85,7 @@ async function getRecentImportViews(): Promise<JobView[]> {
       // the Retry button appears instead of an eternal "Waiting" row.
       const stale =
         (job.status === "pending" || job.status === "processing") &&
-        Date.now() - job.updatedAt.getTime() > 5 * 60 * 1000;
+        Date.now() - job.updatedAt.getTime() > STALE_PROCESSING_MS;
       return {
         id: job.id,
         label: job.label,

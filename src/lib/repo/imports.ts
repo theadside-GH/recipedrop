@@ -1,5 +1,5 @@
 import "server-only";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, lt, ne, or } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { importJob } from "@/lib/db/schema";
 import { splitBulkInput, detectSourceType } from "@/lib/sources/detect";
@@ -113,6 +113,36 @@ export async function getJob(ownerEmail: string, id: string): Promise<ImportJobR
     .from(importJob)
     .where(and(eq(importJob.id, id), eq(importJob.ownerEmail, ownerEmail)))
     .limit(1);
+  return row ?? null;
+}
+
+/** How long a "processing" row is trusted before it's presumed dead. */
+export const STALE_PROCESSING_MS = 5 * 60 * 1000;
+
+/**
+ * Atomically claim a job for processing. Check-then-update was a race: a
+ * double-tapped Retry (or the same batch open in two tabs) ran the same job
+ * twice — two AI quota spends and a shot at duplicate recipes. One guarded
+ * UPDATE claims it: returns the claimed row, or null when another runner
+ * already holds it (still "processing" and fresh) or it's already done.
+ */
+export async function claimJob(ownerEmail: string, id: string): Promise<ImportJobRow | null> {
+  const db = await getDb();
+  const staleBefore = new Date(Date.now() - STALE_PROCESSING_MS);
+  const [row] = await db
+    .update(importJob)
+    .set({ status: "processing", error: null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(importJob.id, id),
+        eq(importJob.ownerEmail, ownerEmail),
+        ne(importJob.status, "done"),
+        // A fresh "processing" row belongs to another in-flight runner; a
+        // stale one is a crashed run that's safe to take over.
+        or(ne(importJob.status, "processing"), lt(importJob.updatedAt, staleBefore)),
+      ),
+    )
+    .returning();
   return row ?? null;
 }
 

@@ -18,9 +18,14 @@ async function init(): Promise<DB> {
   if (features.usePostgres) {
     const postgres = (await import("postgres")).default;
     const { drizzle } = await import("drizzle-orm/postgres-js");
+    // max > 1 so a page's Promise.all query fan-out actually runs in parallel
+    // and one slow import transaction can't serialize every other request on
+    // the instance. Supabase's transaction pooler (with prepare: false)
+    // multiplexes these fine; keep it modest so several warm instances don't
+    // exhaust the pooler's client limit.
     const client = postgres(env.databaseUrl, {
       prepare: false,
-      max: 1,
+      max: 8,
       idle_timeout: 20,
       connect_timeout: 10,
     });

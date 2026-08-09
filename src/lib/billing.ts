@@ -16,7 +16,10 @@ let client: Stripe | null = null;
 
 export function getStripe(): Stripe | null {
   if (!features.billingEnabled) return null;
-  if (!client) client = new Stripe(env.stripeSecretKey);
+  // Pin the API version the SDK was built against: without it, requests float
+  // on the account's dashboard default, and a dashboard upgrade could change
+  // webhook/checkout payload shapes under code that rarely gets re-tested.
+  if (!client) client = new Stripe(env.stripeSecretKey, { apiVersion: "2026-06-24.dahlia" });
   return client;
 }
 

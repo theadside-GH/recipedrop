@@ -1,5 +1,5 @@
 import "server-only";
-import { getJob, updateJob as updateOwnedJob, type ImportJobRow } from "@/lib/repo/imports";
+import { claimJob, getJob, updateJob as updateOwnedJob, type ImportJobRow } from "@/lib/repo/imports";
 import { fetchWebsite } from "@/lib/sources/website";
 import { fetchYoutube } from "@/lib/sources/youtube";
 import type { SourceContent } from "@/lib/sources/types";
@@ -53,14 +53,15 @@ async function loadSource(job: ImportJobRow): Promise<SourceContent> {
  * failures are recorded on the job so the batch UI can show + retry them.
  */
 export async function processJob(ownerEmail: string, jobId: string): Promise<ImportJobRow | null> {
-  const job = await getJob(ownerEmail, jobId);
-  if (!job) return null;
-  if (job.status === "done") return job;
+  // Atomic claim: exactly one runner may process a job at a time. A lost race
+  // (double-tapped Retry, two tabs) returns the row untouched instead of
+  // spending a second AI quota use on the same import.
+  const job = await claimJob(ownerEmail, jobId);
+  if (!job) return getJob(ownerEmail, jobId);
 
   const updateJob = (id: string, patch: Parameters<typeof updateOwnedJob>[2]) =>
     updateOwnedJob(ownerEmail, id, patch);
 
-  await updateJob(jobId, { status: "processing", error: null });
   try {
     const sourceKey =
       job.sourceType === "text" ? null : await resolveSourceKey(job.rawInput);

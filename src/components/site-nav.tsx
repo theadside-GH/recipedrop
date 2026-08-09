@@ -69,8 +69,8 @@ const LINKS: NavLink[] = [
   { href: "/import", label: "Import", icon: PlusCircle, match: (p: string) => p.startsWith("/import") },
   {
     href: "/plans",
-    label: "Shopping",
-    mobileLabel: "Shop",
+    label: "Plan & Shop",
+    mobileLabel: "Plan",
     icon: ShoppingBasket,
     match: (p: string) => p.startsWith("/plans"),
   },

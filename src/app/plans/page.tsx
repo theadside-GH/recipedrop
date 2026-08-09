@@ -11,7 +11,7 @@ import { PlanAutopilot } from "./plan-autopilot";
 
 export const dynamic = "force-dynamic";
 
-export const metadata = { title: "Shopping lists" };
+export const metadata = { title: "Plan & Shop" };
 
 /** "3 recipes · 4 items you added", "5 items you added", "2 recipes", or "Empty". */
 function planSummary(recipes: number, customItems: number): string {
@@ -33,9 +33,9 @@ export default async function PlansPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Shopping lists</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Plan &amp; Shop</h1>
         <p className="mt-1 text-muted">
-          Plan meals from your recipes — or start a list from scratch — and get one
+          Plan your meals from your recipes — or start a list from scratch — and get one
           consolidated shopping list either way.
         </p>
       </div>
