@@ -20,6 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { RecipeImage } from "@/components/recipe-image";
+import { SourceVideo } from "@/components/source-video";
 import { PrintButton } from "@/components/print-button";
 import { RecipePublicToggle } from "@/components/recipe-public-toggle";
 import { ShareLinkButton } from "@/components/share-link-button";
@@ -264,6 +265,9 @@ export function RecipeDetail({
           </Button>
         )}
       </div>
+      {/* The reel the recipe came from — "from REEL to REAL" should be
+          visible on the recipe itself, not a link that exits the app. */}
+      <SourceVideo sourceUrl={recipe.sourceUrl} />
       {couldUseHelp && recipe.sourceUrl && !readOnly && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 print:hidden">
           This one looks like it may be missing a photo or details. Use <strong>Improve</strong>{" "}

@@ -4,6 +4,10 @@ import { ShareCaptureClient } from "./share-capture-client";
 
 export const dynamic = "force-dynamic";
 
+// Share-target imports run the same worst-case pipeline as /import — same
+// explicit ceiling (see src/app/import/page.tsx).
+export const maxDuration = 300;
+
 export default async function SharePage({
   searchParams,
 }: {

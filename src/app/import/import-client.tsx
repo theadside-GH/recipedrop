@@ -61,17 +61,23 @@ export function ImportClient({
   aiEnabled,
   initialJobs = [],
   aiRemaining = null,
+  aiWindowLabel = "week",
 }: {
   aiEnabled: boolean;
   initialJobs?: JobView[];
-  /** AI imports left in the user's daily allowance; null = unknown/unmetered. */
+  /** AI imports left in the user's current allowance; null = unknown/unmetered. */
   aiRemaining?: number | null;
+  /** The tier's metering window ("week" for Free, "day" for Pro) — quota copy
+   *  must match it, not assume daily. */
+  aiWindowLabel?: string;
 }) {
   const [tab, setTab] = useState<Tab>("link");
-  // Live copy of the daily allowance — refreshed from the server after every
+  // Live copy of the allowance — refreshed from the server after every
   // run so the hints don't keep advertising the page-load number.
   const [aiLeft, setAiLeft] = useState(aiRemaining);
-  const [single, setSingle] = useState("");
+  const [singleLink, setSingleLink] = useState("");
+  const [singleText, setSingleText] = useState("");
+  const single = singleLink.trim() ? singleLink : singleText;
   const [bulk, setBulk] = useState("");
   const [jobs, setJobs] = useState<JobView[]>(initialJobs);
   const [busy, setBusy] = useState(false);
@@ -144,8 +150,12 @@ export function ImportClient({
     try {
       const { jobs: created } = await startImport({ mode, value });
       setJobs((prev) => [...created, ...prev]);
-      if (mode === "single") setSingle("");
-      else setBulk("");
+      if (mode === "single") {
+        setSingleLink("");
+        setSingleText("");
+      } else {
+        setBulk("");
+      }
       const results = await runJobs(created);
       // Partial ("needs review") imports keep the attached photo too — they
       // have a real recipeId and are exactly the imports that lack an image.
@@ -185,7 +195,7 @@ export function ImportClient({
     const value = (uri || text).trim();
     if (!value) return;
     setTab("link");
-    setSingle(value);
+    setSingleLink(value);
     await handleStart("single", value);
   }
 
@@ -284,19 +294,26 @@ export function ImportClient({
           onDragOver={(event) => event.preventDefault()}
           onDrop={handleDrop}
         >
+          {/* Link and text are separate inputs — one import uses whichever is
+              filled, and filling one pauses the other so it's always clear
+              which will be imported. */}
           <Input
-            value={single}
-            onChange={(e) => setSingle(e.target.value)}
+            value={singleLink}
+            onChange={(e) => setSingleLink(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleStart("single", single)}
             placeholder="Paste a recipe link — TikTok, Instagram, YouTube, or any website…"
-            disabled={!aiEnabled}
+            disabled={!aiEnabled || !!singleText.trim()}
           />
-          <p className="text-center text-xs text-muted">or paste the full recipe text below</p>
+          <p className="text-center text-xs text-muted">
+            {singleText.trim()
+              ? "Importing the pasted text — clear it to use a link instead"
+              : "or paste the full recipe text below"}
+          </p>
           <Textarea
-            value={single}
-            onChange={(e) => setSingle(e.target.value)}
+            value={singleText}
+            onChange={(e) => setSingleText(e.target.value)}
             placeholder="Paste recipe text, or a TikTok/Instagram caption…"
-            disabled={!aiEnabled}
+            disabled={!aiEnabled || !!singleLink.trim()}
           />
           <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-surface p-3">
             {singleImagePath ? (
@@ -359,13 +376,13 @@ export function ImportClient({
             value={bulk}
             onChange={(e) => setBulk(e.target.value)}
             placeholder={
-              `Paste a batch of links and/or recipes — one per line or separated by blank lines${aiLeft != null ? ` (you have ${aiLeft} AI use${aiLeft === 1 ? "" : "s"} left today)` : ""}.` +
+              `Paste a batch of links and/or recipes — one per line or separated by blank lines${aiLeft != null ? ` (you have ${aiLeft} AI use${aiLeft === 1 ? "" : "s"} left this ${aiWindowLabel})` : ""}.` +
               "\n\nhttps://example.com/recipe-1\nhttps://youtube.com/watch?v=...\n..."
             }
             className="min-h-48"
             disabled={!aiEnabled}
           />
-          <BulkQuotaHint bulk={bulk} aiRemaining={aiLeft} />
+          <BulkQuotaHint bulk={bulk} aiRemaining={aiLeft} windowLabel={aiWindowLabel} />
           <Button
             onClick={() => handleStart("bulk", bulk)}
             disabled={!aiEnabled || busy || !bulk.trim()}
@@ -462,17 +479,28 @@ export function ImportClient({
 }
 
 /**
- * Live item count vs the user's remaining daily AI allowance, so a big paste
+ * Live item count vs the user's remaining AI allowance, so a big paste
  * warns *before* it burns the quota and fails halfway. Mirrors the server's
  * accounting: a prose paste with no links also spends one use on AI
- * segmentation before the per-item imports.
+ * segmentation before the per-item imports. Free meters weekly and Pro daily,
+ * so all copy is driven by windowLabel — never hardcode "today".
  */
-function BulkQuotaHint({ bulk, aiRemaining }: { bulk: string; aiRemaining: number | null }) {
+function BulkQuotaHint({
+  bulk,
+  aiRemaining,
+  windowLabel,
+}: {
+  bulk: string;
+  aiRemaining: number | null;
+  windowLabel: string;
+}) {
+  const refill = windowLabel === "day" ? "daily" : "weekly";
+  const nextWindow = windowLabel === "day" ? "tomorrow" : "next week";
   if (!bulk.trim()) {
     return aiRemaining != null && aiRemaining <= 3 ? (
       <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
         Heads up: only {aiRemaining === 0 ? "no" : aiRemaining} AI use
-        {aiRemaining === 1 ? "" : "s"} left today — the allowance resets daily.
+        {aiRemaining === 1 ? "" : "s"} left this {windowLabel} — the allowance refills {refill}.
       </p>
     ) : null;
   }
@@ -490,7 +518,7 @@ function BulkQuotaHint({ bulk, aiRemaining }: { bulk: string; aiRemaining: numbe
         {needed === 1 ? "" : "s"}
         {segmentExtra ? " (1 to split the paste)" : ""}
         {aiRemaining != null
-          ? ` of your ${aiRemaining} left today`
+          ? ` of your ${aiRemaining} left this ${windowLabel}`
           : ""}
       </p>
     );
@@ -499,7 +527,7 @@ function BulkQuotaHint({ bulk, aiRemaining }: { bulk: string; aiRemaining: numbe
     <p className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
       That looks like {count} item{count === 1 ? "" : "s"}
       {overQuota
-        ? ` needing ${needed} AI use${needed === 1 ? "" : "s"}${segmentExtra ? " (1 to split the paste)" : ""}, but you have ${aiRemaining} left today — anything past that will fail. Import the most important ones now and the rest tomorrow.`
+        ? ` needing ${needed} AI use${needed === 1 ? "" : "s"}${segmentExtra ? " (1 to split the paste)" : ""}, but you have ${aiRemaining} left this ${windowLabel} — anything past that will fail. Import the most important ones now and the rest ${nextWindow}.`
         : ` — one paste imports at most ${MAX_BULK_ITEMS}, so split it into batches.`}
     </p>
   );

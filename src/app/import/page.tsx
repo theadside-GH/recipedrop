@@ -8,6 +8,12 @@ import type { JobView } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
+// The import server actions run under this page's route segment. Worst-case
+// chain (slow site fetch → retries → Claude → image downloads → stand-in
+// image search) can pass a minute — make the ceiling explicit so a platform
+// default change can never quietly kill imports mid-flight.
+export const maxDuration = 300;
+
 export const metadata = { title: "Import recipes" };
 
 export default async function ImportPage() {
@@ -55,6 +61,7 @@ export default async function ImportPage() {
         aiEnabled={features.aiEnabled}
         initialJobs={recentJobs}
         aiRemaining={usage ? Math.max(0, usage.limit - usage.used) : null}
+        aiWindowLabel={usage?.windowLabel ?? "week"}
       />
     </div>
   );

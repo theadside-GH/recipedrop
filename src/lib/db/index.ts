@@ -27,6 +27,16 @@ async function init(): Promise<DB> {
     return drizzle(client, { schema }) as unknown as DB;
   }
 
+  // The PGlite fallback is a dev convenience only. On Vercel it would boot
+  // "green" and silently write user data to an ephemeral per-instance disk —
+  // unrecoverable. If DATABASE_URL ever goes missing in a deploy (env not
+  // copied on a project move, typo'd var), fail every request loudly instead.
+  if (process.env.VERCEL) {
+    throw new Error(
+      "DATABASE_URL is not set on this deployment — refusing to start the embedded fallback database in production.",
+    );
+  }
+
   // Local zero-setup embedded Postgres (PGlite), persisted to disk.
   const { PGlite } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");
@@ -40,7 +50,13 @@ async function init(): Promise<DB> {
 /** Get the shared database instance (lazily initialized + memoized). */
 export function getDb(): Promise<DB> {
   if (!globalThis.__scDbPromise) {
-    globalThis.__scDbPromise = init();
+    // A failed init must not be memoized: one transient connect error would
+    // otherwise leave this instance returning the same rejection for every
+    // request until the process is recycled.
+    globalThis.__scDbPromise = init().catch((err) => {
+      globalThis.__scDbPromise = undefined;
+      throw err;
+    });
   }
   return globalThis.__scDbPromise;
 }

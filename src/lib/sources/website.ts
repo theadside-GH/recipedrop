@@ -1,5 +1,5 @@
 import "server-only";
-import { safeFetch } from "@/lib/net/safe-fetch";
+import { readBodyCapped, safeFetch } from "@/lib/net/safe-fetch";
 import type { SourceContent } from "./types";
 
 const UA =
@@ -10,11 +10,33 @@ const UA =
 const CRAWLER_UA =
   "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)";
 
+// A recipe page that takes longer than this or is bigger than this isn't a
+// recipe page — without these bounds one tarpit URL ties up the whole import
+// function until the platform kills it.
+const FETCH_TIMEOUT_MS = 10_000;
+const MAX_HTML_BYTES = 2 * 1024 * 1024;
+
 async function fetchHtml(url: string, ua = UA): Promise<string> {
+  try {
+    return await fetchHtmlInner(url, ua);
+  } catch (err) {
+    // Surface timeouts as user-facing copy, not "TimeoutError: This operation
+    // was aborted" in the import row.
+    if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
+      throw new Error(
+        "That site took too long to respond. Try again, or copy the recipe text and use \"Paste text\".",
+      );
+    }
+    throw err;
+  }
+}
+
+async function fetchHtmlInner(url: string, ua: string): Promise<string> {
   // safeFetch: imported URLs are user-supplied — never let one reach an
   // internal host (localhost, cloud metadata, LAN).
   let res = await safeFetch(url, {
     headers: { "user-agent": ua, accept: "text/html,application/xhtml+xml" },
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   // Some WAFs (e.g. thekitchn.com) 403 the full Chrome UA string when the TLS
   // fingerprint isn't a real browser, but allow a generic one — retry once
@@ -22,6 +44,7 @@ async function fetchHtml(url: string, ua = UA): Promise<string> {
   if (res.status === 403 && ua === UA) {
     res = await safeFetch(url, {
       headers: { "user-agent": "Mozilla/5.0", accept: "text/html,application/xhtml+xml" },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
   }
   if (res.status === 403) {
@@ -30,7 +53,11 @@ async function fetchHtml(url: string, ua = UA): Promise<string> {
     );
   }
   if (!res.ok) throw new Error(`Could not fetch the page (HTTP ${res.status}).`);
-  return res.text();
+  const body = await readBodyCapped(res, MAX_HTML_BYTES);
+  if (body === null) {
+    throw new Error("That page is too large to import. Copy the recipe text and use \"Paste text\" instead.");
+  }
+  return body.toString("utf8");
 }
 
 // Social video posts (Reels/TikToks) are login-walled, so Readability sees
@@ -59,7 +86,10 @@ function isTikTokHost(url: string): boolean {
 async function fetchTikTokOembed(url: string): Promise<SourceContent | null> {
   const res = await fetch(
     `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`,
-    { headers: { "user-agent": UA, accept: "application/json" } },
+    {
+      headers: { "user-agent": UA, accept: "application/json" },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    },
   );
   if (!res.ok) return null;
   const data = (await res.json()) as {
