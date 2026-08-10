@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { getOwnerEmail } from "@/lib/auth";
 import { env, features } from "@/lib/env";
@@ -63,6 +64,7 @@ import {
   type CookedState,
 } from "@/lib/repo/social";
 import { addRecipeComment, deleteRecipeComment } from "@/lib/repo/comments";
+import { joinProWaitlist } from "@/lib/repo/waitlist";
 import {
   addRecipeNote,
   deleteRecipeNote,
@@ -145,26 +147,74 @@ export async function startImport(input: {
   }
 }
 
-/** Run a single pending import job to completion and return its final state. */
+/**
+ * Kick off a job's processing SERVER-SIDE and return immediately as
+ * "processing". The heavy pipeline (fetch → Claude → images) runs in an
+ * `after()` callback, which Vercel keeps alive via waitUntil — so the import
+ * finishes even if the user closes the tab or backgrounds the app mid-import
+ * (the common mobile case). The client polls pollImportJobs for the result.
+ */
 export async function runImportJob(jobId: string): Promise<JobView | null> {
   const owner = await getOwnerEmail();
   try {
-    const { processJob } = await import("@/lib/import/process");
-    const job = await processJob(owner, jobId);
-    if (job?.status === "done") revalidatePath("/recipes");
-    return job ? toView(job) : null;
+    const { claimJob, getJob } = await import("@/lib/repo/imports");
+    const claimed = await claimJob(owner, jobId);
+    if (!claimed) {
+      // Already running elsewhere or already done — reflect current state.
+      const current = await getJob(owner, jobId);
+      return current ? toView(current) : null;
+    }
+    // Finish the work after the response is sent; survives client disconnect.
+    after(async () => {
+      try {
+        const { runClaimedJob } = await import("@/lib/import/process");
+        const done = await runClaimedJob(owner, claimed);
+        if (done?.status === "done") revalidatePath("/recipes");
+      } catch (error) {
+        console.error("Background import job failed", error);
+        const message = error instanceof Error ? error.message : "Import failed while processing.";
+        await updateJob(owner, jobId, { status: "failed", error: message }).catch(() => {});
+      }
+    });
+    return toView(claimed); // "processing"
   } catch (error) {
-    console.error("Import job failed", error);
+    console.error("Import job failed to start", error);
     const message = error instanceof Error ? error.message : "Import failed while processing.";
     const failed = await updateJob(owner, jobId, { status: "failed", error: message });
     return failed ? toView(failed) : failedJob("Import failed", "Import failed while processing. Try again.");
   }
 }
 
+/** Poll current state of jobs the client is watching (server-side execution). */
+export async function pollImportJobs(jobIds: string[]): Promise<JobView[]> {
+  if (jobIds.length === 0) return [];
+  const owner = await getOwnerEmail();
+  const { getJob } = await import("@/lib/repo/imports");
+  const rows = await Promise.all(
+    jobIds.filter((id) => !id.startsWith("local-")).map((id) => getJob(owner, id)),
+  );
+  return rows.filter((r): r is NonNullable<typeof r> => !!r).map(toView);
+}
+
 export async function clearImportHistoryAction(): Promise<void> {
   const owner = await getOwnerEmail();
   await clearImportHistory(owner);
   revalidatePath("/import");
+}
+
+/** Join the "notify me when Pro launches" list. Public — no auth required. */
+export async function joinProWaitlistAction(
+  email: string,
+): Promise<{ ok: boolean; message: string }> {
+  try {
+    await joinProWaitlist(email);
+    return { ok: true, message: "You're on the list — we'll email you when Pro opens up." };
+  } catch (error) {
+    return {
+      ok: false,
+      message: error instanceof Error ? error.message : "Couldn't save that — try again.",
+    };
+  }
 }
 
 /** Import one or more recipe photos directly (vision). Returns the new recipe id. */

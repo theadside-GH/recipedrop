@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/input";
-import { startImport, runImportJob, type JobView } from "@/app/actions";
+import { startImport, runImportJob, pollImportJobs, type JobView } from "@/app/actions";
 import type { SourceType } from "@/lib/sources/types";
 
 const SOURCE_LABEL: Record<SourceType, string> = {
@@ -45,8 +45,28 @@ export function ShareCaptureClient({
       setJob(created);
       if (!created) return;
       setJob({ ...created, status: "processing" });
-      const result = await runImportJob(created.id);
-      if (result) setJob(result);
+      // Kick off server-side, then poll — the import completes even if this
+      // tab is closed (common when returning to TikTok mid-import).
+      const kicked = await runImportJob(created.id);
+      if (kicked) setJob(kicked);
+      if (!created.id.startsWith("local-")) {
+        for (let tick = 0; tick < 120; tick++) {
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          let views: JobView[] = [];
+          try {
+            views = await pollImportJobs([created.id]);
+          } catch {
+            continue;
+          }
+          const view = views[0];
+          if (view) {
+            setJob(view);
+            if (view.status === "done" || view.status === "failed" || view.status === "needs_review") {
+              break;
+            }
+          }
+        }
+      }
     } catch (err) {
       // Never fail silently — the user just shared a recipe and is watching.
       setJob({

@@ -131,6 +131,32 @@ export default async function DiscoverPage({
 
   return (
     <div className="space-y-8">
+      {/* Cold visitors land here (/ redirects to /discover), so give them the
+          pitch the login page has — otherwise they just see a recipe grid. */}
+      {!viewer && (
+        <section className="relative overflow-hidden rounded-3xl border border-brand/25 bg-gradient-to-br from-brand-soft via-card to-card p-6 sm:p-9">
+          <p className="font-display text-lg text-brand">From REEL to REAL</p>
+          <h1 className="mt-1 max-w-2xl text-3xl font-semibold sm:text-4xl">
+            Turn any recipe video into a recipe you can actually cook
+          </h1>
+          <p className="mt-3 max-w-xl text-muted">
+            Save recipes from TikTok, Instagram, YouTube, websites, photos, or pasted text.
+            DishCovered cleans each one into clear ingredients and steps, then builds one
+            smart shopping list — grouped by aisle, minus what&apos;s in your pantry.
+          </p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link href="/login">
+              <Button size="lg">Get started — it&apos;s free</Button>
+            </Link>
+            <Link href="/pro">
+              <Button variant="secondary" size="lg">
+                <Crown className="h-4 w-4 text-brand" /> See Free &amp; Pro
+              </Button>
+            </Link>
+          </div>
+        </section>
+      )}
+
       <div className="relative overflow-hidden rounded-3xl border border-border bg-gradient-to-br from-brand-soft via-background to-background p-6 sm:p-9">
         <Compass
           aria-hidden
@@ -138,10 +164,16 @@ export default async function DiscoverPage({
         />
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="max-w-xl">
-            <h1 className="text-3xl sm:text-4xl">Dishcover your next favorite dish</h1>
+            {/* One h1 per page: the signed-out value section owns it above, so
+                this hero drops to h2 for anonymous visitors. */}
+            {viewer ? (
+              <h1 className="text-3xl sm:text-4xl">Dishcover your next favorite dish</h1>
+            ) : (
+              <h2 className="text-3xl sm:text-4xl">Browse what&apos;s been Dishcovered</h2>
+            )}
             <p className="mt-2 text-muted">
-              Dishcoveries — public recipes shared by fellow dishcoverers. Tap the little
-              recipe book on a card to save it to Your Recipes — tap again to un-save.
+              Public recipes, cleaned up from messy links and captions into clean steps.
+              Tap the little recipe book on a card to save one to Your Recipes.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

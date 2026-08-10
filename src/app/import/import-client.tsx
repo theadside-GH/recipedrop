@@ -25,6 +25,7 @@ import {
   aiRemainingAction,
   startImport,
   runImportJob,
+  pollImportJobs,
   importPhotos,
   clearImportHistoryAction,
   setRecipeImageAction,
@@ -38,6 +39,14 @@ type Tab = "link" | "bulk" | "photo";
 
 /** Server-side cap on one bulk paste (see lib/repo/imports.ts MAX_BULK_ITEMS). */
 const MAX_BULK_ITEMS = 20;
+
+// Import jobs run server-side; the client polls for their result. ~5 min max.
+const POLL_INTERVAL_MS = 2500;
+const POLL_MAX_TICKS = 120;
+
+function isTerminalStatus(status: JobView["status"]): boolean {
+  return status === "done" || status === "failed" || status === "needs_review";
+}
 
 const SOURCE_LABEL: Record<string, string> = {
   url: "Website",
@@ -108,40 +117,56 @@ export function ImportClient({
   }
 
   async function runJobs(toRun: JobView[]): Promise<JobView[]> {
-    const results: JobView[] = [];
+    // Kick each job off server-side (it runs to completion via after(), even
+    // if this tab closes), then poll for results. 3-wide only throttles the
+    // kickoff requests; the server does the heavy lifting.
     await pool(toRun, 3, async (job) => {
       setJobs((prev) =>
         prev.map((j) => (j.id === job.id ? { ...j, status: "processing" } : j)),
       );
       try {
         const result = await runImportJob(job.id);
-        if (result) {
-          const next = result.id === job.id ? result : { ...job, ...result, id: job.id };
-          updateJob(next);
-          results.push(next);
-          return;
-        }
-        const failed: JobView = {
-          ...job,
-          status: "failed",
-          error: "Import failed while processing. Try again.",
-          recipeId: null,
-        };
-        updateJob(failed);
-        results.push(failed);
-      } catch (err) {
-        const failed: JobView = {
-          ...job,
-          status: "failed",
-          error: err instanceof Error ? err.message : "Import failed while processing.",
-          recipeId: null,
-        };
-        updateJob(failed);
-        results.push(failed);
+        if (result) updateJob(result.id === job.id ? result : { ...job, ...result, id: job.id });
+      } catch {
+        // Kickoff failed on the client side — polling below still reflects the
+        // server's real state; leave the row "processing" for now.
       }
     });
+    const results = await pollUntilDone(toRun.map((j) => j.id));
     void refreshQuota();
     return results;
+  }
+
+  /**
+   * Poll job status until every job reaches a terminal state (or a safety
+   * timeout). Terminal = done / failed / needs_review. Because the work runs
+   * server-side, the results are correct even if the user navigated away and
+   * came back.
+   */
+  async function pollUntilDone(ids: string[]): Promise<JobView[]> {
+    const dbIds = ids.filter((id) => !id.startsWith("local-"));
+    const latest = new Map<string, JobView>();
+    if (dbIds.length === 0) return [];
+    // ~5 min ceiling (POLL_MAX ticks × 2.5s) so a wedged job can't poll forever.
+    for (let tick = 0; tick < POLL_MAX_TICKS; tick++) {
+      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
+      let views: JobView[] = [];
+      try {
+        views = await pollImportJobs(dbIds);
+      } catch {
+        continue; // transient; try again next tick
+      }
+      for (const view of views) {
+        latest.set(view.id, view);
+        updateJob(view);
+      }
+      const allDone = dbIds.every((id) => {
+        const v = latest.get(id);
+        return v ? isTerminalStatus(v.status) : false;
+      });
+      if (allDone) break;
+    }
+    return dbIds.map((id) => latest.get(id)).filter((v): v is JobView => !!v);
   }
 
   async function handleStart(mode: "single" | "bulk", value: string) {

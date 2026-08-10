@@ -100,6 +100,12 @@ export const userProfile = pgTable(
   (t) => [uniqueIndex("user_profile_handle_idx").on(t.handle)],
 );
 
+/** Emails that asked to be notified when Pro billing goes live. */
+export const proWaitlist = pgTable("pro_waitlist", {
+  email: text("email").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ---------------------------------------------------------------------------
 // Recipes
 // ---------------------------------------------------------------------------

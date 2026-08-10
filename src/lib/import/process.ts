@@ -58,7 +58,20 @@ export async function processJob(ownerEmail: string, jobId: string): Promise<Imp
   // spending a second AI quota use on the same import.
   const job = await claimJob(ownerEmail, jobId);
   if (!job) return getJob(ownerEmail, jobId);
+  return runClaimedJob(ownerEmail, job);
+}
 
+/**
+ * Run a job that has ALREADY been claimed (status set to "processing"). Split
+ * out so the import action can claim synchronously, return "processing"
+ * immediately, and finish the heavy work in an `after()` callback that
+ * survives the client tab closing. Never throws — failures land on the job.
+ */
+export async function runClaimedJob(
+  ownerEmail: string,
+  job: ImportJobRow,
+): Promise<ImportJobRow | null> {
+  const jobId = job.id;
   const updateJob = (id: string, patch: Parameters<typeof updateOwnedJob>[2]) =>
     updateOwnedJob(ownerEmail, id, patch);
 

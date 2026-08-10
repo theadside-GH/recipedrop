@@ -12,8 +12,10 @@
 // pre-rebrand icons, so retire them wholesale.
 // v5: page cache gains an entry cap and a sign-out clear (cached private
 // pages must not outlive the session on a shared device).
-const STATIC_CACHE = "dishcovered-static-v5";
-const PAGE_CACHE = "dishcovered-pages-v5";
+// v6: redirected navigations no longer misfire the offline fallback; bump so
+// any page cache holding a wrongly-stored /offline body is retired.
+const STATIC_CACHE = "dishcovered-static-v6";
+const PAGE_CACHE = "dishcovered-pages-v6";
 const KEEP = [STATIC_CACHE, PAGE_CACHE];
 const PAGE_CACHE_MAX_ENTRIES = 30;
 
@@ -76,16 +78,11 @@ async function trimPageCache(cache) {
 
 async function networkFirstPage(request) {
   const cache = await caches.open(PAGE_CACHE);
+  let response;
   try {
-    const response = await fetch(request);
-    // Only cache real, non-redirected page bodies — a cached redirect can't be
-    // replayed and an opaque/partial response is useless offline.
-    if (response.ok && response.type === "basic") {
-      await cache.put(request, response.clone());
-      await trimPageCache(cache);
-    }
-    return response;
+    response = await fetch(request);
   } catch {
+    // Genuinely offline (or the network failed): fall back to cache/offline.
     const cached = await cache.match(request);
     if (cached) return cached;
     const offline = await caches.match("/offline");
@@ -95,6 +92,21 @@ async function networkFirstPage(request) {
       headers: { "content-type": "text/plain" },
     });
   }
+  // Cache only real, same-origin, NON-redirected bodies. cache.put() throws a
+  // TypeError on a redirected response — and the app's own start_url `/`
+  // 307-redirects to /discover, so putting that inside the fetch try/catch
+  // made a successful *online* launch look offline. Never let a cache-write
+  // failure be mistaken for a network failure.
+  if (response.ok && response.type === "basic" && !response.redirected) {
+    try {
+      await cache.put(request, response.clone());
+      await trimPageCache(cache);
+    } catch {
+      // Cache write failed (storage full, odd response) — serve the live
+      // response anyway; it has nothing to do with connectivity.
+    }
+  }
+  return response;
 }
 
 // Sign-out (or any privacy-sensitive moment) tells the worker to forget every

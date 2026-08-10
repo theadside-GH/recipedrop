@@ -3,8 +3,9 @@ import { BookMarked, CalendarClock, ChefHat, Dices, PenLine, PlusCircle, Sparkle
 import { getOwnerEmail } from "@/lib/auth";
 import { collectionIdsByRecipe, listCollections } from "@/lib/repo/collections";
 import { cookedCountsForOwner } from "@/lib/repo/notes";
-import { tonightItemsFor, type TonightItem } from "@/lib/repo/plans";
+import { ownerHasPlan, tonightItemsFor, type TonightItem } from "@/lib/repo/plans";
 import { listRecipes } from "@/lib/repo/recipes";
+import { FirstRunChecklist } from "@/components/first-run-checklist";
 import { CollectionQuickAdd } from "@/components/collection-picker";
 import { FavoriteButton } from "@/components/favorite-button";
 import { MadeItButton } from "@/components/made-it-button";
@@ -63,6 +64,21 @@ export default async function LibraryPage({
     if (isConnectionError(error)) return <DeploymentIssue />;
     throw error;
   }
+
+  // First-run quickstart: only in the unfiltered view (so a returning user
+  // filtering their library never sees it), and only until the three steps
+  // are done or it's dismissed (client-side). recipes.length is the true
+  // total here because no filter is applied.
+  const hasFilters = !!(
+    sp.meal || sp.max || sp.q || sp.tag || sp.favorite || sp.made || sp.origin
+  );
+  const firstRun = hasFilters
+    ? null
+    : {
+        hasRecipe: recipes.length > 0,
+        hasCooked: [...cookedCounts.values()].some((n) => n > 0),
+        hasPlan: await ownerHasPlan(owner).catch(() => true),
+      };
 
   return (
     <div className="space-y-6">
@@ -124,6 +140,8 @@ export default async function LibraryPage({
           </Link>
         )}
       </div>
+
+      {firstRun && <FirstRunChecklist {...firstRun} />}
 
       {tonight.length > 0 && <TonightCard items={tonight} />}
 

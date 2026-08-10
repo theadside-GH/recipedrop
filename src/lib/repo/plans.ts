@@ -31,6 +31,17 @@ async function planIsOwned(db: DB, mealPlanId: string, ownerEmail: string): Prom
   return !!row;
 }
 
+/** Cheap existence check for the first-run checklist. */
+export async function ownerHasPlan(ownerEmail: string): Promise<boolean> {
+  const db = await getDb();
+  const [row] = await db
+    .select({ id: mealPlan.id })
+    .from(mealPlan)
+    .where(eq(mealPlan.ownerEmail, ownerEmail))
+    .limit(1);
+  return !!row;
+}
+
 export async function createPlan(ownerEmail: string, name: string) {
   const db = await getDb();
   const [row] = await db

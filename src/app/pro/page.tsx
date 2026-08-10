@@ -22,10 +22,16 @@ import { getProPrice } from "@/lib/billing";
 import { TIERS } from "@/lib/entitlements";
 import { features } from "@/lib/env";
 import { getOrCreateProfile } from "@/lib/repo/profiles";
+import { NotifyMe } from "./notify-me";
 
 export const dynamic = "force-dynamic";
 
 export const metadata = { title: "DishCovered Pro" };
+
+// Planned price shown before live Stripe billing exists. Update in one place
+// (or set STRIPE_PRICE_ID and this yields to the live price automatically).
+const PLANNED_PRICE = "$19/year";
+const PLANNED_PRICE_SUB = "about $1.60 a month";
 
 export default async function ProPage() {
   const viewer = await getViewerEmail();
@@ -33,9 +39,14 @@ export default async function ProPage() {
   const isPro = profile?.paidTier === "pro";
   const price = await getProPrice();
 
-  const priceLine = price
-    ? `${price.label} — that's less than one takeout order.`
-    : "Final pricing lands at launch — think a couple of takeout coffees a year, not another streaming bill.";
+  // Always show a concrete number: the live Stripe price when configured,
+  // otherwise the planned launch price.
+  const priceLabel = price?.label ?? PLANNED_PRICE;
+  const priceIsLive = !!price;
+
+  const priceLine = priceIsLive
+    ? `${priceLabel} — a couple of takeout coffees for the whole year. Cancel anytime.`
+    : `${PLANNED_PRICE} (${PLANNED_PRICE_SUB}) at launch — a couple of takeout coffees for the whole year, not another monthly bill. Cancel anytime.`;
 
   const faqs = [
     {
@@ -134,10 +145,10 @@ export default async function ProPage() {
           hundredth TikTok feels the same as your first.
         </p>
         <div className="mt-5 flex flex-wrap items-center gap-3">
-          <UpgradeCta signedIn={!!viewer} isPro={isPro} />
-          {price && (
-            <span className="text-sm font-medium text-muted">{price.label}, cancel anytime</span>
-          )}
+          <UpgradeCta signedIn={!!viewer} isPro={isPro} viewerEmail={viewer} />
+          <span className="text-sm font-medium text-muted">
+            {priceLabel}{priceIsLive ? "" : " planned"}, cancel anytime
+          </span>
         </div>
       </section>
 
@@ -210,7 +221,7 @@ export default async function ProPage() {
           covers how importing and sharing work.
         </p>
         <div className="mt-4 flex justify-center">
-          <UpgradeCta signedIn={!!viewer} isPro={isPro} />
+          <UpgradeCta signedIn={!!viewer} isPro={isPro} viewerEmail={viewer} />
         </div>
       </section>
     </div>
@@ -223,7 +234,15 @@ function Cell({ value, pro = false }: { value: string | boolean; pro?: boolean }
   return <>{value}</>;
 }
 
-function UpgradeCta({ signedIn, isPro }: { signedIn: boolean; isPro: boolean }) {
+function UpgradeCta({
+  signedIn,
+  isPro,
+  viewerEmail,
+}: {
+  signedIn: boolean;
+  isPro: boolean;
+  viewerEmail: string | null;
+}) {
   if (isPro) {
     return (
       <form action={openBillingPortalAction} className="flex items-center gap-3">
@@ -236,26 +255,30 @@ function UpgradeCta({ signedIn, isPro }: { signedIn: boolean; isPro: boolean }) 
       </form>
     );
   }
-  if (!signedIn) {
+  if (features.checkoutEnabled) {
+    if (!signedIn) {
+      return (
+        <Link href="/login?next=/pro" className={buttonVariants({ size: "lg" })}>
+          Sign in to get started
+        </Link>
+      );
+    }
     return (
-      <Link href="/login?next=/pro" className={buttonVariants({ size: "lg" })}>
-        Sign in to get started
-      </Link>
+      <form action={createCheckoutAction}>
+        <Button type="submit" size="lg">
+          <Crown className="h-4 w-4" />
+          Upgrade to Pro
+        </Button>
+      </form>
     );
   }
-  if (!features.checkoutEnabled) {
-    return (
-      <span className="rounded-full border border-border bg-surface px-4 py-2 text-sm text-muted">
-        Pro launches soon — you&apos;ll be able to upgrade right here.
-      </span>
-    );
-  }
+  // Checkout isn't live yet — capture interest instead of a dead end.
   return (
-    <form action={createCheckoutAction}>
-      <Button type="submit" size="lg">
-        <Crown className="h-4 w-4" />
-        Upgrade to Pro
-      </Button>
-    </form>
+    <div className="space-y-2">
+      <p className="text-sm text-muted">
+        Pro opens soon. Leave your email and we&apos;ll tell you the moment it does.
+      </p>
+      <NotifyMe defaultEmail={viewerEmail ?? ""} />
+    </div>
   );
 }
