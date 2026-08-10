@@ -114,6 +114,22 @@ describe("AI quota", () => {
   });
 });
 
+describe("founder is never rate-limited", () => {
+  it("bypasses the AI cap for founder emails and reports unlimited", async () => {
+    const { entitlements } = await repos();
+    // OWNER_EMAIL is always a founder; env default is "owner@local".
+    const founder = "owner@local";
+    for (let i = 0; i < entitlements.TIERS.pro.aiUses + 5; i++) {
+      await entitlements.recordAiUse(founder, "import");
+    }
+    // Never throws, even well past the Pro cap.
+    await expect(entitlements.recordAiUse(founder, "import")).resolves.toBeUndefined();
+    const usage = await entitlements.getAiUsage(founder);
+    expect(usage.tier).toBe("pro");
+    expect(usage.unlimited).toBe(true);
+  });
+});
+
 describe("import job claims", () => {
   it("lets exactly one runner claim a job; stale claims are recoverable", async () => {
     const { imports } = await repos();

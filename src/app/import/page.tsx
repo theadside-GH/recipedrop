@@ -37,10 +37,16 @@ export default async function ImportPage() {
       </div>
       {usage && (
         <p className="text-sm text-muted">
-          AI uses this {usage.windowLabel}: {usage.used} of {usage.limit}
-          {usage.tier === "free" ? " (Free plan)" : ""}. Imports, photo scans, recipe
-          repairs, and plan autopilot all count.
-          {usage.tier === "free" && (
+          {usage.unlimited ? (
+            <>AI imports: <strong className="text-foreground">Unlimited</strong> (founder).</>
+          ) : (
+            <>
+              AI uses this {usage.windowLabel}: {usage.used} of {usage.limit}
+              {usage.tier === "free" ? " (Free plan)" : ""}.
+            </>
+          )}{" "}
+          Imports, photo scans, recipe repairs, and plan autopilot all count.
+          {usage.tier === "free" && !usage.unlimited && (
             <>
               {" "}
               <Link href="/pro" className="font-medium text-brand hover:underline">
@@ -61,7 +67,8 @@ export default async function ImportPage() {
       <ImportClient
         aiEnabled={features.aiEnabled}
         initialJobs={recentJobs}
-        aiRemaining={usage ? Math.max(0, usage.limit - usage.used) : null}
+        // Founders are unmetered — pass null so the quota hints stay silent.
+        aiRemaining={usage && !usage.unlimited ? Math.max(0, usage.limit - usage.used) : null}
         aiWindowLabel={usage?.windowLabel ?? "week"}
       />
       <PaprikaImport />

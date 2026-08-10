@@ -53,6 +53,14 @@ export const env = {
   inviteEmails: process.env.INVITE_EMAILS ?? "",
 
   /**
+   * Comma/space-separated founder/owner emails. These accounts get the Pro
+   * tier and are never rate-limited — the AI cap exists to protect the shared
+   * Anthropic key from invited strangers, and the founder owns that key.
+   * OWNER_EMAIL is always treated as a founder too.
+   */
+  founderEmails: process.env.FOUNDER_EMAILS ?? "",
+
+  /**
    * Public base URL for absolute links in social previews (og:image etc.).
    * Falls back to the Vercel production domain when deployed there.
    */
@@ -77,6 +85,21 @@ export function isUninvited(email: string | null | undefined): boolean {
   if (list.length === 0 || !email) return false;
   const lower = email.toLowerCase();
   return lower !== env.ownerEmail.toLowerCase() && !list.includes(lower);
+}
+
+/** Lowercased founder list, always including OWNER_EMAIL. */
+export function founderList(): string[] {
+  const explicit = env.founderEmails
+    .split(/[\s,;]+/)
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
+  return [...new Set([env.ownerEmail.toLowerCase(), ...explicit])];
+}
+
+/** True for the app's creator/owner accounts — Pro tier, never rate-limited. */
+export function isFounder(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return founderList().includes(email.toLowerCase());
 }
 
 export const features = {

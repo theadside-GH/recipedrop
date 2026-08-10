@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, gte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { aiUsageEvent, collection, mealPlan, userProfile } from "@/lib/db/schema";
-import { features } from "@/lib/env";
+import { features, isFounder } from "@/lib/env";
 
 /**
  * Plan tiers and what they entitle. `paidTier` on user_profile selects the
@@ -69,6 +69,9 @@ export class PhotoQuotaExceededError extends Error {
 }
 
 async function tierFor(ownerEmail: string): Promise<TierId> {
+  // The creator/owner always has Pro — no DB round-trip, no dependency on a
+  // paid_tier row existing.
+  if (isFounder(ownerEmail)) return "pro";
   const db = await getDb();
   const [row] = await db
     .select({ paidTier: userProfile.paidTier })
@@ -98,6 +101,8 @@ export async function getAiUsage(ownerEmail: string): Promise<{
   limit: number;
   /** "week" for free, "day" for pro — for copy like "AI uses this week". */
   windowLabel: string;
+  /** Founder/owner accounts: no cap at all — UI shows "Unlimited". */
+  unlimited: boolean;
 }> {
   const db = await getDb();
   const tier = await tierFor(ownerEmail);
@@ -112,6 +117,7 @@ export async function getAiUsage(ownerEmail: string): Promise<{
     used: row?.n ?? 0,
     limit: TIERS[tier].aiUses,
     windowLabel: TIERS[tier].aiWindowLabel,
+    unlimited: isFounder(ownerEmail),
   };
 }
 
@@ -130,6 +136,17 @@ function isMissingTable(err: unknown): boolean {
  * migration runs.
  */
 export async function recordAiUse(ownerEmail: string, kind: AiUseKind): Promise<void> {
+  // Founders/owners are never capped — they own the Anthropic key the cap
+  // protects. Record the event for stats, but never throw.
+  if (isFounder(ownerEmail)) {
+    try {
+      const db = await getDb();
+      await db.insert(aiUsageEvent).values({ ownerEmail, kind });
+    } catch {
+      // Best-effort stats for founders; usage is unmetered regardless.
+    }
+    return;
+  }
   try {
     const tier = await tierFor(ownerEmail);
     const since = windowStart(tier);
