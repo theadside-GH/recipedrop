@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getOwnerEmail } from "@/lib/auth";
-import { getPlanFull, getLatestShoppingList } from "@/lib/repo/plans";
+import { getPlanFull, getLatestShoppingList, planSignature } from "@/lib/repo/plans";
 import { listPantryItems } from "@/lib/repo/pantry";
 import { listRecipes } from "@/lib/repo/recipes";
 import { ingredientMatchKey } from "@/lib/shopping/normalize";
@@ -33,6 +33,17 @@ export default async function PlanPage({
   const shortfall =
     Number.isFinite(planned) && Number.isFinite(asked) && planned > 0 && planned < asked;
 
+  // The shopping list is stale if the plan's recipes/servings changed since it
+  // was generated. Null signature (pre-existing lists) counts as fresh.
+  const currentSignature = planSignature(
+    data.items.map((it) => ({ recipeId: it.recipeId, plannedServings: it.plannedServings })),
+  );
+  const listStale =
+    !!shopping &&
+    shopping.items.length > 0 &&
+    !!shopping.list.sourceSignature &&
+    shopping.list.sourceSignature !== currentSignature;
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <Link
@@ -51,6 +62,7 @@ export default async function PlanPage({
       <PlanEditor
         planId={id}
         planName={data.plan.name}
+        listStale={listStale}
         items={data.items.map((it) => ({
           id: it.id,
           recipeId: it.recipeId,

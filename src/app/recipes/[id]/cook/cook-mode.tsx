@@ -66,6 +66,50 @@ export function CookMode({
     timersRef.current = timers;
   }, [timers]);
 
+  // Persist timers so a phone locking or reloading mid-cook doesn't lose them —
+  // the deadline is wall-clock, so a running timer resumes at the right count.
+  const timersKey = `rd-cook-timers-${recipeId}`;
+  useEffect(() => {
+    // Restore once on mount (deferred a tick so hydration settles first).
+    const restore = window.setTimeout(() => {
+      try {
+        const raw = window.localStorage.getItem(timersKey);
+        if (!raw) return;
+        const parsed = JSON.parse(raw) as { savedAt: number; timers: Record<number, TimerState> };
+        // Drop anything older than 6h — don't resurrect a long-finished cook.
+        if (!parsed?.timers || Date.now() - parsed.savedAt > 6 * 60 * 60 * 1000) {
+          window.localStorage.removeItem(timersKey);
+          return;
+        }
+        const restored: Record<number, TimerState> = {};
+        for (const [key, t] of Object.entries(parsed.timers)) {
+          // A running timer that already expired while away shows as done,
+          // silently (no beep on reload).
+          restored[Number(key)] =
+            t && "endsAt" in t && t.endsAt <= Date.now() ? { remaining: 0 } : t;
+        }
+        if (Object.keys(restored).length > 0) setTimers(restored);
+      } catch {
+        // Corrupt/blocked storage — start fresh.
+      }
+    }, 0);
+    return () => window.clearTimeout(restore);
+    // Mount-only.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (Object.keys(timers).length > 0) {
+        window.localStorage.setItem(timersKey, JSON.stringify({ savedAt: Date.now(), timers }));
+      } else {
+        window.localStorage.removeItem(timersKey);
+      }
+    } catch {
+      // Storage full/blocked — timers still work in-memory this session.
+    }
+  }, [timers, timersKey]);
+
   // One shared tick drives every running timer, so a countdown that hits zero
   // beeps no matter which step is on screen.
   useEffect(() => {

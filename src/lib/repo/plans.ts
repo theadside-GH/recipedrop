@@ -235,6 +235,19 @@ export async function deletePlan(id: string, ownerEmail: string) {
  * ingredients to its planned servings, then aggregate across recipes. Replaces
  * any previous list for the plan with a fresh snapshot.
  */
+/**
+ * A signature of the plan state that affects the shopping list — the set of
+ * recipes and their planned servings (day-of-week doesn't change the buy).
+ * Comparing the stored signature to the live one tells the UI the list is
+ * stale after a plan edit.
+ */
+export function planSignature(items: { recipeId: string; plannedServings: number }[]): string {
+  return items
+    .map((it) => `${it.recipeId}:${it.plannedServings}`)
+    .sort()
+    .join("|");
+}
+
 export async function generateShoppingList(ownerEmail: string, mealPlanId: string): Promise<string> {
   const db = await getDb();
   if (!(await planIsOwned(db, mealPlanId, ownerEmail))) throw new Error("Plan not found.");
@@ -307,9 +320,14 @@ export async function generateShoppingList(ownerEmail: string, mealPlanId: strin
 
   // Transaction: replace-the-list is delete + inserts — a crash in between
   // must never leave the plan with no list at all.
+  const signature = planSignature(items);
+
   return db.transaction(async (tx) => {
     await tx.delete(shoppingList).where(eq(shoppingList.mealPlanId, mealPlanId));
-    const [list] = await tx.insert(shoppingList).values({ mealPlanId }).returning();
+    const [list] = await tx
+      .insert(shoppingList)
+      .values({ mealPlanId, sourceSignature: signature })
+      .returning();
 
     if (aggregated.length) {
       await tx.insert(shoppingListItem).values(

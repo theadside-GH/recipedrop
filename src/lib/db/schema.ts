@@ -106,6 +106,12 @@ export const proWaitlist = pgTable("pro_waitlist", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Signed-in-but-uninvited accounts that asked for access. */
+export const inviteRequest = pgTable("invite_request", {
+  email: text("email").primaryKey(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ---------------------------------------------------------------------------
 // Recipes
 // ---------------------------------------------------------------------------
@@ -260,6 +266,10 @@ export const shoppingList = pgTable("shopping_list", {
   generatedAt: timestamp("generated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  // Snapshot of the plan's recipe/servings state when this list was built, so
+  // the UI can tell the list is stale after the plan changes. Null on
+  // pre-existing rows (treated as "not stale").
+  sourceSignature: text("source_signature"),
 });
 
 export const shoppingListItem = pgTable(

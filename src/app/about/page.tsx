@@ -22,7 +22,7 @@ const FAQS = [
   {
     question: "Why do some social posts need extra help?",
     answer:
-      "TikTok, Instagram, and Facebook sometimes hide captions, comments, or linked recipe details from normal web access. DishCovered uses what the page exposes, then turns that into a clean recipe.",
+      "TikTok, Instagram, and Facebook sometimes hide captions, comments, or linked recipe details from normal web access. DishCovered reads the caption and post details today and turns them into a clean recipe — when the recipe is only spoken or shown in the video, paste the text or a screenshot for now. Audio transcription (reading the recipe straight from the video) is coming soon.",
     icon: MessageSquareText,
   },
   {

@@ -24,7 +24,7 @@ async function fetchHtml(url: string, ua = UA): Promise<string> {
     // was aborted" in the import row.
     if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
       throw new Error(
-        "That site took too long to respond. Try again, or copy the recipe text and use \"Paste text\".",
+        "That site took too long to respond. Try again, or copy the recipe text and use the \"Link / Text\" tab.",
       );
     }
     throw err;
@@ -49,13 +49,13 @@ async function fetchHtmlInner(url: string, ua: string): Promise<string> {
   }
   if (res.status === 403) {
     throw new Error(
-      "This site blocks automated importers (HTTP 403). Open the recipe, copy its text, and use the \"Paste text\" tab instead.",
+      "This site blocks automated importers (HTTP 403). Open the recipe, copy its text, and use the \"Link / Text\" tab instead.",
     );
   }
   if (!res.ok) throw new Error(`Could not fetch the page (HTTP ${res.status}).`);
   const body = await readBodyCapped(res, MAX_HTML_BYTES);
   if (body === null) {
-    throw new Error("That page is too large to import. Copy the recipe text and use \"Paste text\" instead.");
+    throw new Error("That page is too large to import. Copy the recipe text and use the \"Link / Text\" tab instead.");
   }
   return body.toString("utf8");
 }
@@ -251,7 +251,7 @@ function fetchSocialCaption(html: string, url: string): SourceContent {
   if (caption.length < 40) {
     throw new Error(
       `${platform} hid this post's caption from us (it may be private or login-gated). ` +
-        `Open the post, copy the caption text, and paste it into the "Paste text" tab instead.`,
+        `Open the post, copy the caption text, and paste it into the "Link / Text" tab instead.`,
     );
   }
   return {

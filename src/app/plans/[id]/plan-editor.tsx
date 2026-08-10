@@ -57,12 +57,15 @@ export function PlanEditor({
   items,
   allRecipes,
   shopping,
+  listStale = false,
 }: {
   planId: string;
   planName: string;
   items: PlanItem[];
   allRecipes: PickRecipe[];
   shopping: { items: ShoppingItem[] } | null;
+  /** The plan changed since the list was generated — prompt a regenerate. */
+  listStale?: boolean;
 }) {
   const router = useRouter();
   const [picking, setPicking] = useState(false);
@@ -201,6 +204,19 @@ export function PlanEditor({
           </div>
         )}
       </div>
+
+      {listStale && shopping && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <span className="flex items-center gap-2">
+            <ShoppingBasket className="h-4 w-4 shrink-0" />
+            Your plan changed — this shopping list is out of date. Regenerate before you shop.
+          </span>
+          <Button size="sm" variant="secondary" onClick={generate} disabled={generating}>
+            {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Regenerate now
+          </Button>
+        </div>
+      )}
 
       {items.length > 0 && (
         <Button onClick={generate} size="lg" className="w-full" disabled={generating}>

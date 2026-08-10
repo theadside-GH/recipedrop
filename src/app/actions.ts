@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
-import { getOwnerEmail } from "@/lib/auth";
+import { getOwnerEmail, getViewerEmail } from "@/lib/auth";
 import { env, features } from "@/lib/env";
 import { findCustomerByEmail, getStripe } from "@/lib/billing";
 import {
@@ -64,7 +64,7 @@ import {
   type CookedState,
 } from "@/lib/repo/social";
 import { addRecipeComment, deleteRecipeComment } from "@/lib/repo/comments";
-import { joinProWaitlist } from "@/lib/repo/waitlist";
+import { joinProWaitlist, requestInvite } from "@/lib/repo/waitlist";
 import {
   addRecipeNote,
   deleteRecipeNote,
@@ -200,6 +200,18 @@ export async function clearImportHistoryAction(): Promise<void> {
   const owner = await getOwnerEmail();
   await clearImportHistory(owner);
   revalidatePath("/import");
+}
+
+/** Record an access request from the signed-in (but uninvited) viewer. */
+export async function requestInviteAction(): Promise<{ ok: boolean; message: string }> {
+  const email = await getViewerEmail();
+  if (!email) return { ok: false, message: "Please sign in first." };
+  try {
+    await requestInvite(email);
+    return { ok: true, message: "Request sent — we'll reach out at " + email + "." };
+  } catch {
+    return { ok: false, message: "Couldn't send that — try again." };
+  }
 }
 
 /** Join the "notify me when Pro launches" list. Public — no auth required. */

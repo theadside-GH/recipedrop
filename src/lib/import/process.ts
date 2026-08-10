@@ -25,7 +25,7 @@ function extractionAdvice(sourceType: ImportJobRow["sourceType"], rawInput: stri
   if (sourceType === "youtube" || social) {
     return (
       "The recipe details are probably in the video itself rather than the caption — " +
-      'copy the full recipe text (or type what you see in the video) into the "Paste text" tab.'
+      'copy the full recipe text (or type what you see in the video) into the "Link / Text" tab.'
     );
   }
   if (sourceType === "text") {

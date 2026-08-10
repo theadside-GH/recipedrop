@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ChefHat } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "./sign-out-button";
+import { RequestInviteButton } from "./request-invite-button";
 
 export const metadata: Metadata = { title: "Invite only" };
 
@@ -20,13 +21,18 @@ export default function NotInvitedPage() {
       <h1 className="mt-4 text-2xl font-bold">DishCovered is invite-only right now</h1>
       <p className="mt-2 text-muted">
         You&apos;re signed in, but this kitchen is friends-and-family for the moment. Ask
-        the person who shared DishCovered with you to add your email — then everything
-        just works.
+        the person who shared DishCovered with you to add your email — or request an invite
+        below and we&apos;ll reach out.
       </p>
-      <p className="mt-2 text-sm text-muted">
+
+      <div className="mt-5">
+        <RequestInviteButton />
+      </div>
+
+      <p className="mt-5 text-sm text-muted">
         You can still browse the public recipes on Discover in the meantime.
       </p>
-      <div className="mt-6 flex flex-wrap justify-center gap-3">
+      <div className="mt-4 flex flex-wrap justify-center gap-3">
         <Link href="/discover">
           <Button variant="secondary">Browse Discover</Button>
         </Link>

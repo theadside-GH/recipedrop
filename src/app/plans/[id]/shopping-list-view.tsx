@@ -6,6 +6,7 @@ import { Archive, Check, CloudOff, Copy, EyeOff, PackageCheck, Printer, X } from
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { formatPurchaseAmount } from "@/lib/shopping/purchase";
+import { aisleRank } from "@/lib/shopping/aisle";
 import {
   removeShoppingItemAction,
   setLeftoverItemAction,
@@ -465,7 +466,9 @@ function groupByAisle(items: ShoppingItem[]) {
     if (!groups.has(aisle)) groups.set(aisle, []);
     groups.get(aisle)!.push(item);
   }
-  return groups;
+  // Render in store-walk order (Produce → … → Pantry → Beverages → Other),
+  // not the order items happened to arrive in.
+  return new Map([...groups.entries()].sort((a, b) => aisleRank(a[0]) - aisleRank(b[0])));
 }
 
 function shoppingListText(items: ShoppingItem[], checked: Record<string, boolean>) {

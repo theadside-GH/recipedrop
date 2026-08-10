@@ -461,6 +461,12 @@ export function ImportClient({
             <div>
               <h2 className="text-sm font-semibold">Recent import history</h2>
               <p className="text-xs text-muted">{summary}</p>
+              {jobs.some((j) => j.status === "pending" || j.status === "processing") && (
+                <p className="mt-0.5 text-xs text-muted">
+                  Imports run on our servers — you can switch tabs and they keep going for a
+                  few minutes. They&apos;ll be in Your Recipes when they finish.
+                </p>
+              )}
             </div>
             <div className="flex flex-wrap gap-2">
               {failedJobs.length > 0 && (
