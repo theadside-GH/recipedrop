@@ -47,7 +47,7 @@ const AISLE_RULES: { aisle: string; words: string[] }[] = [
       "flour", "sugar", "rice", "pasta", "oil", "vinegar", "sauce", "salt",
       "black pepper", "white pepper", "peppercorn", "red pepper", "cayenne",
       "spice", "broth", "stock", "bean", "lentil", "tomato paste", "tomato sauce",
-      "canned", "honey", "syrup", "corn syrup", "cornstarch", "corn flour",
+      "canned", "honey", "syrup", "corn syrup", "cornstarch", "corn flour", "cornmeal",
       "vanilla", "baking", "yeast", "oats", "noodle", "soy", "cumin",
       "ground cumin", "paprika", "cinnamon", "ground cinnamon", "oregano", "chili",
       "peanut butter", "almond butter", "cashew butter", "nut butter",
@@ -70,7 +70,8 @@ export const AISLE_ORDER = [
 ];
 
 export function guessAisle(canonicalName: string): string | null {
-  const n = canonicalName.toLowerCase();
+  // Fold accents so "jalapeño" still hits the "jalapeno" keyword.
+  const n = canonicalName.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   let bestAisle: string | null = null;
   let bestLen = 0;
   for (const rule of AISLE_RULES) {

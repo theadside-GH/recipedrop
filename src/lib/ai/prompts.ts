@@ -17,6 +17,7 @@ Rules:
 
 INGREDIENT NORMALIZATION (most important):
 - For every ingredient, set canonicalName to the CORE GROCERY ITEM only: singular, lowercase, with brand names and prep words removed. Examples: "2 boneless skinless chicken breasts" -> "chicken breast"; "1 cup finely chopped yellow onion" -> "onion"; "a handful of fresh cilantro, chopped" -> "cilantro".
+- canonicalName must stay the SAME PRODUCT you would buy at the store. Never shorten it to a broader or related ingredient: cornmeal is NOT corn, coconut milk is NOT coconut, almond flour is NOT almond, rice vinegar is NOT rice, garlic powder is NOT garlic, tomato paste is NOT tomato. Compound product names ("cornmeal", "buttermilk", "cream cheese", "sesame oil") stay whole — only strip brands, prep, and descriptive adjectives.
 - Keep prep/qualifiers ("finely chopped", "room temperature", "to taste") in the note field, NOT in canonicalName.
 - quantity: the numeric amount as a decimal (convert fractions: 1/2 -> 0.5, "1 1/2" -> 1.5). Use null if there is no number ("to taste", "a pinch").
 - unit: a normalized token. Mass: g, kg, mg, oz, lb. Volume: ml, l, tsp, tbsp, cup, fl oz, pint, quart, gallon. Count nouns: clove, can, slice, bunch, head, stalk, sprig, etc. Use null for a plain count like "2 eggs".
@@ -29,7 +30,7 @@ Return ONLY the structured object.`;
 export function canonicalHint(known: string[]): string {
   if (!known.length) return "";
   const list = known.slice(0, 200).join(", ");
-  return `\n\nWhen choosing canonicalName, PREFER reusing one of these existing canonical ingredient names if it refers to the same item (this keeps the shopping list merged): ${list}.`;
+  return `\n\nWhen choosing canonicalName, PREFER reusing one of these existing canonical ingredient names ONLY when it is exactly the same grocery product (this keeps the shopping list merged). Never substitute a broader or merely similar item from the list — if the recipe's ingredient is not on the list, keep its own name: ${list}.`;
 }
 
 /** Prompt used to split a bulk paste/file into individual recipe items. */

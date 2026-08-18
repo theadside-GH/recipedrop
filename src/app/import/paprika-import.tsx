@@ -53,7 +53,9 @@ export function PaprikaImport() {
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-soft text-brand">
           <PackageOpen className="h-5 w-5" />
         </span>
-        <div className="min-w-0 flex-1">
+        {/* min basis so on phone widths the upload button wraps below instead
+            of crushing this text into a sliver column */}
+        <div className="min-w-[14rem] flex-1">
           <p className="font-medium">Switching from Paprika?</p>
           <p className="text-sm text-muted">
             Upload your whole export in one go — recipes, photos, categories, and star

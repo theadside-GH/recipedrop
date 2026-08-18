@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MoreHorizontal } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
  * click and Escape, and any item click closes it (items run their own
  * handlers).
  */
+const MENU_WIDTH = 224; // w-56 — needed before paint to pick an anchoring side
+
 export function OverflowMenu({
   label = "More",
   children,
@@ -19,6 +21,15 @@ export function OverflowMenu({
   children: React.ReactNode;
 }) {
   const detailsRef = useRef<HTMLDetailsElement>(null);
+  // The action row wraps, so the button can sit near either screen edge.
+  // Anchor the panel to whichever side keeps it fully on screen.
+  const [align, setAlign] = useState<"left" | "right">("right");
+
+  function chooseSide() {
+    const rect = detailsRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setAlign(rect.right - MENU_WIDTH >= 8 ? "right" : "left");
+  }
 
   useEffect(() => {
     const close = () => {
@@ -37,7 +48,7 @@ export function OverflowMenu({
   }, []);
 
   return (
-    <details ref={detailsRef} className="relative print:hidden">
+    <details ref={detailsRef} onToggle={chooseSide} className="relative print:hidden">
       <summary
         className={cn(
           buttonVariants({ variant: "secondary", size: "lg" }),
@@ -48,7 +59,10 @@ export function OverflowMenu({
         {label}
       </summary>
       <div
-        className="absolute right-0 top-full z-20 mt-2 w-56 rounded-2xl border border-border bg-card p-1.5 shadow-card-hover"
+        className={cn(
+          "absolute top-full z-30 mt-2 w-56 rounded-2xl border border-border bg-card p-1.5 shadow-card-hover",
+          align === "right" ? "right-0" : "left-0",
+        )}
         onClick={() => {
           if (detailsRef.current) detailsRef.current.open = false;
         }}
