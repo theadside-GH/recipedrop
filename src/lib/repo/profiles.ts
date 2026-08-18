@@ -74,6 +74,17 @@ function cleanOptional(value: string | null | undefined): string | null {
   return cleaned ? cleaned : null;
 }
 
+/** Read-only profile lookup — null when the row doesn't exist yet. */
+export async function getProfileIfExists(email: string) {
+  const db = await getDb();
+  const [row] = await db
+    .select()
+    .from(userProfile)
+    .where(eq(userProfile.email, email))
+    .limit(1);
+  return row ?? null;
+}
+
 export async function getOrCreateProfile(email: string, seed: ProfileSeed = {}) {
   const db = await getDb();
   const [existing] = await db

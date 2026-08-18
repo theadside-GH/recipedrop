@@ -151,9 +151,18 @@ export function CollectionPicker({
   const detailsRef = useRef<HTMLDetailsElement>(null);
   const state = usePickerState(recipeId, initial, dropSource);
   const inCount = state.collections.filter((c) => c.has).length;
+  // Same edge-aware anchoring as OverflowMenu: the action row wraps, so the
+  // button can sit near the right screen edge where a left-anchored 288px
+  // panel would hang off screen.
+  const [align, setAlign] = useState<"left" | "right">("left");
+  function chooseSide() {
+    const rect = detailsRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setAlign(rect.left + 288 <= window.innerWidth - 8 ? "left" : "right");
+  }
 
   return (
-    <details ref={detailsRef} className="group relative">
+    <details ref={detailsRef} onToggle={chooseSide} className="group relative">
       <summary
         className={cn(
           buttonVariants({ variant: "secondary", size: "lg" }),
@@ -163,7 +172,12 @@ export function CollectionPicker({
         <BookMarked className="h-4 w-4" />
         {inCount > 0 ? `In ${inCount} collection${inCount === 1 ? "" : "s"}` : "Add to collection"}
       </summary>
-      <div className="absolute left-0 top-full z-20 mt-2 w-72 rounded-2xl border border-border bg-card p-2 shadow-card-hover">
+      <div
+        className={cn(
+          "absolute top-full z-30 mt-2 w-72 rounded-2xl border border-border bg-card p-2 shadow-card-hover",
+          align === "left" ? "left-0" : "right-0",
+        )}
+      >
         <PickerPanelBody
           state={state}
           hint={dropSource ? "Also saves the recipe into Your Recipes." : undefined}

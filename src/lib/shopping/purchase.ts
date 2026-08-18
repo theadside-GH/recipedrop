@@ -91,6 +91,14 @@ function formatMass(name: string, grams: number): string {
 
 function formatVolume(name: string, ml: number): string {
   if (hasAny(name, BOTTLE_WORDS)) return `buy 1 bottle ${name}`;
+  // Dairy butter comes in sticks (1 stick = 8 tbsp ≈ 118 ml). Exact-name match
+  // so peanut/almond butter keep their normal amounts.
+  if (name === "butter") {
+    const sticks = Math.ceil(ml / 118);
+    return sticks <= 1 ? "buy 1 stick butter" : `buy ${sticks} sticks butter`;
+  }
+  // Spoon-sized totals: "buy about 25 ml" of honey reads worse than tbsp.
+  if (ml < 60) return `buy about ${Math.ceil(ml / 14.787)} tbsp`;
   if (name.includes("milk") || name.includes("cream") || name.includes("stock")) {
     if (ml <= 500) return `buy about ${roundUp(ml, 50)} ml`;
     return `buy about ${roundUp(ml / 1000, 0.25)} L`;

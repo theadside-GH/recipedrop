@@ -62,7 +62,18 @@ function formatMass(grams: number): string {
 }
 
 function formatVolume(ml: number): string {
-  return ml >= 1000 ? `${tidyNumber(ml / 1000)} L` : `${tidyNumber(ml)} ml`;
+  if (ml >= 1000) return `${tidyNumber(ml / 1000)} L`;
+  // Spoon-sized totals read as kitchen units, not "14.79 ml".
+  if (ml < 60) {
+    const tbsp = ml / 14.787;
+    if (tbsp >= 0.9) {
+      const qty = tidyNumber(Math.round(tbsp * 4) / 4);
+      return `${qty} tbsp`;
+    }
+    const tsp = tidyNumber(Math.round((ml / 4.929) * 2) / 2);
+    return `${tsp} tsp`;
+  }
+  return `${tidyNumber(ml)} ml`;
 }
 
 function formatSubGroup(g: SubGroup): string {

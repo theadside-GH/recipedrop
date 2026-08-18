@@ -64,6 +64,52 @@ describe("formatPurchaseAmount", () => {
     ).toBe("check pantry");
   });
 
+  it("sells butter by the stick, leaving nut butters alone", () => {
+    expect(
+      formatPurchaseAmount({
+        canonicalName: "butter",
+        displayText: "1 tbsp",
+        totalQuantity: 14.79,
+        baseUnit: "ml",
+        unitCategory: "volume",
+        isSummable: true,
+      }),
+    ).toBe("buy 1 stick butter");
+    expect(
+      formatPurchaseAmount({
+        canonicalName: "butter",
+        displayText: "300 ml",
+        totalQuantity: 300,
+        baseUnit: "ml",
+        unitCategory: "volume",
+        isSummable: true,
+      }),
+    ).toBe("buy 3 sticks butter");
+    expect(
+      formatPurchaseAmount({
+        canonicalName: "peanut butter",
+        displayText: "30 ml",
+        totalQuantity: 30,
+        baseUnit: "ml",
+        unitCategory: "volume",
+        isSummable: true,
+      }),
+    ).toBe("buy about 3 tbsp");
+  });
+
+  it("shows spoon-sized volume buys in tbsp", () => {
+    expect(
+      formatPurchaseAmount({
+        canonicalName: "honey",
+        displayText: "2 tbsp",
+        totalQuantity: 29.57,
+        baseUnit: "ml",
+        unitCategory: "volume",
+        isSummable: true,
+      }),
+    ).toBe("buy about 2 tbsp");
+  });
+
   it("never hides amounts for groceries that merely contain a staple word", () => {
     expect(
       formatPurchaseAmount({

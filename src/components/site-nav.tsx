@@ -33,15 +33,18 @@ function NavIcon({
   active,
   className,
   avatarClassName,
+  avatarEnabled,
 }: {
   link: NavLink;
   active: boolean;
   className: string;
   avatarClassName: string;
+  /** Layout says the viewer may have a picture — otherwise don't fetch at all. */
+  avatarEnabled: boolean;
 }) {
   // 404 (no picture set) or a broken remote URL falls back to the icon.
   const [failed, setFailed] = useState(false);
-  if (!link.avatar || failed) return <link.icon className={className} />;
+  if (!link.avatar || !avatarEnabled || failed) return <link.icon className={className} />;
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -90,10 +93,13 @@ const ANON_LINKS: NavLink[] = [
 export function SiteNav({
   signedIn = true,
   tier = null,
+  showAvatar = false,
 }: {
   signedIn?: boolean;
   /** The viewer's plan, shown as an always-visible badge next to the logo. */
   tier?: "free" | "pro" | null;
+  /** Whether the viewer may have a profile picture — skips the /api/avatar fetch (and its 404) when they don't. */
+  showAvatar?: boolean;
 }) {
   const pathname = usePathname();
   const links = signedIn ? LINKS : ANON_LINKS;
@@ -145,7 +151,7 @@ export function SiteNav({
                       active ? "bg-brand-soft text-brand" : "text-muted hover:bg-surface",
                     )}
                   >
-                    <NavIcon link={l} active={active} className="h-4 w-4" avatarClassName="h-6 w-6 -my-1" />
+                    <NavIcon link={l} active={active} className="h-4 w-4" avatarClassName="h-6 w-6 -my-1" avatarEnabled={showAvatar} />
                     {l.label}
                   </Link>
                 );
@@ -182,7 +188,7 @@ export function SiteNav({
                 active ? "text-brand" : "text-muted",
               )}
             >
-              <NavIcon link={l} active={active} className="h-5 w-5" avatarClassName="h-5 w-5" />
+              <NavIcon link={l} active={active} className="h-5 w-5" avatarClassName="h-5 w-5" avatarEnabled={showAvatar} />
               {l.mobileLabel ?? l.label}
             </Link>
           );
