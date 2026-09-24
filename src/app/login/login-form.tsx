@@ -10,8 +10,8 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 // Email magic links are switched off: the link only signs in the browser it
 // opens in, and on iPhone that's Safari or Gmail's in-app browser — never the
 // Home Screen app — so it "didn't work". Google is the only sign-in until the
-// Supabase email template carries a typeable code (git history has the
-// link + code form, ready to restore).
+// Supabase email template carries a typeable code ({{ .Token }}); then add a
+// code box that calls supabase.auth.verifyOtp({ email, token, type: "email" }).
 export function LoginForm({
   authEnabled,
   inviteOnly = false,
