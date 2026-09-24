@@ -14,6 +14,7 @@ import {
   type ImportJobRow,
 } from "@/lib/repo/imports";
 import { detectSourceType } from "@/lib/sources/detect";
+import { linkFromPastedText } from "@/lib/sources/shared";
 import {
   createRecipeManual,
   deleteRecipe,
@@ -129,8 +130,9 @@ export async function startImport(input: {
       const { jobs } = await createBulkJobs(owner, input.value);
       return { jobs: jobs.map(toView), aiEnabled: features.aiEnabled };
     }
-    const type = detectSourceType(input.value);
-    const job = await createSingleJob(owner, type, input.value);
+    let value = input.value.trim();
+    if (detectSourceType(value) === "text") value = linkFromPastedText(value) ?? value;
+    const job = await createSingleJob(owner, detectSourceType(value), value);
     return { jobs: [toView(job)], aiEnabled: features.aiEnabled };
   } catch (error) {
     console.error("Import start failed", error);
