@@ -22,7 +22,7 @@ const SECTIONS: { heading: string; body: React.ReactNode }[] = [
     heading: "2. Your account",
     body: (
       <>
-        You sign in with Google or an emailed magic link. Keep your account to yourself —
+        You sign in with Google. Keep your account to yourself —
         you&apos;re responsible for what happens under it. You must be old enough to have
         an account under the laws where you live.
       </>

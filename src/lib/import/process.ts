@@ -8,6 +8,7 @@ import { findStandInImage } from "@/lib/ai/image-search";
 import { recordAiUse } from "@/lib/entitlements";
 import { pickWorkingImage } from "@/lib/import/images";
 import { resolveSourceKey } from "@/lib/import/resolve-source";
+import { ingredientGrounding, MIN_GROUNDING } from "@/lib/import/grounding";
 import type { RecipeExtraction } from "@/lib/ai/schema";
 import {
   createRecipeFromExtraction,
@@ -101,6 +102,15 @@ export async function runClaimedJob(
       knownCanonical: known,
       context: content.context ?? job.rawInput,
     });
+    // Invented recipe: the source had a title or caption but not the recipe
+    // itself, and the model filled the gap from general knowledge. Saving that
+    // as "the recipe from this link" is worse than failing honestly.
+    if (ingredientGrounding(extraction, content.text) < MIN_GROUNDING) {
+      throw new Error(
+        "That source only has a title or caption, not the actual recipe, so DishCovered didn't save a guess. " +
+          extractionAdvice(job.sourceType, job.rawInput),
+      );
+    }
     // Incomplete extraction: save what we got when there's a real start
     // (finished below as needs_review so the user can fill in the rest);
     // fail with specifics only when there's nothing worth keeping.

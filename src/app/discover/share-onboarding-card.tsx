@@ -11,7 +11,8 @@ const noopSubscribe = () => () => {};
 /**
  * One-time teach card for the fastest way to save recipes: install the app,
  * then share straight from TikTok/Instagram/YouTube. Hidden once dismissed,
- * and never shown when already running as the installed app.
+ * and hidden in the installed app — except on iPhone, where installing never
+ * adds DishCovered to the share sheet and the Shortcut is still to do.
  */
 export function ShareOnboardingCard() {
   const [dismissed, setDismissed] = useLocalSetting(DISMISS_KEY, "");
@@ -29,7 +30,9 @@ export function ShareOnboardingCard() {
     () => false,
   );
 
-  if (installed || dismissed === "1") return null;
+  // Installed Android already has DishCovered in its share sheet. Installed
+  // iPhone does NOT — the Shortcut is still the missing step, so keep teaching it.
+  if ((installed && !isIos) || dismissed === "1") return null;
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-brand/25 bg-gradient-to-br from-brand-soft via-background to-brand-soft p-6 pr-12 sm:p-7">
@@ -57,31 +60,33 @@ export function ShareOnboardingCard() {
         typing, no screenshots.
       </p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-2">
-        <div className="flex gap-3 rounded-2xl border border-brand/20 bg-card/80 p-4 backdrop-blur">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-brand-foreground shadow-sm">
-            1
-          </span>
-          <div className="text-sm">
-            <p className="flex items-center gap-1.5 font-semibold">
-              <Smartphone className="h-4 w-4 text-brand" /> Put it on your phone
-            </p>
-            <p className="mt-1 text-muted">
-              {isIos ? (
-                <>
-                  Open this site in Safari → Share → <strong>Add to Home Screen</strong>.
-                </>
-              ) : (
-                <>
-                  Open this site in Chrome → menu → <strong>Install app</strong>.
-                </>
-              )}
-            </p>
+      <div className={`mt-5 grid gap-3 ${installed ? "" : "sm:grid-cols-2"}`}>
+        {!installed && (
+          <div className="flex gap-3 rounded-2xl border border-brand/20 bg-card/80 p-4 backdrop-blur">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-brand-foreground shadow-sm">
+              1
+            </span>
+            <div className="text-sm">
+              <p className="flex items-center gap-1.5 font-semibold">
+                <Smartphone className="h-4 w-4 text-brand" /> Put it on your phone
+              </p>
+              <p className="mt-1 text-muted">
+                {isIos ? (
+                  <>
+                    Open this site in Safari → Share → <strong>Add to Home Screen</strong>.
+                  </>
+                ) : (
+                  <>
+                    Open this site in Chrome → menu → <strong>Install app</strong>.
+                  </>
+                )}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex gap-3 rounded-2xl border border-brand/20 bg-card/80 p-4 backdrop-blur">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-sm font-bold text-brand-foreground shadow-sm">
-            2
+            {installed ? 1 : 2}
           </span>
           <div className="text-sm">
             <p className="flex items-center gap-1.5 font-semibold">

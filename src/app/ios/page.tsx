@@ -27,7 +27,8 @@ export default function IosPage() {
         <StepCard n={1} icon={Smartphone} title="Put DishCovered on your Home Screen">
           Open this site in <strong>Safari</strong> → tap <strong>Share</strong> →{" "}
           <strong>Add to Home Screen</strong>. (Optional but nicer — the app opens
-          full-screen.)
+          full-screen.) On iPhone this alone does <strong>not</strong> add DishCovered to
+          the share sheet — that&apos;s step 2.
         </StepCard>
 
         <StepCard n={2} icon={Wand2} title="Add the “Save to DishCovered” Shortcut">
@@ -85,6 +86,11 @@ export default function IosPage() {
           <strong>Other</strong> (the iOS share sheet) → <strong>Save to DishCovered</strong>.
           <Sparkles className="mx-1 inline h-3.5 w-3.5 text-brand" />
           The recipe opens here, cleaned up and ready to save.
+          <span className="mt-2 block">
+            The Shortcut opens DishCovered in <strong>Safari</strong>, which keeps its own
+            sign-in separate from the Home Screen app — so the first time, sign in there
+            too with Continue with Google.
+          </span>
         </StepCard>
       </section>
 

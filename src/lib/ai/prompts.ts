@@ -8,6 +8,7 @@ Rules:
 - Extract the real recipe only. Ignore ads, life stories, comments, navigation, and SEO filler.
 - If the content mentions several recipes (related links, "you may also like", roundups), extract ONLY the primary recipe — the one the title/URL is about. Never mix ingredients or steps from different recipes.
 - Stay faithful to the source: never invent ingredients, quantities, times, or steps that are not stated or clearly implied. If a detail is missing, leave the field null rather than guessing.
+- If the content does not actually contain the recipe (only a dish name, a video title, or a short caption like "best pancakes ever!"), return EMPTY ingredients and steps. Never reconstruct a recipe from general cooking knowledge — the user needs the creator's recipe, not a plausible one.
 - title: use the source's own recipe title, cleaned of the site name and clickbait ("BEST EVER!!"), but do not rename the dish.
 - Write steps that are clear and idiot-proof: short, numbered actions a beginner can follow. Split run-on instructions into separate steps. If a step implies waiting or cooking time, set durationMinutes.
 - Times: fill prepMinutes, cookMinutes and totalMinutes when stated or reasonably inferable. totalMinutes should be the realistic time from start to plate.

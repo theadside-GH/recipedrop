@@ -2,12 +2,16 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Mail, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { safeRedirectPath } from "@/lib/auth-redirect";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
+// Email magic links are switched off: the link only signs in the browser it
+// opens in, and on iPhone that's Safari or Gmail's in-app browser — never the
+// Home Screen app — so it "didn't work". Google is the only sign-in until the
+// Supabase email template carries a typeable code (git history has the
+// link + code form, ready to restore).
 export function LoginForm({
   authEnabled,
   inviteOnly = false,
@@ -16,33 +20,10 @@ export function LoginForm({
   inviteOnly?: boolean;
 }) {
   const params = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const denied = params.get("denied");
   const next = safeRedirectPath(params.get("next"));
-
-  async function sendLink() {
-    if (!email.trim()) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const supabase = getBrowserSupabase();
-      const confirmUrl = new URL("/auth/confirm", window.location.origin);
-      if (next !== "/") confirmUrl.searchParams.set("next", next);
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: { emailRedirectTo: confirmUrl.toString() },
-      });
-      if (error) throw error;
-      setSent(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Couldn't send the magic link.");
-    } finally {
-      setBusy(false);
-    }
-  }
 
   async function signInWithGoogle() {
     setBusy(true);
@@ -72,7 +53,7 @@ export function LoginForm({
         Save recipes from TikTok, Instagram, YouTube, websites, photos, or pasted text,
         then get clean instructions and shopping lists.
       </p>
-      <p className="mt-1 text-muted">Sign in with a magic link — no password needed.</p>
+      <p className="mt-1 text-muted">Sign in with your Google account — no password needed.</p>
       {inviteOnly && (
         <p className="mt-2 text-sm text-muted">
           DishCovered is <strong className="font-medium text-foreground">invite-only</strong> right
@@ -86,53 +67,24 @@ export function LoginForm({
           Auth isn&apos;t configured. The app is running in local single-user mode — just
           go to the home page.
         </p>
-      ) : sent ? (
-        <p className="mt-6 rounded-xl border border-fresh/30 bg-fresh-soft p-4 text-sm text-fresh">
-          Check your email — we sent a sign-in link to <strong>{email}</strong>.
-        </p>
       ) : (
         <div className="mt-6 w-full space-y-3">
           {denied && (
             <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-              That sign-in link didn&apos;t work — it may have expired or already been used.
-              Enter your email below and we&apos;ll send you a fresh one.
+              That sign-in didn&apos;t go through — it may have expired or been opened in a
+              different browser. Try again below.
             </p>
           )}
-          <div className="grid gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={signInWithGoogle}
-              disabled={busy}
-              className="w-full"
-              size="lg"
-            >
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <Button type="button" onClick={signInWithGoogle} disabled={busy} className="w-full" size="lg">
+            {busy ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
               <span className="flex h-4 w-4 items-center justify-center rounded-sm bg-white text-xs font-bold text-stone-900">
                 G
               </span>
-              Continue with Google
-            </Button>
-          </div>
-          <div className="flex items-center gap-3 text-xs text-muted">
-            <span className="h-px flex-1 bg-border" />
-            or
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <div className="relative">
-            <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" />
-            <Input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendLink()}
-              placeholder="you@example.com"
-              className="pl-11"
-            />
-          </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button onClick={sendLink} disabled={busy} className="w-full" size="lg">
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Send magic link
+            )}
+            Continue with Google
           </Button>
         </div>
       )}
