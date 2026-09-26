@@ -45,6 +45,14 @@ export const env = {
   iosShortcutUrl: process.env.IOS_SHORTCUT_URL ?? "",
 
   /**
+   * ScrapingBee API key. When set, recipe pages that block cloud servers
+   * (Allrecipes and its sister sites answer Vercel with HTTP 402) are retried
+   * through residential proxies; when empty, those imports fail with "copy
+   * the recipe text instead" advice.
+   */
+  scrapingBeeApiKey: process.env.SCRAPINGBEE_API_KEY ?? "",
+
+  /**
    * Comma/space-separated emails allowed to use the app. When set, sign-in
    * stays open (Supabase handles it) but anyone not on the list lands on an
    * "invite only" page — protecting the shared AI key from strangers who find

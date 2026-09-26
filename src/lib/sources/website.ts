@@ -1,5 +1,6 @@
 import "server-only";
 import { readBodyCapped, safeFetch } from "@/lib/net/safe-fetch";
+import { fetchViaScraper } from "@/lib/net/scraper";
 import type { SourceContent } from "./types";
 
 const UA =
@@ -16,9 +17,19 @@ const CRAWLER_UA =
 const FETCH_TIMEOUT_MS = 10_000;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
 
-async function fetchHtml(url: string, ua = UA): Promise<string> {
+// How sites say "not you, robot": 402 is People Inc.'s (Allrecipes, Serious
+// Eats…) Cloudflare answer to cloud IPs, 460 is their answer to crawler UAs.
+const BLOCKED_STATUSES = new Set([401, 402, 403, 429, 451, 460]);
+
+type FetchHtmlOptions = {
+  /** Retry blocked pages through the paid scraper. Only for recipe pages the
+   *  user asked to import — not social posts or stand-in image searches. */
+  viaScraper?: boolean;
+};
+
+async function fetchHtml(url: string, ua = UA, options: FetchHtmlOptions = {}): Promise<string> {
   try {
-    return await fetchHtmlInner(url, ua);
+    return await fetchHtmlInner(url, ua, options);
   } catch (err) {
     // Surface timeouts as user-facing copy, not "TimeoutError: This operation
     // was aborted" in the import row.
@@ -31,7 +42,7 @@ async function fetchHtml(url: string, ua = UA): Promise<string> {
   }
 }
 
-async function fetchHtmlInner(url: string, ua: string): Promise<string> {
+async function fetchHtmlInner(url: string, ua: string, options: FetchHtmlOptions): Promise<string> {
   // safeFetch: imported URLs are user-supplied — never let one reach an
   // internal host (localhost, cloud metadata, LAN).
   let res = await safeFetch(url, {
@@ -47,10 +58,10 @@ async function fetchHtmlInner(url: string, ua: string): Promise<string> {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
   }
-  if (res.status === 403) {
-    throw new Error(
-      "This site blocks automated importers (HTTP 403). Open the recipe, copy its text, and use the \"Link / Text\" tab instead.",
-    );
+  if (isBlocked(res)) {
+    const scraped = options.viaScraper ? await fetchViaScraper(url) : null;
+    if (!scraped) throw new Error(blockedMessage(url));
+    res = scraped;
   }
   if (!res.ok) throw new Error(`Could not fetch the page (HTTP ${res.status}).`);
   const body = await readBodyCapped(res, MAX_HTML_BYTES);
@@ -58,6 +69,26 @@ async function fetchHtmlInner(url: string, ua: string): Promise<string> {
     throw new Error("That page is too large to import. Copy the recipe text and use the \"Link / Text\" tab instead.");
   }
   return body.toString("utf8");
+}
+
+function isBlocked(res: Response): boolean {
+  // Cloudflare's "Just a moment…" interstitial arrives as a 403 or 503 marked
+  // with this header — a challenge page, not the recipe.
+  return BLOCKED_STATUSES.has(res.status) || res.headers.get("cf-mitigated") === "challenge";
+}
+
+/** What to tell the user when a site refuses to serve its page to us. */
+function blockedMessage(url: string): string {
+  let site = "This site";
+  try {
+    site = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    // Keep the generic name.
+  }
+  return (
+    `${site} blocks recipe importers, so DishCovered can't open this link. ` +
+    `Open the recipe, copy the ingredients and steps, and paste them into the "Link / Text" tab — that works for any site.`
+  );
 }
 
 // Social video posts (Reels/TikToks) are login-walled, so Readability sees
@@ -432,7 +463,7 @@ export async function fetchWebsite(url: string): Promise<SourceContent> {
     }
     throw lastError;
   }
-  const html = await fetchHtml(url, UA);
+  const html = await fetchHtml(url, UA, { viaScraper: true });
 
   const pageImages = imagesFromHtml(html, url);
 
