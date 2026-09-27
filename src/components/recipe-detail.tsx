@@ -29,9 +29,8 @@ import { StarRating } from "@/components/star-rating";
 import { PrintButton } from "@/components/print-button";
 import { RecipePublicToggle } from "@/components/recipe-public-toggle";
 import { ShareLinkButton } from "@/components/share-link-button";
-import { cn, formatMinutes, formatQuantity } from "@/lib/utils";
-import { pluralize } from "@/lib/shopping/units";
-import { convertedAmount, type UnitSystem } from "@/lib/unit-display";
+import { cn, formatMinutes } from "@/lib/utils";
+import { ingredientAmount, type UnitSystem } from "@/lib/unit-display";
 import { useLocalSetting } from "@/lib/use-local-setting";
 import { deleteRecipeAction, repairRecipeAction, repairRecipeImageAction } from "@/app/actions";
 import type { Recipe, RecipeIngredient, Step } from "@/lib/db/schema";
@@ -401,7 +400,7 @@ export function RecipeDetail({
                         checked && "text-muted line-through opacity-60 print:no-underline print:opacity-100",
                       )}
                     >
-                      <span className="font-medium">{scaledAmount(ing, factor, unitSystem)}</span>{" "}
+                      <span className="font-medium">{ingredientAmount(ing, factor, unitSystem)}</span>{" "}
                       {displayName(ing)}
                       {ing.note && <span className="text-muted"> · {ing.note}</span>}
                     </span>
@@ -443,21 +442,4 @@ export function RecipeDetail({
 
 function displayName(ing: RecipeIngredient): string {
   return ing.canonicalName ?? ing.rawText;
-}
-
-/** Scaled, friendly amount for an ingredient line. */
-function scaledAmount(ing: RecipeIngredient, factor: number, system: UnitSystem): string {
-  if (ing.quantity == null) {
-    // no number — show the unit/qualifier as-is ("to taste", "a pinch")
-    return ing.unit ?? "";
-  }
-  if (system !== "original" && ing.unit) {
-    const converted = convertedAmount(ing.quantity * factor, ing.unit, system);
-    if (converted) return converted;
-  }
-  const scaled = ing.quantity * factor;
-  const qty = formatQuantity(scaled);
-  if (!ing.unit) return `${qty}×`;
-  const unit = ing.unitCategory === "count" ? pluralize(ing.unit, scaled) : ing.unit;
-  return `${qty} ${unit}`;
 }

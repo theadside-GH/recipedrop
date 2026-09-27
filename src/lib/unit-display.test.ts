@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { convertedAmount, kitchenFraction } from "./unit-display";
+import { convertedAmount, ingredientAmount, kitchenFraction } from "./unit-display";
 
 describe("kitchenFraction", () => {
   it("renders quarters, thirds, and mixed numbers", () => {
@@ -41,5 +41,26 @@ describe("convertedAmount", () => {
   it("keeps already-target-system units stable", () => {
     expect(convertedAmount(200, "g", "metric")).toBe("200 g");
     expect(convertedAmount(1, "cup", "us")).toBe("1 cup");
+  });
+});
+
+describe("ingredientAmount", () => {
+  const pasta = { quantity: 24, unit: "oz", unitCategory: "mass" };
+
+  it("shows the amount as written by default", () => {
+    expect(ingredientAmount(pasta, 1, "original")).toBe("24 oz");
+  });
+
+  it("converts to the chosen system (the recipe page and cook mode share this)", () => {
+    expect(ingredientAmount(pasta, 1, "us")).toBe("1 1/2 lb");
+    expect(ingredientAmount(pasta, 1, "metric")).toBe("680 g");
+  });
+
+  it("scales and pluralizes counts", () => {
+    expect(ingredientAmount({ quantity: 1, unit: "clove", unitCategory: "count" }, 2, "original")).toBe("2 cloves");
+  });
+
+  it("keeps qualifiers with no number", () => {
+    expect(ingredientAmount({ quantity: null, unit: "to taste", unitCategory: null }, 1, "us")).toBe("to taste");
   });
 });

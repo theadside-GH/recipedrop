@@ -4,6 +4,7 @@
  * and unparseable units are always shown as written.
  */
 import { normalizeUnit, pluralize } from "@/lib/shopping/units";
+import { formatQuantity } from "@/lib/utils";
 
 export type UnitSystem = "original" | "us" | "metric";
 
@@ -86,3 +87,30 @@ export function convertedAmount(
 }
 
 export { pluralize };
+
+/** The amount fields of an ingredient line — enough to display its quantity. */
+export interface IngredientAmount {
+  quantity: number | null;
+  unit: string | null;
+  unitCategory: string | null;
+}
+
+/**
+ * Scaled, friendly amount for an ingredient line in the chosen unit system.
+ * Shared by the recipe page and cook mode so both show the same numbers.
+ */
+export function ingredientAmount(ing: IngredientAmount, factor: number, system: UnitSystem): string {
+  if (ing.quantity == null) {
+    // no number — show the unit/qualifier as-is ("to taste", "a pinch")
+    return ing.unit ?? "";
+  }
+  if (system !== "original" && ing.unit) {
+    const converted = convertedAmount(ing.quantity * factor, ing.unit, system);
+    if (converted) return converted;
+  }
+  const scaled = ing.quantity * factor;
+  const qty = formatQuantity(scaled);
+  if (!ing.unit) return `${qty}×`;
+  const unit = ing.unitCategory === "count" ? pluralize(ing.unit, scaled) : ing.unit;
+  return `${qty} ${unit}`;
+}

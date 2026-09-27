@@ -1,3 +1,5 @@
+import { cache } from "react";
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -16,13 +18,28 @@ import { RecipeJournal } from "@/components/recipe-journal";
 
 export const dynamic = "force-dynamic";
 
+// One fetch shared between generateMetadata and the page render.
+const loadRecipe = cache(getRecipeFull);
+
+/** Name the browser tab after the dish — only for its owner (the page 404s for anyone else). */
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const [data, viewer] = await Promise.all([loadRecipe(id), getOwnerEmail()]);
+  if (!data || data.recipe.ownerEmail !== viewer) return {};
+  return { title: data.recipe.title };
+}
+
 export default async function RecipePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [data, viewer] = await Promise.all([getRecipeFull(id), getOwnerEmail()]);
+  const [data, viewer] = await Promise.all([loadRecipe(id), getOwnerEmail()]);
   if (!data) notFound();
   if (data.recipe.ownerEmail !== viewer) {
     // Not yours: show the public view (or nothing if it isn't shared).

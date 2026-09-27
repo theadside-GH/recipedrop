@@ -89,7 +89,7 @@ export default async function LibraryPage({
             {recipes.length} recipe{recipes.length === 1 ? "" : "s"} - search, sort & filter below
           </p>
         </div>
-        <div className="hidden items-center gap-2 sm:flex">
+        <div className="hidden items-center gap-2 md:flex">
           <Link href="/collections" title="Your collections">
             <Button variant="secondary">
               <BookMarked className="h-4 w-4" /> Collections
@@ -115,8 +115,9 @@ export default async function LibraryPage({
         </div>
       </div>
 
-      {/* Same actions for phones — the header row above is desktop-only. */}
-      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:hidden">
+      {/* Same actions below md — the header row above only fits from 768px (at
+          640–767 its four buttons pushed the page sideways). */}
+      <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 md:hidden">
         <Link href="/import" className="shrink-0">
           <Button size="sm">
             <PlusCircle className="h-4 w-4" /> Import

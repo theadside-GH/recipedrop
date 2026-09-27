@@ -139,6 +139,9 @@ export function SiteNav({
             )}
           </div>
           <div className="flex items-center gap-2">
+            {/* Seven labelled links need ~1000px; between the phone tab bar (sm)
+                and lg they'd overflow the header and scroll the whole page
+                sideways on tablets, so show icons only there. */}
             <nav className="hidden items-center gap-1 sm:flex">
               {links.map((l) => {
                 const active = l.match(pathname);
@@ -146,13 +149,15 @@ export function SiteNav({
                   <Link
                     key={l.href}
                     href={l.href}
+                    title={l.label}
+                    aria-label={l.label}
                     className={cn(
-                      "flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors",
+                      "flex items-center gap-2 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-colors xl:px-4",
                       active ? "bg-brand-soft text-brand" : "text-muted hover:bg-surface",
                     )}
                   >
                     <NavIcon link={l} active={active} className="h-4 w-4" avatarClassName="h-6 w-6 -my-1" avatarEnabled={showAvatar} />
-                    {l.label}
+                    <span className="hidden lg:inline">{l.label}</span>
                   </Link>
                 );
               })}

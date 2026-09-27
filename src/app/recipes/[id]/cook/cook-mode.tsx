@@ -15,6 +15,14 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ingredientAmount, type IngredientAmount, type UnitSystem } from "@/lib/unit-display";
+import { useLocalSetting } from "@/lib/use-local-setting";
+
+/** An ingredient line, already scaled to the chosen servings. */
+export interface CookIngredient extends IngredientAmount {
+  name: string;
+  note: string | null;
+}
 
 interface CookStep {
   number: number;
@@ -45,7 +53,7 @@ export function CookMode({
   editHref?: string;
   title: string;
   steps: CookStep[];
-  ingredients: { text: string; note: string | null }[];
+  ingredients: CookIngredient[];
   /** e.g. "Scaled for 6 servings" when cooking at a non-default size. */
   servingsNote?: string | null;
 }) {
@@ -340,12 +348,16 @@ export function CookMode({
   );
 }
 
-function IngredientList({ ingredients }: { ingredients: { text: string; note: string | null }[] }) {
+function IngredientList({ ingredients }: { ingredients: CookIngredient[] }) {
+  // Same unit setting as the recipe page's As written / US / Metric toggle.
+  const [unitSetting] = useLocalSetting("rd-units", "original");
+  const system: UnitSystem =
+    unitSetting === "us" || unitSetting === "metric" ? unitSetting : "original";
   return (
     <ul className="space-y-2">
       {ingredients.map((ing, idx) => (
         <li key={idx} className="rounded-xl border border-border bg-card p-3 text-sm">
-          {ing.text}
+          {`${ingredientAmount(ing, 1, system)} ${ing.name}`.trim()}
           {ing.note && <span className="text-muted"> - {ing.note}</span>}
         </li>
       ))}
