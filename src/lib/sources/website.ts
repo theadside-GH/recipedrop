@@ -63,6 +63,9 @@ async function fetchHtmlInner(url: string, ua: string, options: FetchHtmlOptions
     if (!scraped) throw new Error(blockedMessage(url));
     res = scraped;
   }
+  if (res.status === 404 || res.status === 410) {
+    throw new Error("That page doesn't exist anymore (HTTP 404). Check the link, or search the site for the recipe.");
+  }
   if (!res.ok) throw new Error(`Could not fetch the page (HTTP ${res.status}).`);
   const body = await readBodyCapped(res, MAX_HTML_BYTES);
   if (body === null) {
@@ -294,6 +297,21 @@ function fetchSocialCaption(html: string, url: string): SourceContent {
   };
 }
 
+/**
+ * JSON.parse that forgives raw control characters. Food52 (and plenty of CMS
+ * templates) put literal newlines and tabs inside JSON-LD strings — invalid
+ * JSON that browsers and Google shrug off — and a strict parse threw away the
+ * whole recipe. Outside strings those characters are just whitespace, so
+ * swapping them for spaces changes nothing else.
+ */
+function parseLenientJson(raw: string): unknown {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return JSON.parse(raw.replace(/[\u0000-\u001f]+/g, " "));
+  }
+}
+
 /** Collect every JSON-LD block, flattening @graph arrays. */
 function collectJsonLd(html: string): unknown[] {
   const nodes = html.match(
@@ -307,7 +325,7 @@ function collectJsonLd(html: string): unknown[] {
       .trim();
     if (!raw) continue;
     try {
-      const parsed = JSON.parse(raw);
+      const parsed = parseLenientJson(raw);
       const arr = Array.isArray(parsed) ? parsed : [parsed];
       for (const entry of arr) {
         const e = entry as Record<string, unknown>;

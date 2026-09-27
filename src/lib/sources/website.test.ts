@@ -50,6 +50,13 @@ describe("fetchWebsite on a site that blocks cloud IPs", () => {
     );
   });
 
+  it("reports a missing page as missing, not as blocked", async () => {
+    safeFetch.mockResolvedValue(blocked());
+    fetchViaScraper.mockResolvedValue(new Response("Not found", { status: 404 }));
+
+    await expect(fetchWebsite(URL_)).rejects.toThrow(/^That page doesn't exist anymore/);
+  });
+
   it("treats a Cloudflare challenge page as blocked", async () => {
     safeFetch.mockResolvedValue(
       new Response("Just a moment...", { status: 503, headers: { "cf-mitigated": "challenge" } }),
@@ -57,6 +64,22 @@ describe("fetchWebsite on a site that blocks cloud IPs", () => {
     fetchViaScraper.mockResolvedValue(null);
 
     await expect(fetchWebsite(URL_)).rejects.toThrow(/blocks recipe importers/);
+  });
+
+  it("reads JSON-LD with raw newlines inside strings (Food52)", async () => {
+    const food52 = `<html><head><script type="application/ld+json">{
+      "@type": "Recipe",
+      "name": "Greek Chicken Thighs With White Beans",
+      "recipeIngredient": ["8 bone-in chicken thighs", "2 cans white beans"],
+      "recipeInstructions": "Heat the oven.\n\tSear the chicken.\nAdd the beans and bake."
+    }</script></head><body></body></html>`; // the \n and \t land in the JSON string as raw characters
+    safeFetch.mockResolvedValue(new Response(food52, { status: 200 }));
+
+    const content = await fetchWebsite("https://food52.com/recipes/85196-greek-style-chicken-thighs-recipe");
+
+    expect(content.text).toContain("Title: Greek Chicken Thighs With White Beans");
+    expect(content.text).toContain("- 8 bone-in chicken thighs");
+    expect(content.text).toContain("Sear the chicken.");
   });
 
   it("never touches the scraper when the page loads normally", async () => {
