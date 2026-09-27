@@ -3,9 +3,12 @@ import { env } from "@/lib/env";
 
 // Premium (residential) proxies route through a real ISP address and can take
 // a while; the import runs in a background job, so a slow success still beats
-// a fast "this site blocks us". Stealth mode drives a real browser — slower.
+// a fast "this site blocks us". Stealth mode drives a real browser: ~60-85s
+// for The Woks of Life, so 90s timed out on prod — allow ScrapingBee's own
+// 140s cap. Worst case (direct tries + both tiers + AI) stays well inside the
+// import page's 300s maxDuration.
 const SCRAPER_TIMEOUT_MS = 45_000;
-const STEALTH_TIMEOUT_MS = 90_000;
+const STEALTH_TIMEOUT_MS = 140_000;
 
 /** True when a paid fetch fallback is configured (SCRAPINGBEE_API_KEY). */
 export function scraperEnabled(): boolean {
@@ -18,7 +21,13 @@ export function scraperEnabled(): boolean {
 // mode — a real browser on a residential IP — gets through for 75 credits.
 const TIERS: Array<{ name: string; params: Record<string, string>; timeoutMs: number }> = [
   { name: "premium", params: { render_js: "false", premium_proxy: "true" }, timeoutMs: SCRAPER_TIMEOUT_MS },
-  { name: "stealth", params: { render_js: "true", stealth_proxy: "true" }, timeoutMs: STEALTH_TIMEOUT_MS },
+  {
+    name: "stealth",
+    // JSON-LD is in the initial HTML: return at DOMContentLoaded instead of
+    // waiting for every ad and image to settle (84s → 57s on Woks of Life).
+    params: { render_js: "true", stealth_proxy: "true", wait_browser: "domcontentloaded", block_ads: "true" },
+    timeoutMs: STEALTH_TIMEOUT_MS,
+  },
 ];
 
 /**
