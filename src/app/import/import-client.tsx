@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import Link from "next/link";
 import {
   AlertCircle,
@@ -26,19 +26,20 @@ import {
   startImport,
   runImportJob,
   pollImportJobs,
-  importPhotos,
+  startPhotoImport,
   clearImportHistoryAction,
   setRecipeImageAction,
   type JobView,
 } from "@/app/actions";
-import type { ImageInput } from "@/lib/ai/extract";
-import { imageFileToDataUrl } from "@/lib/client-image";
+import { imageFileToDataUrl, prepareRecipeImages } from "@/lib/client-image";
 import { splitBulkInput } from "@/lib/sources/detect";
 
 type Tab = "link" | "bulk" | "photo";
 
 /** Server-side cap on one bulk paste (see lib/repo/imports.ts MAX_BULK_ITEMS). */
 const MAX_BULK_ITEMS = 20;
+/** Pages of one recipe per photo import. */
+const MAX_PHOTOS = 5;
 
 // Import jobs run server-side; the client polls for their result. ~5 min max.
 const POLL_INTERVAL_MS = 2500;
@@ -72,6 +73,7 @@ export function ImportClient({
   initialJobs = [],
   aiRemaining = null,
   aiWindowLabel = "week",
+  shared = null,
 }: {
   aiEnabled: boolean;
   initialJobs?: JobView[];
@@ -80,8 +82,10 @@ export function ImportClient({
   /** The tier's metering window ("week" for Free, "day" for Pro) — quota copy
    *  must match it, not assume daily. */
   aiWindowLabel?: string;
+  /** Set when the Android share sheet sent photos here (see public/sw.js). */
+  shared?: "photos" | "photos-missed" | null;
 }) {
-  const [tab, setTab] = useState<Tab>("link");
+  const [tab, setTab] = useState<Tab>(shared ? "photo" : "link");
   // Live copy of the allowance — refreshed from the server after every
   // run so the hints don't keep advertising the page-load number.
   const [aiLeft, setAiLeft] = useState(aiRemaining);
@@ -95,7 +99,9 @@ export function ImportClient({
   const [hideSkipped, setHideSkipped] = useState(false);
   const [copiedFailed, setCopiedFailed] = useState(false);
   const [photoBusy, setPhotoBusy] = useState(false);
-  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(
+    shared === "photos-missed" ? "The shared photo didn't come through. Pick it here instead." : null,
+  );
   const [singleImagePath, setSingleImagePath] = useState("");
   const [singleImageError, setSingleImageError] = useState<string | null>(null);
   const [confirmingClear, setConfirmingClear] = useState(false);
@@ -260,45 +266,53 @@ export function ImportClient({
     await clearImportHistoryAction();
   }
 
-  async function handlePhotos(files: FileList | null) {
-    if (!files || !files.length) return;
+  async function handlePhotos(fileList: FileList | File[] | null) {
+    const files = Array.from(fileList ?? []).filter((file) => file.type.startsWith("image/") || !file.type);
+    if (!files.length || photoBusy || !aiEnabled) return;
+    setTab("photo");
     setPhotoBusy(true);
     setPhotoError(null);
     try {
-      const images: ImageInput[] = [];
-      for (const file of Array.from(files).slice(0, 5)) {
-        // Downscale + re-encode as JPEG client-side: full-size phone photos
-        // blow past the 4 MB server-action body limit, and odd formats (HEIC)
-        // either convert here or fail with a clear message instead of a 500.
-        let dataUrl: string;
-        try {
-          dataUrl = await imageFileToDataUrl(file, { maxSize: 1400, quality: 0.78 });
-        } catch {
-          throw new Error(
-            `Couldn't read "${file.name}" — that photo format isn't supported by your browser. Try a JPG or PNG, or take a screenshot of it.`,
-          );
-        }
-        images.push({ mediaType: "image/jpeg", data: dataUrl.split(",")[1] ?? "" });
+      if (files.length > MAX_PHOTOS) {
+        throw new Error(`Up to ${MAX_PHOTOS} photos per recipe — pick the pages with the ingredients and steps.`);
       }
-      const { recipeId } = await importPhotos(images);
-      setJobs((prev) => [
-        {
-          id: recipeId,
-          label: "Photo import",
-          rawInput: null,
-          sourceType: "photo",
-          status: "done",
-          error: null,
-          recipeId,
-        },
-        ...prev,
-      ]);
+      // Full-resolution JPEGs, long screenshots tiled — see prepareRecipeImages.
+      const images = await prepareRecipeImages(files);
+      const { jobs: created } = await startPhotoImport(images);
+      setJobs((prev) => [...created, ...prev]);
+      setPhotoBusy(false);
+      await runJobs(created.filter((job) => job.status === "pending"));
     } catch (err) {
       setPhotoError(err instanceof Error ? err.message : "Photo import failed.");
     } finally {
       setPhotoBusy(false);
     }
   }
+
+  // Paste a screenshot anywhere on the page (Ctrl/Cmd+V) to import it.
+  const onPasteImage = useEffectEvent((event: ClipboardEvent) => {
+    const files = Array.from(event.clipboardData?.files ?? []).filter((file) =>
+      file.type.startsWith("image/"),
+    );
+    if (!files.length) return;
+    event.preventDefault();
+    void handlePhotos(files);
+  });
+  useEffect(() => {
+    window.addEventListener("paste", onPasteImage);
+    return () => window.removeEventListener("paste", onPasteImage);
+  }, []);
+
+  // Photos shared from the Android share sheet: public/sw.js parks them in a
+  // cache inbox and sends us here with ?shared=photos.
+  const onSharedPhotos = useEffectEvent((files: File[]) => {
+    if (files.length) void handlePhotos(files);
+  });
+  useEffect(() => {
+    if (!shared) return;
+    window.history.replaceState(null, "", "/import");
+    if (shared === "photos") void takeSharedPhotos().then(onSharedPhotos);
+  }, [shared]);
 
   return (
     <div className="space-y-5">
@@ -426,15 +440,22 @@ export function ImportClient({
       {tab === "photo" && (
         <div className="space-y-3">
           <label
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={(event) => {
+              event.preventDefault();
+              void handlePhotos(event.dataTransfer.files);
+            }}
             className={cn(
               "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-border bg-surface px-6 py-12 text-center transition-colors hover:border-brand",
-              !aiEnabled && "pointer-events-none opacity-50",
+              (!aiEnabled || photoBusy) && "pointer-events-none opacity-50",
             )}
           >
             <ImageIcon className="h-8 w-8 text-muted" />
             <span className="font-medium">Upload a photo or screenshot</span>
             <span className="text-xs text-muted">
-              A recipe card, a cookbook page, or a screenshot — up to 5 images
+              A recipe card, a cookbook page, handwriting, or a long scrolling screenshot. Up to{" "}
+              {MAX_PHOTOS} photos of the same recipe. On a computer you can also drop or paste
+              (Ctrl/Cmd+V) a screenshot here.
             </span>
             <input
               type="file"
@@ -442,12 +463,16 @@ export function ImportClient({
               multiple
               className="hidden"
               disabled={!aiEnabled || photoBusy}
-              onChange={(e) => handlePhotos(e.target.files)}
+              onChange={(e) => {
+                void handlePhotos(e.target.files);
+                e.target.value = ""; // let the same photo be picked again after an error
+              }}
             />
           </label>
           {photoBusy && (
             <p className="flex items-center justify-center gap-2 text-sm text-muted">
-              <Loader2 className="h-4 w-4 animate-spin" /> Reading your recipe…
+              <Loader2 className="h-4 w-4 animate-spin" /> Reading your photo, which takes about
+              15 seconds…
             </p>
           )}
           {photoError && <p className="text-sm text-red-600">{photoError}</p>}
@@ -583,6 +608,26 @@ function dedupeBulkPreview<T extends { type: string; value: string }>(items: T[]
     seen.add(key);
     return true;
   });
+}
+
+/** Read (and empty) the share-sheet photo inbox that public/sw.js fills. */
+async function takeSharedPhotos(): Promise<File[]> {
+  if (!("caches" in window)) return [];
+  try {
+    const inbox = await caches.open("dishcovered-share-inbox");
+    const files: File[] = [];
+    for (const request of await inbox.keys()) {
+      const response = await inbox.match(request);
+      if (!response) continue;
+      const blob = await response.blob();
+      const name = decodeURIComponent(response.headers.get("x-file-name") ?? "shared-photo");
+      files.push(new File([blob], name, { type: blob.type || "image/jpeg" }));
+    }
+    await caches.delete("dishcovered-share-inbox");
+    return files;
+  } catch {
+    return [];
+  }
 }
 
 /** Duplicate-skip rows, as opposed to partial imports that need finishing. */

@@ -138,10 +138,12 @@ export const features = {
   },
 } as const;
 
-// Model routing — latest Claude models (see CLAUDE knowledge: Opus 4.8 / Sonnet 4.6 / Haiku 4.5)
+// Model routing.
 export const MODELS = {
   /** Cheap, fast text extraction (JSON-LD normalize, pasted text, transcripts). */
   text: "claude-haiku-4-5-20251001",
-  /** Vision extraction from photos/screenshots and hard segmentation tasks. */
-  vision: "claude-sonnet-4-6",
+  /** Reads recipe photos/screenshots into text. Opus 5 takes images up to
+   *  2576px on the long edge (Sonnet 4.6 capped at 1568px, which blurred
+   *  small print) and is the strongest document reader. ~$0.03 per scan. */
+  vision: "claude-opus-5",
 } as const;

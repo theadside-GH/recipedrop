@@ -3,7 +3,7 @@ import { claimJob, getJob, updateJob as updateOwnedJob, type ImportJobRow } from
 import { fetchWebsite } from "@/lib/sources/website";
 import { fetchYoutube } from "@/lib/sources/youtube";
 import type { SourceContent } from "@/lib/sources/types";
-import { extractRecipe, type ImageInput } from "@/lib/ai/extract";
+import { extractRecipe, transcribeRecipeImages, type ImageInput } from "@/lib/ai/extract";
 import { findStandInImage } from "@/lib/ai/image-search";
 import { recordAiUse } from "@/lib/entitlements";
 import { pickWorkingImage } from "@/lib/import/images";
@@ -29,6 +29,9 @@ function extractionAdvice(sourceType: ImportJobRow["sourceType"], rawInput: stri
       'copy the full recipe text (or type what you see in the video) into the "Link / Text" tab.'
     );
   }
+  if (sourceType === "photo") {
+    return "Try a sharper, well-lit photo with the whole recipe in frame — or add the page with the rest of it (up to 5 photos per import).";
+  }
   if (sourceType === "text") {
     return "That text doesn't look like a full recipe — paste the ingredients and the steps together, or write it in by hand via New recipe.";
   }
@@ -42,6 +45,8 @@ async function loadSource(job: ImportJobRow): Promise<SourceContent> {
     case "youtube":
       return fetchYoutube(job.rawInput);
     case "text":
+    case "photo":
+      // Photo jobs hold the transcription made when the photo was uploaded.
       return { text: job.rawInput };
     default:
       throw new Error(`Unsupported source type: ${job.sourceType}`);
@@ -77,9 +82,9 @@ export async function runClaimedJob(
     updateOwnedJob(ownerEmail, id, patch);
 
   try {
-    const sourceKey =
-      job.sourceType === "text" ? null : await resolveSourceKey(job.rawInput);
-    if (job.sourceType !== "text") {
+    const linked = job.sourceType === "url" || job.sourceType === "youtube";
+    const sourceKey = linked ? await resolveSourceKey(job.rawInput) : null;
+    if (linked) {
       const duplicate = await findDuplicateRecipeBySource({
         ownerEmail: job.ownerEmail,
         sourceUrl: job.rawInput,
@@ -96,7 +101,8 @@ export async function runClaimedJob(
 
     const content = await loadSource(job);
     const known = await getKnownCanonicalNames();
-    await recordAiUse(ownerEmail, "import");
+    // Photo jobs were metered when the photo was read (transcribePhotos).
+    if (job.sourceType !== "photo") await recordAiUse(ownerEmail, "import");
     const extraction = await extractRecipe({
       text: content.text,
       knownCanonical: known,
@@ -141,7 +147,7 @@ export async function runClaimedJob(
     }
     const duplicate = await findDuplicateRecipe({
       ownerEmail: job.ownerEmail,
-      sourceUrl: job.sourceType === "text" ? null : job.rawInput,
+      sourceUrl: linked ? job.rawInput : null,
       sourceKey,
       title: extraction.title,
     });
@@ -157,7 +163,7 @@ export async function runClaimedJob(
     }
     const recipeId = await createRecipeFromExtraction(job.ownerEmail, extraction, {
       sourceType: job.sourceType,
-      sourceUrl: job.sourceType === "text" ? null : job.rawInput,
+      sourceUrl: linked ? job.rawInput : null,
       sourceKey,
     });
     if (partial) {
@@ -209,6 +215,13 @@ function friendlyImportError(err: unknown): string {
   if (/^failed query|econnre|etimedout|fetch failed|connection|timeout/i.test(raw)) {
     return "A temporary glitch on our side stopped this import — the link itself is fine. Press Retry.";
   }
+  if (/overloaded|rate.?limit|\b(429|500|502|503|529)\b/i.test(raw)) {
+    return "The recipe reader is busy right now. Press Retry in a minute.";
+  }
+  if (/structured output|invalid_value|validation/i.test(raw)) {
+    // Model output that didn't fit the recipe shape; a rerun almost always does.
+    return "DishCovered tripped over this recipe's layout. Press Retry, which usually fixes it.";
+  }
   return raw;
 }
 
@@ -227,25 +240,25 @@ export function hasUsefulRecipeDetails(extraction: RecipeExtraction): boolean {
 }
 
 /**
- * Process a photo import directly (images aren't stored as job rawInput). Used
- * by the photo import action; returns the created recipe id.
+ * Read recipe photos into text (the only vision step of a photo import). The
+ * transcript becomes a photo job's input, which then runs through runClaimedJob
+ * exactly like pasted text. Throws a user-facing message when the photos hold
+ * no written recipe.
  */
-export async function processPhotoImport(
+export async function transcribePhotos(
   ownerEmail: string,
   images: ImageInput[],
-): Promise<string> {
-  const known = await getKnownCanonicalNames();
+): Promise<{ title: string | null; text: string }> {
   await recordAiUse(ownerEmail, "photo");
-  const extraction = await extractRecipe({ images, knownCanonical: known });
-  if (!hasUsefulRecipeDetails(extraction)) {
+  const read = await transcribeRecipeImages(images);
+  const text = read.text.trim();
+  if (!read.hasRecipeText || text.length < 20) {
+    const what = read.shows.trim().replace(/\.$/, "");
     throw new Error(
-      `DishCovered read the image${images.length === 1 ? "" : "s"} but ` +
-        `${describeExtractionGaps(extraction)}. Try a sharper photo, or include the page with the missing part.`,
+      `That looks like ${what || "a photo without a written recipe"}, so there's no recipe to read and DishCovered didn't guess one. ` +
+        "Photograph the recipe card or page, or screenshot the ingredients and steps. " +
+        "For a TikTok or Instagram post, paste its link in the Link / Text tab instead.",
     );
   }
-  // Photo imports rarely carry a usable dish photo — find a stand-in by title.
-  extraction.imageUrl =
-    (await pickWorkingImage([extraction.imageUrl])) ??
-    (await findStandInImage(extraction.title));
-  return createRecipeFromExtraction(ownerEmail, extraction, { sourceType: "photo" });
+  return { title: read.title?.trim() || null, text };
 }

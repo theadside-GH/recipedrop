@@ -11,7 +11,7 @@ export type ImportJobRow = typeof importJob.$inferSelect;
 const MAX_BULK_ITEMS = 20;
 
 function labelFor(type: SourceType, value: string): string {
-  if (type === "text") {
+  if (type === "text" || type === "photo") {
     const firstLine = value.split("\n").find((l) => l.trim().length > 0) ?? value;
     return firstLine.trim().slice(0, 80);
   }

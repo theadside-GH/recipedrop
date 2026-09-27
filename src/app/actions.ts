@@ -35,6 +35,7 @@ import {
 import { updateProfile, type ProfileInput } from "@/lib/repo/profiles";
 import { persistImage } from "@/lib/storage";
 import { randomUUID } from "node:crypto";
+import Anthropic from "@anthropic-ai/sdk";
 import {
   createPlan,
   addRecipeToPlan,
@@ -231,13 +232,45 @@ export async function joinProWaitlistAction(
   }
 }
 
-/** Import one or more recipe photos directly (vision). Returns the new recipe id. */
-export async function importPhotos(images: ImageInput[]): Promise<{ recipeId: string }> {
-  const owner = await getOwnerEmail();
-  const { processPhotoImport } = await import("@/lib/import/process");
-  const recipeId = await processPhotoImport(owner, images);
-  revalidatePath("/recipes");
-  return { recipeId };
+/**
+ * Start a photo import: read the photos into text now (the vision step), then
+ * hand back a normal pending job that the client runs + polls exactly like a
+ * pasted recipe. Never throws — production masks thrown server-action errors,
+ * so failures come back as a failed job row carrying the real message.
+ */
+export async function startPhotoImport(images: ImageInput[]): Promise<{ jobs: JobView[] }> {
+  const label = "Photo import";
+  try {
+    if (!images.length || images.length > MAX_PHOTO_IMAGES) {
+      return { jobs: [failedJob(label, "That's too many photos for one recipe — send up to 5.", "photo")] };
+    }
+    const owner = await getOwnerEmail();
+    const { transcribePhotos } = await import("@/lib/import/process");
+    const read = await transcribePhotos(owner, images);
+    // The job label is the transcript's first line, so lead with the title.
+    const value =
+      read.title && !read.text.startsWith(read.title) ? `${read.title}\n${read.text}` : read.text;
+    const job = await createSingleJob(owner, "photo", value);
+    return { jobs: [toView(job)] };
+  } catch (error) {
+    console.error("Photo import failed", error);
+    return { jobs: [failedJob(label, photoErrorMessage(error), "photo")] };
+  }
+}
+
+/** Long screenshots arrive as several tiles, so this is tiles, not photos. */
+const MAX_PHOTO_IMAGES = 12;
+
+function photoErrorMessage(error: unknown): string {
+  if (error instanceof Anthropic.APIError) {
+    return error.status === 429 || (error.status ?? 0) >= 500
+      ? "The photo reader is busy right now — try again in a minute."
+      : "DishCovered couldn't read that photo. Try a JPG or PNG screenshot of the recipe.";
+  }
+  const message = error instanceof Error ? error.message : "";
+  // Our own messages (quota, sign-in, "not a written recipe") are user-facing.
+  if (/sign in|invite|plan|allowance|limit|DishCovered/i.test(message)) return message;
+  return "Something went wrong reading that photo. Try again.";
 }
 
 // ---- Recipes --------------------------------------------------------------

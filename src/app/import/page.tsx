@@ -17,7 +17,12 @@ export const maxDuration = 300;
 
 export const metadata = { title: "Import recipes" };
 
-export default async function ImportPage() {
+export default async function ImportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ shared?: string }>;
+}) {
+  const { shared } = await searchParams;
   const recentJobs = await getRecentImportViews();
   const usage = features.aiEnabled ? await getAiUsageSafe() : null;
 
@@ -70,6 +75,7 @@ export default async function ImportPage() {
         // Founders are unmetered — pass null so the quota hints stay silent.
         aiRemaining={usage && !usage.unlimited ? Math.max(0, usage.limit - usage.used) : null}
         aiWindowLabel={usage?.windowLabel ?? "week"}
+        shared={shared === "photos" || shared === "photos-missed" ? shared : null}
       />
       <PaprikaImport />
     </div>

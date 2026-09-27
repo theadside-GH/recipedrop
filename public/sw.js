@@ -14,9 +14,12 @@
 // pages must not outlive the session on a shared device).
 // v6: redirected navigations no longer misfire the offline fallback; bump so
 // any page cache holding a wrongly-stored /offline body is retired.
-const STATIC_CACHE = "dishcovered-static-v6";
-const PAGE_CACHE = "dishcovered-pages-v6";
-const KEEP = [STATIC_CACHE, PAGE_CACHE];
+// v7: the share target became POST so photos can be shared in; shared images
+// wait in SHARE_INBOX until /import picks them up.
+const STATIC_CACHE = "dishcovered-static-v7";
+const PAGE_CACHE = "dishcovered-pages-v7";
+const SHARE_INBOX = "dishcovered-share-inbox";
+const KEEP = [STATIC_CACHE, PAGE_CACHE, SHARE_INBOX];
 const PAGE_CACHE_MAX_ENTRIES = 30;
 
 const CORE_ASSETS = [
@@ -118,12 +121,46 @@ self.addEventListener("message", (event) => {
   }
 });
 
+// Android share sheet → DishCovered (manifest share_target, POST). Photos wait
+// in SHARE_INBOX for /import?shared=photos to read them into a photo import;
+// links and text go to the existing /share page. (Without this worker the
+// POST reaches src/app/share-target/route.ts, which handles links and text.)
+async function receiveShare(request) {
+  const form = await request.formData();
+  const photos = form.getAll("photos").filter((file) => file instanceof File && file.size > 0);
+  if (photos.length) {
+    await caches.delete(SHARE_INBOX);
+    const inbox = await caches.open(SHARE_INBOX);
+    await Promise.all(
+      photos.slice(0, 5).map((file, i) =>
+        inbox.put(
+          `/share-inbox/${i}`,
+          new Response(file, {
+            headers: { "content-type": file.type || "image/jpeg", "x-file-name": encodeURIComponent(file.name) },
+          }),
+        ),
+      ),
+    );
+    return Response.redirect(new URL("/import?shared=photos", self.location.origin).href, 303);
+  }
+  const params = new URLSearchParams();
+  for (const key of ["title", "text", "url"]) {
+    const value = form.get(key);
+    if (typeof value === "string" && value.trim()) params.set(key, value);
+  }
+  return Response.redirect(new URL(`/share?${params}`, self.location.origin).href, 303);
+}
+
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "GET") return;
-
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  if (request.method === "POST" && url.pathname === "/share-target") {
+    event.respondWith(receiveShare(request));
+    return;
+  }
+  if (request.method !== "GET") return;
 
   // Page loads (address bar, home-screen launch, reloads).
   if (request.mode === "navigate") {

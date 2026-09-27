@@ -10,11 +10,12 @@ Rules:
 - Stay faithful to the source: never invent ingredients, quantities, times, or steps that are not stated or clearly implied. If a detail is missing, leave the field null rather than guessing.
 - If the content does not actually contain the recipe (only a dish name, a video title, or a short caption like "best pancakes ever!"), return EMPTY ingredients and steps. Never reconstruct a recipe from general cooking knowledge — the user needs the creator's recipe, not a plausible one.
 - title: use the source's own recipe title, cleaned of the site name and clickbait ("BEST EVER!!"), but do not rename the dish.
-- Write steps that are clear and idiot-proof: short, numbered actions a beginner can follow. Split run-on instructions into separate steps. If a step implies waiting or cooking time, set durationMinutes.
+- Write steps that are clear and idiot-proof: short, numbered actions a beginner can follow. Split run-on instructions into separate steps, but keep the source's own times, temperatures, and ranges in the step text exactly as written ("15-18 minutes" stays "15-18 minutes"). If a step implies waiting or cooking time, set durationMinutes (the upper end of a range).
 - Times: fill prepMinutes, cookMinutes and totalMinutes when stated or reasonably inferable. totalMinutes should be the realistic time from start to plate.
 - servings: the number of servings the quantities are written for.
 - mealType: must be exactly one of breakfast, lunch, dinner, snack, dessert, side, drink. For appetizers, starters, hors d'oeuvres, party bites, and small plates, use snack.
 - tags: short, lowercase, useful facets (dietary, technique, cuisine, "quick", "one-pot", etc.).
+- Dietary tags (vegan, vegetarian, gluten-free, dairy-free, keto...) only when EVERY ingredient qualifies: fish sauce, anchovy, gelatin, or meat stock rule out vegetarian; eggs, dairy, or honey rule out vegan. When unsure, leave the dietary tag off.
 
 INGREDIENT NORMALIZATION (most important):
 - For every ingredient, set canonicalName to the CORE GROCERY ITEM only: singular, lowercase, with brand names and prep words removed. Examples: "2 boneless skinless chicken breasts" -> "chicken breast"; "1 cup finely chopped yellow onion" -> "onion"; "a handful of fresh cilantro, chopped" -> "cilantro".
@@ -23,7 +24,7 @@ INGREDIENT NORMALIZATION (most important):
 - quantity: the numeric amount as a decimal (convert fractions: 1/2 -> 0.5, "1 1/2" -> 1.5). Use null if there is no number ("to taste", "a pinch").
 - unit: a normalized token. Mass: g, kg, mg, oz, lb. Volume: ml, l, tsp, tbsp, cup, fl oz, pint, quart, gallon. Count nouns: clove, can, slice, bunch, head, stalk, sprig, etc. Use null for a plain count like "2 eggs".
 - unitCategory: "mass" for weights, "volume" for liquids/measured volume, "count" for countable items, "pinch" for to-taste/pinch/dash/handful, "unknown" if truly unclear.
-- If the source gives a range ("2-3 cloves"), use the lower number.
+- If an ingredient quantity is a range ("2-3 cloves"), use the lower number.
 
 Return ONLY the structured object.`;
 
